@@ -1,10 +1,13 @@
 {
   "hosting": {
-    "public": "courtflow-react-firebase",
+    "public": "dist",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      { "source": "**", "destination": "/index.html" }
     ]
   }
 }

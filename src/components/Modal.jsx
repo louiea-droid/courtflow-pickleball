@@ -1,7 +1,8 @@
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export default function Modal({ title, label, close, children }) {
-  return (
+  return createPortal(
     <div className="backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div className="modal">
         <div className="modaltop">
@@ -15,6 +16,7 @@ export default function Modal({ title, label, close, children }) {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -14,7 +14,7 @@ export default function Topbar({ tab, onOpenMenu, onShare }) {
       </div>
       <div className="actions">
         <PhClock />
-        <button className="outline" onClick={onShare}><Share2 /> Share Live Board</button>
+        <button className="outline" onClick={onShare}><Share2 /> Share<span className="share-btn-full"> Live Board</span></button>
       </div>
     </header>
   );

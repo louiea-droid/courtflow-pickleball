@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
+import { skillLevelLabel } from "../utils/courtLevels";
 
 export default function StarRating({ value, onChange, max = 6 }) {
   const [hover, setHover] = useState(0);
@@ -22,7 +23,7 @@ export default function StarRating({ value, onChange, max = 6 }) {
           <Star fill={n <= display ? "currentColor" : "none"} />
         </button>
       ))}
-      <span className="star-rating-value">{value}/{max}</span>
+      <span className="star-rating-value">{skillLevelLabel(value)}</span>
     </div>
   );
 }

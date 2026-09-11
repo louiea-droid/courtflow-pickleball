@@ -1,5 +1,9 @@
-import { LayoutDashboard, ListOrdered, Users, Trophy, Plus, CircleDot, X } from "lucide-react";
+import {
+  LayoutDashboard, ListOrdered, Users, Trophy, Plus, Pencil, CircleDot, X,
+  PanelLeftClose, PanelLeftOpen,
+} from "lucide-react";
 import { NAV_ITEMS } from "../data/constants";
+import ModeSelect from "./ModeSelect";
 
 const ICONS = {
   dashboard: LayoutDashboard,
@@ -10,29 +14,27 @@ const ICONS = {
 
 function Nav({ icon: Icon, label, active, onClick }) {
   return (
-    <button onClick={onClick} className={`nav ${active ? "active" : ""}`}>
+    <button onClick={onClick} className={`nav ${active ? "active" : ""}`} title={label}>
       <Icon />
       <span>{label}</span>
     </button>
   );
 }
 
-export default function Sidebar({ session, tab, onSelectTab, onNewSession, open, onClose }) {
+export default function Sidebar({
+  session, courtCount, mode, onChangeMode, tab, onSelectTab, onNewSession, onEditSession,
+  open, onClose, collapsed, onToggleCollapse,
+}) {
   return (
     <>
       <div className={`overlay ${open ? "show" : ""}`} onClick={onClose} />
-      <aside className={`sidebar ${open ? "open" : ""}`}>
+      <aside className={`sidebar ${open ? "open" : ""} ${collapsed ? "collapsed" : ""}`}>
         <div className="sidebar-top">
           <div className="brand">
-            <div className="mark">C</div>
-            <div><b>CourtFlow</b><small>Pickleball Queue</small></div>
+            <img className="mark" src="/images/courtflow.png" alt="" />
+            <img className="wordmark-whole" src="/images/name whole.png" alt="CourtFlow — Pickleball Queue" />
           </div>
           <button className="icon sidebar-close" onClick={onClose} aria-label="Close menu"><X /></button>
-        </div>
-
-        <div className="session">
-          <CircleDot size={13} />
-          <div><b>{session.location}</b><small>{session.courts} courts · {session.format}</small></div>
         </div>
 
         <nav>
@@ -47,8 +49,28 @@ export default function Sidebar({ session, tab, onSelectTab, onNewSession, open,
           ))}
         </nav>
 
-        <div className="sidefoot">
-          <button className="outline dark" onClick={onNewSession}><Plus /> New Session</button>
+        <div className="sidebar-bottom">
+          <div className="session">
+            <CircleDot size={13} />
+            <div><b>{session.location}</b><small>{courtCount} {courtCount === 1 ? "court" : "courts"} · {session.format}</small></div>
+            <button className="icon session-edit" title="Edit session" onClick={onEditSession}><Pencil size={12} /></button>
+          </div>
+
+          <ModeSelect mode={mode} onChange={onChangeMode} />
+
+          <div className="sidefoot">
+            <button className="outline dark" onClick={onNewSession} title="New Session">
+              <Plus /> <span>New Session</span>
+            </button>
+            <button
+              className="outline dark sidebar-collapse-btn"
+              onClick={onToggleCollapse}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+              <span>Collapse</span>
+            </button>
+          </div>
         </div>
       </aside>
     </>
