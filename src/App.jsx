@@ -1,33 +1,48 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  doc, setDoc, updateDoc, deleteDoc, writeBatch,
+  addDoc, collection, doc, setDoc, updateDoc, deleteDoc, writeBatch,
 } from "firebase/firestore";
 import { db, firebaseConfigured } from "./firebase";
-import { SESSION_ID } from "./data/constants";
 import { winPct } from "./utils/format";
 import { matchesCourtLevel } from "./utils/courtLevels";
 import { selectForCourt, splitTeams } from "./utils/rotationModes";
 import { useSessionData } from "./hooks/useSessionData";
+import { useClub } from "./hooks/useClub";
+import { useCosts } from "./hooks/useCosts";
+import { useMatchLog } from "./hooks/useMatchLog";
 
+import ClubLogin from "./components/ClubLogin";
+import ClubSessionChoice from "./components/ClubSessionChoice";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import Toast from "./components/Toast";
 import PlayerModal from "./components/PlayerModal";
 import SessionModal from "./components/SessionModal";
 import ShareModal from "./components/ShareModal";
+import ConfirmDialog from "./components/ConfirmDialog";
 import Dashboard from "./views/Dashboard";
 import Queue from "./views/Queue";
 import Players from "./views/Players";
+import Cost from "./views/Cost";
 import Stats from "./views/Stats";
+import Guide from "./views/Guide";
 
 export default function App() {
+  const {
+    club, loginClub, endSession: signOutClub, loggingIn,
+    pendingClub, confirmContinue, confirmNewSession, cancelPendingClub,
+  } = useClub();
+  const SESSION_ID = club?.id;
   const [tab, setTab] = useState("dashboard");
-  const { session, players, courts, busy } = useSessionData();
+  const { session, players, courts, busy } = useSessionData(SESSION_ID);
+  const costs = useCosts(SESSION_ID);
+  const matchLog = useMatchLog(SESSION_ID);
   const [showPlayer, setShowPlayer] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [showSession, setShowSession] = useState(false);
   const [showEditSession, setShowEditSession] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showEndSession, setShowEndSession] = useState(false);
   const [toast, setToast] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("cf-sidebar-collapsed") === "1");
@@ -293,6 +308,13 @@ export default function App() {
       if (partnerOf[id]) update.partners = [...(p.partners || []).slice(-4), partnerOf[id]];
       batch.update(doc(db, "sessions", SESSION_ID, "players", id), update);
     });
+    const nameOf = (id) => players.find((x) => x.id === id)?.name || "Player";
+    batch.set(doc(collection(db, "sessions", SESSION_ID, "matchLog")), {
+      court: c.name || `Court ${c.courtNumber}`,
+      winners: winners.map(nameOf),
+      losers: losers.map(nameOf),
+      recordedAt: Date.now(),
+    });
     const need = session.format === "Singles" ? 2 : 4;
     if (autoRotateOn) {
       const { taken: next } = selectForCourt({ pool: queue, court: c, mode, need });
@@ -340,6 +362,40 @@ export default function App() {
     notify("Session updated.");
   }
 
+  async function addCostEntry({ label, rate, hours, courts: courtCount, playerIds }) {
+    const total = Math.round(rate * hours * courtCount * 100) / 100;
+    const perPerson = playerIds.length ? Math.round((total / playerIds.length) * 100) / 100 : 0;
+    await addDoc(collection(db, "sessions", SESSION_ID, "costs"), {
+      label: label || "Court", rate, hours, courts: courtCount, total, perPerson, playerIds,
+      paid: Object.fromEntries(playerIds.map((id) => [id, false])),
+      visibleOnLive: false,
+      createdAt: Date.now(),
+    });
+    notify("Cost entry saved.");
+  }
+
+  async function toggleCostPaid(costId, playerId) {
+    const entry = costs.find((c) => c.id === costId);
+    if (!entry) return;
+    await updateDoc(doc(db, "sessions", SESSION_ID, "costs", costId), {
+      [`paid.${playerId}`]: !entry.paid?.[playerId],
+    });
+  }
+
+  async function toggleCostLive(costId) {
+    const entry = costs.find((c) => c.id === costId);
+    if (!entry) return;
+    await updateDoc(doc(db, "sessions", SESSION_ID, "costs", costId), {
+      visibleOnLive: !entry.visibleOnLive,
+    });
+    notify(entry.visibleOnLive ? "Hidden from Live Board." : "Now showing on Live Board.");
+  }
+
+  async function deleteCostEntry(costId) {
+    await deleteDoc(doc(db, "sessions", SESSION_ID, "costs", costId));
+    notify("Cost entry removed.");
+  }
+
   function exportCsv() {
     const rows = [
       ["Player", "Skill", "Games", "Wins", "Losses", "Win %"],
@@ -351,6 +407,23 @@ export default function App() {
     a.download = "courtflow-stats.csv";
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  if (!club) {
+    return (
+      <>
+        <ClubLogin onLogin={loginClub} loading={loggingIn} />
+        {pendingClub && (
+          <ClubSessionChoice
+            clubName={pendingClub.name}
+            loading={loggingIn}
+            onContinue={confirmContinue}
+            onNew={confirmNewSession}
+            onCancel={cancelPendingClub}
+          />
+        )}
+      </>
+    );
   }
 
   if (busy) {
@@ -373,6 +446,7 @@ export default function App() {
         onSelectTab={selectTab}
         onNewSession={() => { setShowSession(true); setMenuOpen(false); }}
         onEditSession={() => { setShowEditSession(true); setMenuOpen(false); }}
+        onEndSession={() => { setShowEndSession(true); setMenuOpen(false); }}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         collapsed={collapsed}
@@ -384,6 +458,7 @@ export default function App() {
           tab={tab}
           onOpenMenu={() => setMenuOpen(true)}
           onShare={() => setShowShare(true)}
+          onAddPlayer={() => setShowPlayer(true)}
         />
 
         {!firebaseConfigured && (
@@ -394,7 +469,7 @@ export default function App() {
 
         <div className="view" key={tab}>
           {tab === "dashboard" && (
-            <Dashboard session={session} players={players} courts={courts} queue={queue}
+            <Dashboard session={session} players={players} courts={courts} queue={queue} matchLog={matchLog}
               recordWin={recordWin} removePlayer={removePlayer} swapPlayer={swapPlayer}
               autoRotateOn={autoRotateOn} onToggleAutoRotate={toggleAutoRotate} onAutoFill={autoFillCourts}
               onAddCourt={addCourt} onRemoveCourt={removeCourt} onSetCourtLevel={setCourtLevel} onRenameCourt={renameCourt}
@@ -403,13 +478,20 @@ export default function App() {
               goQueue={() => setTab("queue")} />
           )}
           {tab === "queue" && (
-            <Queue queue={queue} notCheckedIn={notCheckedIn} onAdd={() => setShowPlayer(true)}
+            <Queue queue={queue} notCheckedIn={notCheckedIn}
               onCall={callPlayer} onCheckOut={checkOutPlayer} onCheckIn={checkInPlayer} />
           )}
           {tab === "players" && (
-            <Players players={players} onAdd={() => setShowPlayer(true)} onEdit={setEditingPlayer} onDelete={deletePlayer} />
+            <Players players={players} onEdit={setEditingPlayer} onDelete={deletePlayer} />
           )}
-          {tab === "stats" && <Stats players={players} exportCsv={exportCsv} />}
+          {tab === "cost" && (
+            <Cost
+              players={players} costs={costs} onAdd={addCostEntry}
+              onTogglePaid={toggleCostPaid} onToggleLive={toggleCostLive} onDelete={deleteCostEntry}
+            />
+          )}
+          {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={SESSION_ID} />}
+          {tab === "guide" && <Guide />}
         </div>
 
         {(showPlayer || editingPlayer) && (
@@ -424,7 +506,16 @@ export default function App() {
           <SessionModal session={{ ...session, courts: courts.length }} close={() => setShowEditSession(false)} submit={updateSessionSettings} />
         )}
         {showShare && (
-          <ShareModal url={`${window.location.origin}/live`} close={() => setShowShare(false)} />
+          <ShareModal url={`${window.location.origin}/live?club=${SESSION_ID}`} close={() => setShowShare(false)} />
+        )}
+        {showEndSession && (
+          <ConfirmDialog
+            title="End Session?"
+            message={`This signs you out of ${session.location || club.name}. Your players and stats are kept — logging back in with this club name will continue the session with game counts reset to zero.`}
+            confirmLabel="End Session"
+            onCancel={() => setShowEndSession(false)}
+            onConfirm={() => { setShowEndSession(false); signOutClub(); }}
+          />
         )}
         <Toast message={toast} />
       </main>

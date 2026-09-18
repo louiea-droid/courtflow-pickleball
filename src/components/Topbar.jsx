@@ -1,8 +1,8 @@
-import { Menu, Share2 } from "lucide-react";
+import { Menu, Plus, Share2 } from "lucide-react";
 import { TITLES } from "../data/constants";
 import PhClock from "./PhClock";
 
-export default function Topbar({ tab, onOpenMenu, onShare }) {
+export default function Topbar({ tab, onOpenMenu, onShare, onAddPlayer }) {
   const [title, subtitle] = TITLES[tab];
   return (
     <header className="topbar">
@@ -13,9 +13,11 @@ export default function Topbar({ tab, onOpenMenu, onShare }) {
         <p>{subtitle}</p>
       </div>
       <div className="actions">
+        <button className="primary" onClick={onAddPlayer}><Plus /> Add Player</button>
         <PhClock />
         <button className="outline" onClick={onShare}><Share2 /> Share<span className="share-btn-full"> Live Board</span></button>
       </div>
+      <button className="fab-add" onClick={onAddPlayer} aria-label="Add player"><Plus /></button>
     </header>
   );
 }

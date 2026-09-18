@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ListOrdered, Users, Trophy, Plus, Pencil, CircleDot, X,
-  PanelLeftClose, PanelLeftOpen,
+  PanelLeftClose, PanelLeftOpen, LogOut, Receipt, BookOpen,
 } from "lucide-react";
 import { NAV_ITEMS } from "../data/constants";
 import ModeSelect from "./ModeSelect";
@@ -9,7 +9,9 @@ const ICONS = {
   dashboard: LayoutDashboard,
   queue: ListOrdered,
   players: Users,
+  cost: Receipt,
   stats: Trophy,
+  guide: BookOpen,
 };
 
 function Nav({ icon: Icon, label, active, onClick }) {
@@ -22,7 +24,7 @@ function Nav({ icon: Icon, label, active, onClick }) {
 }
 
 export default function Sidebar({
-  session, courtCount, mode, onChangeMode, tab, onSelectTab, onNewSession, onEditSession,
+  session, courtCount, mode, onChangeMode, tab, onSelectTab, onNewSession, onEditSession, onEndSession,
   open, onClose, collapsed, onToggleCollapse,
 }) {
   return (
@@ -61,6 +63,9 @@ export default function Sidebar({
           <div className="sidefoot">
             <button className="outline dark" onClick={onNewSession} title="New Session">
               <Plus /> <span>New Session</span>
+            </button>
+            <button className="sidebar-endsession" onClick={onEndSession} title="End Session">
+              <LogOut /> <span>End Session</span>
             </button>
             <button
               className="outline dark sidebar-collapse-btn"

@@ -1,5 +1,3 @@
-export const SESSION_ID = "open-play";
-
 export const MODE_DESCRIPTIONS = {
   "Balanced": "Builds fair teams and rotates turns while trying to reduce repeat partners.",
   "Skill Separated": "Keeps similar skill levels together on open courts, even if a court has to wait.",
@@ -28,12 +26,16 @@ export const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard" },
   { key: "queue", label: "Queue" },
   { key: "players", label: "Players" },
+  { key: "cost", label: "Cost" },
   { key: "stats", label: "Stats" },
+  { key: "guide", label: "Guide" },
 ];
 
 export const TITLES = {
-  dashboard: ["Live Court Rotation", "Keep games moving. Let the queue handle the arguing."],
-  queue: ["Player Queue", "Firestore-synced waiting order across connected screens."],
-  players: ["Players", "Roster and session performance."],
-  stats: ["Session Stats", "Standings and playing-time snapshot."],
+  dashboard: ["Live Court Rotation", ],
+  queue: ["Player Queue", ],
+  players: ["Players", ],
+  cost: ["Cost Division",],
+  stats: ["Session Stats", ],
+  guide: ["Guide",],
 };

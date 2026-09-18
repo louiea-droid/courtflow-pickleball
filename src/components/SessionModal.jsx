@@ -16,9 +16,9 @@ export default function SessionModal({ close, submit, session }) {
   const [mode, setMode] = useState(session?.mode || session?.rotation || "Balanced");
 
   return (
-    <Modal title={isEdit ? "Edit Session" : "New Open Play"} label="SESSION SETUP" close={close}>
+    <Modal title={isEdit ? "Edit Club" : "New Open Play"} label="SESSION SETUP" close={close}>
       {isEdit
-        ? <p className="modal-note info">Renaming or changing courts here keeps your current players and queue intact.</p>
+        ? <p className="modal-note info">Just the club name — courts live on the Dashboard, and mode is in the sidebar.</p>
         : <p className="modal-note">Starting a new session clears the current roster — every player will need to check in again.</p>}
       <form
         onSubmit={(e) => {
@@ -28,23 +28,27 @@ export default function SessionModal({ close, submit, session }) {
         }}
       >
         <label>
-          Session name
+          {isEdit ? "Club name" : "Session name"}
           <input value={location} onChange={(e) => setLocation(e.target.value)} autoFocus />
         </label>
-        <div className="formgrid">
-          <label>
-            Courts
-            <Select value={courts} onChange={setCourts} options={[1, 2, 3, 4]} />
-          </label>
-          <label>
-            Format
-            <Select value={format} onChange={setFormat} options={["Doubles", "Singles"]} />
-          </label>
-        </div>
-        <label>
-          Mode
-          <Select value={mode} onChange={setMode} options={modeOptions} />
-        </label>
+        {!isEdit && (
+          <>
+            <div className="formgrid">
+              <label>
+                Courts
+                <Select value={courts} onChange={setCourts} options={[1, 2, 3, 4]} />
+              </label>
+              <label>
+                Format
+                <Select value={format} onChange={setFormat} options={["Doubles", "Singles"]} />
+              </label>
+            </div>
+            <label>
+              Mode
+              <Select value={mode} onChange={setMode} options={modeOptions} />
+            </label>
+          </>
+        )}
         <div className="modalactions">
           <button type="button" className="outline" onClick={close}>Cancel</button>
           <button className="primary">{isEdit ? "Save Changes" : "Start Session"}</button>

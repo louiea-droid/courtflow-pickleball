@@ -9,6 +9,15 @@ service cloud.firestore {
       match /courts/{courtId} {
         allow read, write: if true;
       }
+      match /history/{historyId} {
+        allow read, write: if true;
+      }
+      match /costs/{costId} {
+        allow read, write: if true;
+      }
+      match /matchLog/{entryId} {
+        allow read, write: if true;
+      }
     }
   }
 }

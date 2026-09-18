@@ -1,14 +1,10 @@
-import { Plus } from "lucide-react";
+import PersonBadge from "../components/PersonBadge";
 import StarDisplay from "../components/StarDisplay";
-import { initials, waitMinutes, formatPHTime } from "../utils/format";
+import { waitMinutes, formatPHTime } from "../utils/format";
 
-export default function Queue({ queue, notCheckedIn, onAdd, onCall, onCheckOut, onCheckIn }) {
+export default function Queue({ queue, notCheckedIn, onCall, onCheckOut, onCheckIn }) {
   return (
     <>
-      <div className="heading">
-        <div><h2>Player Queue</h2><p>Waiting order is synchronized through Firestore.</p></div>
-        <button className="primary" onClick={onAdd}><Plus /> Add Player</button>
-      </div>
       <div className="panel table">
         <div className="row header">
           <span>#</span><span>Player</span><span>Skill</span><span>Games</span><span>W/L</span><span>Wait</span><span />
@@ -16,7 +12,14 @@ export default function Queue({ queue, notCheckedIn, onAdd, onCall, onCheckOut, 
         {queue.map((p, i) => (
           <div className="row" key={p.id} style={{ animationDelay: `${Math.min(i, 10) * 30}ms` }}>
             <span>{i + 1}</span>
-            <span className="person"><i>{initials(p.name)}</i><b>{p.name}</b></span>
+            <PersonBadge name={p.name}>
+              <span className="row-meta">
+                <StarDisplay value={p.skill} />
+                <span>{p.games}g</span>
+                <span>{p.wins}/{p.losses}</span>
+                <span>{waitMinutes(p)}m</span>
+              </span>
+            </PersonBadge>
             <span><StarDisplay value={p.skill} /></span>
             <span>{p.games}</span>
             <span>{p.wins}/{p.losses}</span>
@@ -31,20 +34,12 @@ export default function Queue({ queue, notCheckedIn, onAdd, onCall, onCheckOut, 
       </div>
 
       <h3 className="section-title">Not Checked In<span className="count-badge">{notCheckedIn.length}</span></h3>
-      <div className="panel table">
-        <div className="row header">
-          <span>#</span><span>Player</span><span>Skill</span><span>Games</span><span /><span /><span />
-        </div>
+      <p className="section-hint">Waiting to arrive — check them in when they show up. For full stats or to edit a player, use the Players tab.</p>
+      <div className="panel checkin-list">
         {notCheckedIn.map((p, i) => (
-          <div className="row" key={p.id} style={{ animationDelay: `${Math.min(i, 10) * 30}ms` }}>
-            <span>{i + 1}</span>
-            <span className="person"><i>{initials(p.name)}</i><b>{p.name}</b></span>
-            <span><StarDisplay value={p.skill} /></span>
-            <span>{p.games}</span>
-            <span /><span />
-            <span className="row-actions">
-              <button className="tiny accent" onClick={() => onCheckIn(p.id)}>Check In</button>
-            </span>
+          <div className="checkin-item" key={p.id} style={{ animationDelay: `${Math.min(i, 10) * 30}ms` }}>
+            <PersonBadge name={p.name} skill={p.skill} />
+            <button className="tiny accent" onClick={() => onCheckIn(p.id)}>Check In</button>
           </div>
         ))}
         {!notCheckedIn.length && <div className="empty">Everyone is checked in.</div>}

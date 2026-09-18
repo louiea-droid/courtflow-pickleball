@@ -1,6 +1,8 @@
 export const initials = (name) =>
   name.split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase();
 
+export const money = (n) => `$${(n || 0).toFixed(2)}`;
+
 export const winPct = (p) => Math.round((p.wins / (p.games || 1)) * 100);
 
 export const waitMinutes = (p) =>
@@ -19,6 +21,10 @@ const phTimeFormatter = new Intl.DateTimeFormat("en-US", {
 const phClockFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: PH_TIMEZONE, hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true,
 });
+const phDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: PH_TIMEZONE, month: "short", day: "numeric", year: "numeric",
+});
 
 export const formatPHTime = (ms) => phTimeFormatter.format(new Date(ms || Date.now()));
 export const formatPHClock = (date) => phClockFormatter.format(date);
+export const formatPHDate = (ms) => phDateFormatter.format(new Date(ms || Date.now()));

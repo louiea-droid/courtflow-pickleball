@@ -1,44 +1,33 @@
 import { useEffect, useState } from "react";
 import {
-  collection, doc, onSnapshot, orderBy, query, writeBatch,
+  collection, doc, onSnapshot, orderBy, query,
 } from "firebase/firestore";
 import { db, firebaseConfigured } from "../firebase";
-import { SESSION_ID, seedSession } from "../data/constants";
+import { seedSession } from "../data/constants";
 
-export async function seedSessionData() {
-  const batch = writeBatch(db);
-  batch.set(doc(db, "sessions", SESSION_ID), seedSession, { merge: true });
-  for (let i = 1; i <= seedSession.courts; i++) {
-    batch.set(doc(db, "sessions", SESSION_ID, "courts", `court-${i}`), {
-      courtNumber: i, start: Date.now(), teamA: [], teamB: [],
-    });
-  }
-  await batch.commit();
-}
-
-export function useSessionData() {
+export function useSessionData(sessionId) {
   const [session, setSession] = useState(seedSession);
   const [players, setPlayers] = useState([]);
   const [courts, setCourts] = useState([]);
   const [busy, setBusy] = useState(true);
 
   useEffect(() => {
-    if (!firebaseConfigured) {
+    if (!firebaseConfigured || !sessionId) {
       setBusy(false);
       return;
     }
-    const sRef = doc(db, "sessions", SESSION_ID);
+    setBusy(true);
+    const sRef = doc(db, "sessions", sessionId);
     const unsubS = onSnapshot(sRef, (s) => {
       if (s.exists()) setSession(s.data());
-      else seedSessionData();
     });
-    const pq = query(collection(db, "sessions", SESSION_ID, "players"), orderBy("createdAt"));
-    const cq = query(collection(db, "sessions", SESSION_ID, "courts"), orderBy("courtNumber"));
+    const pq = query(collection(db, "sessions", sessionId, "players"), orderBy("createdAt"));
+    const cq = query(collection(db, "sessions", sessionId, "courts"), orderBy("courtNumber"));
     const unsubP = onSnapshot(pq, (s) => setPlayers(s.docs.map((d) => ({ id: d.id, ...d.data() }))));
     const unsubC = onSnapshot(cq, (s) => setCourts(s.docs.map((d) => ({ id: d.id, ...d.data() }))));
     setBusy(false);
     return () => { unsubS(); unsubP(); unsubC(); };
-  }, []);
+  }, [sessionId]);
 
   return { session, setSession, players, courts, busy };
 }

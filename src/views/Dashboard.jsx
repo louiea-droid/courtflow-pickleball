@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { X, ArrowLeftRight, Zap, Play, Plus, Pencil } from "lucide-react";
 import PanelHead from "../components/PanelHead";
+import PersonBadge from "../components/PersonBadge";
+import MatchLogRow from "../components/MatchLogRow";
 import StarDisplay from "../components/StarDisplay";
 import CourtLevelSelect from "../components/CourtLevelSelect";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -8,7 +10,6 @@ import ElapsedTimer from "../components/ElapsedTimer";
 import { waitMinutes } from "../utils/format";
 import { matchesCourtLevel } from "../utils/courtLevels";
 import { selectForCourt } from "../utils/rotationModes";
-import { MODE_DESCRIPTIONS } from "../data/constants";
 
 // Closes an open swap menu when clicking/tapping outside the given
 // container, or pressing Escape — mirrors the same pattern used by the
@@ -163,9 +164,9 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, onStartNext
       ) : (
         <>
           <div className="teams" ref={teamsRef}>
-            <Team label="Team 1" color="blue" ids={c.teamA || []} players={players} queue={eligibleQueue}
+            <Team label="Team 1" color="team1" ids={c.teamA || []} players={players} queue={eligibleQueue}
               swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} remove={(id) => remove(c.id, id)} />
-            <Team label="Team 2" color="orange" ids={c.teamB || []} players={players} queue={eligibleQueue}
+            <Team label="Team 2" color="team2" ids={c.teamB || []} players={players} queue={eligibleQueue}
               swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} remove={(id) => remove(c.id, id)} />
           </div>
           <div className="winrow">
@@ -226,9 +227,9 @@ function CourtPreview({ label, level, group, need, queue, onSwapOrder, onSkip, o
         <span className="badge-next">NEXT</span>
       </div>
       <div className="teams" ref={teamsRef}>
-        <PreviewTeam label="Team 1" color="blue" list={teamA} queue={eligibleQueue}
+        <PreviewTeam label="Team 1" color="team1" list={teamA} queue={eligibleQueue}
           swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} onSkip={onSkip} />
-        <PreviewTeam label="Team 2" color="orange" list={teamB} queue={eligibleQueue}
+        <PreviewTeam label="Team 2" color="team2" list={teamB} queue={eligibleQueue}
           swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} onSkip={onSkip} />
       </div>
       {ready ? (
@@ -247,7 +248,7 @@ function CourtPreview({ label, level, group, need, queue, onSwapOrder, onSkip, o
 }
 
 export default function Dashboard({
-  session, players, courts, queue, recordWin, removePlayer, swapPlayer,
+  session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer,
   autoRotateOn, onToggleAutoRotate, onAutoFill, onAddCourt, onRemoveCourt, onSetCourtLevel, onRenameCourt,
   onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue,
 }) {
@@ -333,7 +334,13 @@ export default function Dashboard({
           {queue.slice(0, 4).map((p, i) => (
             <div className="next" key={p.id}>
               <strong>{i + 1}</strong>
-              <div><b>{p.name}</b><small><StarDisplay value={p.skill} /> · {p.games} games · {p.wins}W-{p.losses}L</small></div>
+              <PersonBadge name={p.name}>
+                <div className="next-meta">
+                  <StarDisplay value={p.skill} />
+                  <span className="queue-stat games">{p.games} <small>games</small></span>
+                  <span className="queue-stat wins">{p.wins} <small>wins</small></span>
+                </div>
+              </PersonBadge>
               <div className="next-actions">
                 <em>{waitMinutes(p)}m</em>
                 <button className="icon" title="Edit player" onClick={() => onEditPlayer(p)}><Pencil size={13} /></button>
@@ -342,12 +349,10 @@ export default function Dashboard({
           ))}
         </div>
         <div className="panel">
-          <PanelHead title="Session Rules" sub={`${mode} mode`} />
-          <div className="rules">
-            <div><b>1</b>{MODE_DESCRIPTIONS[mode] || "Completed players return to the back of the line."}</div>
-            <div><b>2</b>Players with fewer games get priority.</div>
-            <div><b>3</b>A court's skill level restricts who can rotate onto it — set it via the badge on each court.</div>
-          </div>
+          <PanelHead title="Match Log" sub="Recent results this session." />
+          {matchLog.length
+            ? matchLog.slice(0, 6).map((m) => <MatchLogRow match={m} key={m.id} />)
+            : <div className="empty">No matches recorded yet.</div>}
         </div>
       </div>
     </>
