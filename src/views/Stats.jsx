@@ -52,7 +52,7 @@ export default function Stats({ players, exportCsv, sessionId }) {
   return (
     <>
       <div className="heading">
-        <div><h2>Session Stats</h2><p>Standings and playing-time snapshot.</p></div>
+       
         <button className="outline" onClick={exportCsv}><Download /> Export CSV</button>
       </div>
       <div className="bigstats">

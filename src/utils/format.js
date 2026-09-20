@@ -1,7 +1,7 @@
 export const initials = (name) =>
   name.split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase();
 
-export const money = (n) => `$${(n || 0).toFixed(2)}`;
+export const money = (n) => `₱${(n || 0).toFixed(2)}`;
 
 export const winPct = (p) => Math.round((p.wins / (p.games || 1)) * 100);
 

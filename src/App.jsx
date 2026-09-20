@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  addDoc, collection, doc, setDoc, updateDoc, deleteDoc, writeBatch,
+  addDoc, collection, doc, setDoc, updateDoc, deleteDoc, writeBatch, getDocs,
 } from "firebase/firestore";
 import { db, firebaseConfigured } from "./firebase";
 import { winPct } from "./utils/format";
@@ -73,7 +73,7 @@ export default function App() {
   );
   const notCheckedIn = useMemo(() => players.filter((p) => !p.checked), [players]);
 
-  const notify = (m) => { setToast(m); setTimeout(() => setToast(""), 2200); };
+  const notify = (m, ms = 2200) => { setToast(m); setTimeout(() => setToast(""), ms); };
 
   async function addPlayer(data) {
     const id = crypto.randomUUID();
@@ -85,15 +85,44 @@ export default function App() {
   }
 
   async function updatePlayerInfo(id, data) {
-    await updateDoc(doc(db, "sessions", SESSION_ID, "players", id), data);
+    const { lockedWithId, ...fields } = data;
+    const current = players.find((p) => p.id === id);
+    const batch = writeBatch(db);
+    batch.update(doc(db, "sessions", SESSION_ID, "players", id), fields);
+    if (lockedWithId !== undefined && (lockedWithId || null) !== (current?.lockedWithId || null)) {
+      applyLockChange(batch, current, lockedWithId || null);
+    }
+    await batch.commit();
     setEditingPlayer(null);
     notify(`${data.name} updated.`);
   }
 
+  // Keeps the lock mutual: clears whoever the two players were previously
+  // locked with (if anyone) before pointing them at each other.
+  function applyLockChange(batch, player, newPartnerId) {
+    const oldPartnerId = player?.lockedWithId || null;
+    if (oldPartnerId && oldPartnerId !== newPartnerId) {
+      batch.update(doc(db, "sessions", SESSION_ID, "players", oldPartnerId), { lockedWithId: null });
+    }
+    if (newPartnerId) {
+      const newPartner = players.find((p) => p.id === newPartnerId);
+      if (newPartner?.lockedWithId && newPartner.lockedWithId !== player.id) {
+        batch.update(doc(db, "sessions", SESSION_ID, "players", newPartner.lockedWithId), { lockedWithId: null });
+      }
+      batch.update(doc(db, "sessions", SESSION_ID, "players", newPartnerId), { lockedWithId: player.id });
+    }
+    batch.update(doc(db, "sessions", SESSION_ID, "players", player.id), { lockedWithId: newPartnerId });
+  }
+
   async function deletePlayer(id) {
-    const name = players.find((p) => p.id === id)?.name || "Player";
-    await deleteDoc(doc(db, "sessions", SESSION_ID, "players", id));
-    notify(`${name} removed.`);
+    const p = players.find((x) => x.id === id);
+    const batch = writeBatch(db);
+    batch.delete(doc(db, "sessions", SESSION_ID, "players", id));
+    if (p?.lockedWithId) {
+      batch.update(doc(db, "sessions", SESSION_ID, "players", p.lockedWithId), { lockedWithId: null });
+    }
+    await batch.commit();
+    notify(`${p?.name || "Player"} removed.`);
   }
 
   async function checkInPlayer(id) {
@@ -133,6 +162,19 @@ export default function App() {
 
   async function swapPlayer(courtId, oldId, newId) {
     const c = courts.find((x) => x.id === courtId);
+    const onCourtNow = new Set([...(c.teamA || []), ...(c.teamB || [])]);
+    const nameOf = (id) => players.find((p) => p.id === id)?.name || "their locked partner";
+    const oldPlayer = players.find((p) => p.id === oldId);
+    const newPlayer = players.find((p) => p.id === newId);
+    // A locked pair currently playing together can't be split by a manual
+    // swap — unlock them first (Players tab or the Queue lock button) if you
+    // really want to change one half.
+    if (oldPlayer?.lockedWithId && onCourtNow.has(oldPlayer.lockedWithId)) {
+      return notify(`${oldPlayer.name} is locked in with ${nameOf(oldPlayer.lockedWithId)} — can't swap them out this match.`, 4000);
+    }
+    if (newPlayer?.lockedWithId && !onCourtNow.has(newPlayer.lockedWithId)) {
+      return notify(`${newPlayer.name} is locked in with ${nameOf(newPlayer.lockedWithId)} — can't add them without their partner.`, 4000);
+    }
     const inTeamA = (c.teamA || []).includes(oldId);
     const teamA = inTeamA ? c.teamA.map((x) => (x === oldId ? newId : x)) : c.teamA;
     const teamB = !inTeamA ? c.teamB.map((x) => (x === oldId ? newId : x)) : c.teamB;
@@ -140,8 +182,23 @@ export default function App() {
     batch.update(doc(db, "sessions", SESSION_ID, "courts", courtId), { teamA, teamB });
     batch.update(doc(db, "sessions", SESSION_ID, "players", oldId), { checkedAt: Date.now() });
     await batch.commit();
-    const newName = players.find((p) => p.id === newId)?.name || "Player";
-    notify(`Swapped in ${newName}.`);
+    notify(`Swapped in ${newPlayer?.name || "Player"}.`);
+  }
+
+  // Standalone lock/unlock action for the one-click Queue lock button — reuses
+  // the same mutual-reassignment logic PlayerModal's "Lock in with" uses.
+  async function setPlayerLock(id, newPartnerId) {
+    const current = players.find((p) => p.id === id);
+    if (!current) return;
+    const batch = writeBatch(db);
+    applyLockChange(batch, current, newPartnerId || null);
+    await batch.commit();
+    if (newPartnerId) {
+      const partnerName = players.find((p) => p.id === newPartnerId)?.name || "player";
+      notify(`${current.name} locked in with ${partnerName}.`);
+    } else {
+      notify(`${current.name} unlocked.`);
+    }
   }
 
   async function toggleAutoRotate() {
@@ -330,10 +387,12 @@ export default function App() {
   }
 
   async function newSession(data) {
+    const matchLogSnap = await getDocs(collection(db, "sessions", SESSION_ID, "matchLog"));
     const batch = writeBatch(db);
     batch.set(doc(db, "sessions", SESSION_ID), data, { merge: true });
     courts.forEach((c) => batch.delete(doc(db, "sessions", SESSION_ID, "courts", c.id)));
     players.forEach((p) => batch.delete(doc(db, "sessions", SESSION_ID, "players", p.id)));
+    matchLogSnap.forEach((d) => batch.delete(d.ref));
     for (let i = 1; i <= data.courts; i++) {
       batch.set(doc(db, "sessions", SESSION_ID, "courts", `court-${i}`), {
         courtNumber: i, start: Date.now(), teamA: [], teamB: [],
@@ -469,7 +528,7 @@ export default function App() {
 
         <div className="view" key={tab}>
           {tab === "dashboard" && (
-            <Dashboard session={session} players={players} courts={courts} queue={queue} matchLog={matchLog}
+            <Dashboard session={session} players={players} courts={courts} queue={queue} matchLog={matchLog} notify={notify}
               recordWin={recordWin} removePlayer={removePlayer} swapPlayer={swapPlayer}
               autoRotateOn={autoRotateOn} onToggleAutoRotate={toggleAutoRotate} onAutoFill={autoFillCourts}
               onAddCourt={addCourt} onRemoveCourt={removeCourt} onSetCourtLevel={setCourtLevel} onRenameCourt={renameCourt}
@@ -478,8 +537,8 @@ export default function App() {
               goQueue={() => setTab("queue")} />
           )}
           {tab === "queue" && (
-            <Queue queue={queue} notCheckedIn={notCheckedIn}
-              onCall={callPlayer} onCheckOut={checkOutPlayer} onCheckIn={checkInPlayer} />
+            <Queue queue={queue} notCheckedIn={notCheckedIn} players={players}
+              onCall={callPlayer} onCheckOut={checkOutPlayer} onCheckIn={checkInPlayer} onSetLock={setPlayerLock} />
           )}
           {tab === "players" && (
             <Players players={players} onEdit={setEditingPlayer} onDelete={deletePlayer} />
@@ -497,6 +556,7 @@ export default function App() {
         {(showPlayer || editingPlayer) && (
           <PlayerModal
             player={editingPlayer}
+            players={players}
             close={() => { setShowPlayer(false); setEditingPlayer(null); }}
             submit={editingPlayer ? (data) => updatePlayerInfo(editingPlayer.id, data) : addPlayer}
           />

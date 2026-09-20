@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Link2 } from "lucide-react";
 import PersonBadge from "../components/PersonBadge";
 import { winPct } from "../utils/format";
 
@@ -8,6 +8,7 @@ export default function Players({ players, onEdit, onDelete }) {
       onDelete(p.id);
     }
   };
+  const nameOf = (id) => players.find((p) => p.id === id)?.name;
 
   return (
     <>
@@ -28,6 +29,9 @@ export default function Players({ players, onEdit, onDelete }) {
                 <div><span>Win %</span><b>{winPct(p)}%</b></div>
               </div>
               <em>{p.checked ? "Checked in" : "Checked out"}</em>
+              {p.lockedWithId && (
+                <em className="locked"><Link2 size={11} /> Locked with {nameOf(p.lockedWithId) || "player"}</em>
+              )}
             </div>
           ))}
         </div>

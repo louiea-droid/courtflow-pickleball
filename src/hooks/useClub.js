@@ -51,13 +51,19 @@ export function useClub() {
 
   // Keeps the roster, renews game counts. Whatever was played gets archived
   // first, so "renewed" doesn't mean "lost" — see Stats → Past Sessions.
+  // The match log resets alongside the stats it recorded, so the Dashboard's
+  // recent-matches feed doesn't mix leftover entries from the prior cycle in
+  // with a roster that now reads zero games.
   async function confirmContinue() {
     if (!pendingClub) return;
     const { id, name } = pendingClub;
     setLoggingIn(true);
     try {
       const batch = writeBatch(db);
-      const playersSnap = await getDocs(collection(db, "sessions", id, "players"));
+      const [playersSnap, matchLogSnap] = await Promise.all([
+        getDocs(collection(db, "sessions", id, "players")),
+        getDocs(collection(db, "sessions", id, "matchLog")),
+      ]);
       const roster = playersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       const totalGames = roster.reduce((n, p) => n + (p.games || 0), 0);
       if (totalGames > 0) {
@@ -75,6 +81,7 @@ export function useClub() {
           games: 0, wins: 0, losses: 0, partners: [], lastResult: null,
         });
       });
+      matchLogSnap.forEach((d) => batch.delete(d.ref));
       batch.set(doc(db, "sessions", id), { location: name }, { merge: true });
       await batch.commit();
       finishLogin(id, name);
@@ -83,20 +90,22 @@ export function useClub() {
     }
   }
 
-  // Clears this club's roster and courts and starts over, same as the
-  // in-app "New Session" action — just reachable straight from login.
+  // Clears this club's roster, courts, and match log and starts over, same
+  // as the in-app "New Session" action — just reachable straight from login.
   async function confirmNewSession() {
     if (!pendingClub) return;
     const { id, name } = pendingClub;
     setLoggingIn(true);
     try {
-      const [playersSnap, courtsSnap] = await Promise.all([
+      const [playersSnap, courtsSnap, matchLogSnap] = await Promise.all([
         getDocs(collection(db, "sessions", id, "players")),
         getDocs(collection(db, "sessions", id, "courts")),
+        getDocs(collection(db, "sessions", id, "matchLog")),
       ]);
       const batch = writeBatch(db);
       playersSnap.forEach((d) => batch.delete(d.ref));
       courtsSnap.forEach((d) => batch.delete(d.ref));
+      matchLogSnap.forEach((d) => batch.delete(d.ref));
       await createFreshSession(batch, id, name);
       await batch.commit();
       finishLogin(id, name);

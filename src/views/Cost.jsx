@@ -103,7 +103,7 @@ export default function Cost({ players, costs, onAdd, onTogglePaid, onToggleLive
 
           <div className="cost-calc-grid">
             <label>
-              Rate ($ / hr)
+              Rate (₱ / hr)
               <input type="number" min="0" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="0.00" />
             </label>
             <label>

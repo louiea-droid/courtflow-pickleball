@@ -9,7 +9,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import ElapsedTimer from "../components/ElapsedTimer";
 import { waitMinutes } from "../utils/format";
 import { matchesCourtLevel } from "../utils/courtLevels";
-import { selectForCourt } from "../utils/rotationModes";
+import { selectForCourt, splitTeams } from "../utils/rotationModes";
 
 // Closes an open swap menu when clicking/tapping outside the given
 // container, or pressing Escape — mirrors the same pattern used by the
@@ -65,7 +65,14 @@ function Team({ label, color, ids, players, queue, swapOpenId, onSwapClick, onSw
             {swapOpenId === id && (
               <div className="swap-menu">
                 {queue.length ? queue.map((q) => (
-                  <button key={q.id} className="swap-item" onClick={() => onSwap(id, q.id)}>{q.name}</button>
+                  <button key={q.id} className="swap-item" onClick={() => onSwap(id, q.id)}>
+                    {q.name}
+                    {q.lockedWithId && (
+                      <small className="swap-item-lock">
+                        locked w/ {players.find((x) => x.id === q.lockedWithId)?.name || "someone"}
+                      </small>
+                    )}
+                  </button>
                 )) : <div className="swap-empty">No eligible players waiting.</div>}
               </div>
             )}
@@ -179,7 +186,8 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, onStartNext
   );
 }
 
-function PreviewTeam({ label, color, list, queue, swapOpenId, onSwapClick, onSwap, onSkip }) {
+function PreviewTeam({ label, color, list, players, groupIds, notify, queue, swapOpenId, onSwapClick, onSwap, onSkip }) {
+  const nameOf = (id) => players.find((x) => x.id === id)?.name || "their partner";
   return (
     <div className="team">
       <div className={color}>{label}</div>
@@ -188,10 +196,30 @@ function PreviewTeam({ label, color, list, queue, swapOpenId, onSwapClick, onSwa
           <div className="chip">
             <div><b>{p.name}</b><small><StarDisplay value={p.skill} /></small></div>
             <div className="chip-actions">
-              <button className="chip-btn swap" title="Change player" onClick={() => onSwapClick(p.id)}>
+              <button
+                className="chip-btn swap"
+                title={p.lockedWithId && groupIds.has(p.lockedWithId) ? `Locked with ${nameOf(p.lockedWithId)} this match` : "Change player"}
+                onClick={() => {
+                  if (p.lockedWithId && groupIds.has(p.lockedWithId)) {
+                    notify(`${p.name} is locked in with ${nameOf(p.lockedWithId)} — can't swap them out this match.`, 4000);
+                    return;
+                  }
+                  onSwapClick(p.id);
+                }}
+              >
                 <ArrowLeftRight size={13} />
               </button>
-              <button className="chip-btn remove" title="Send to back of queue" onClick={() => onSkip(p.id)}>
+              <button
+                className="chip-btn remove"
+                title={p.lockedWithId && groupIds.has(p.lockedWithId) ? `Locked with ${nameOf(p.lockedWithId)} this match` : "Send to back of queue"}
+                onClick={() => {
+                  if (p.lockedWithId && groupIds.has(p.lockedWithId)) {
+                    notify(`${p.name} is locked in with ${nameOf(p.lockedWithId)} — can't move them alone while paired this match.`, 4000);
+                    return;
+                  }
+                  onSkip(p.id);
+                }}
+              >
                 <X size={13} />
               </button>
             </div>
@@ -199,7 +227,24 @@ function PreviewTeam({ label, color, list, queue, swapOpenId, onSwapClick, onSwa
           {swapOpenId === p.id && (
             <div className="swap-menu">
               {queue.filter((q) => q.id !== p.id).length ? queue.filter((q) => q.id !== p.id).map((q) => (
-                <button key={q.id} className="swap-item" onClick={() => onSwap(p.id, q.id)}>{q.name}</button>
+                <button
+                  key={q.id}
+                  className="swap-item"
+                  onClick={() => {
+                    if (q.lockedWithId && !groupIds.has(q.lockedWithId)) {
+                      notify(`${q.name} is locked in with ${nameOf(q.lockedWithId)} — can't add them without their partner.`, 4000);
+                      return;
+                    }
+                    onSwap(p.id, q.id);
+                  }}
+                >
+                  {q.name}
+                  {q.lockedWithId && (
+                    <small className="swap-item-lock">
+                      locked w/ {nameOf(q.lockedWithId)}
+                    </small>
+                  )}
+                </button>
               )) : <div className="swap-empty">No other eligible players waiting.</div>}
             </div>
           )}
@@ -209,15 +254,20 @@ function PreviewTeam({ label, color, list, queue, swapOpenId, onSwapClick, onSwa
   );
 }
 
-function CourtPreview({ label, level, group, need, queue, onSwapOrder, onSkip, onSendToCourt, canSend }) {
+function CourtPreview({ label, level, group, need, mode, players, queue, notify, onSwapOrder, onSkip, onSendToCourt, canSend }) {
   const [swapOpen, setSwapOpen] = useState(null);
   const teamsRef = useRef(null);
   const toggleSwap = (id) => setSwapOpen((cur) => (cur === id ? null : id));
   const handleSwap = (aId, bId) => { onSwapOrder(aId, bId); setSwapOpen(null); };
-  const teamA = group.slice(0, Math.ceil(need / 2));
-  const teamB = group.slice(Math.ceil(need / 2), need);
-  const eligibleQueue = queue.filter((p) => matchesCourtLevel(p.skill, level));
   const ready = group.length >= need;
+  // Mirror the same team split the match will actually get (splitTeams),
+  // so a locked pair previewed here shows on one side, not straddled.
+  const byId = new Map(group.map((p) => [p.id, p]));
+  const groupIds = new Set(group.map((p) => p.id));
+  const [teamAIds, teamBIds] = ready ? splitTeams(group, mode) : [[], []];
+  const teamA = teamAIds.map((id) => byId.get(id));
+  const teamB = teamBIds.map((id) => byId.get(id));
+  const eligibleQueue = queue.filter((p) => matchesCourtLevel(p.skill, level));
   useCloseSwapOnOutside(teamsRef, swapOpen !== null, () => setSwapOpen(null));
   return (
     <div className="court preview">
@@ -227,9 +277,9 @@ function CourtPreview({ label, level, group, need, queue, onSwapOrder, onSkip, o
         <span className="badge-next">NEXT</span>
       </div>
       <div className="teams" ref={teamsRef}>
-        <PreviewTeam label="Team 1" color="team1" list={teamA} queue={eligibleQueue}
+        <PreviewTeam label="Team 1" color="team1" list={teamA} players={players} groupIds={groupIds} notify={notify} queue={eligibleQueue}
           swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} onSkip={onSkip} />
-        <PreviewTeam label="Team 2" color="team2" list={teamB} queue={eligibleQueue}
+        <PreviewTeam label="Team 2" color="team2" list={teamB} players={players} groupIds={groupIds} notify={notify} queue={eligibleQueue}
           swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} onSkip={onSkip} />
       </div>
       {ready ? (
@@ -248,7 +298,7 @@ function CourtPreview({ label, level, group, need, queue, onSwapOrder, onSkip, o
 }
 
 export default function Dashboard({
-  session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer,
+  session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer, notify,
   autoRotateOn, onToggleAutoRotate, onAutoFill, onAddCourt, onRemoveCourt, onSetCourtLevel, onRenameCourt,
   onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue,
 }) {
@@ -321,8 +371,8 @@ export default function Dashboard({
           </div>
           <div className="courts">
             {upcomingPreviews.map((pv) => (
-              <CourtPreview key={pv.key} label={pv.label} level={pv.level} group={pv.group} need={need} queue={queue}
-                onSwapOrder={onSwapQueueOrder} onSkip={onSkipQueued} onSendToCourt={onSendToCourt} canSend={hasOpenCourt} />
+              <CourtPreview key={pv.key} label={pv.label} level={pv.level} group={pv.group} need={need} mode={mode} players={players} queue={queue}
+                notify={notify} onSwapOrder={onSwapQueueOrder} onSkip={onSkipQueued} onSendToCourt={onSendToCourt} canSend={hasOpenCourt} />
             ))}
           </div>
         </>

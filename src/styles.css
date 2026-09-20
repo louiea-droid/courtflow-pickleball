@@ -298,6 +298,7 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 }
 .swap-item{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:7px;font-weight:700;font-size:12px;color:var(--ink);transition:background .15s ease}
 .swap-item:hover{background:#eef6ef}
+.swap-item-lock{display:block;font-weight:600;font-size:10px;color:#3059c9;margin-top:2px}
 .swap-empty{padding:8px 10px;color:var(--muted);font-size:12px}
 
 .winrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
@@ -359,7 +360,7 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 /* ---------- Queue table ---------- */
 .table{padding:10px}
 .row{
-  display:grid;grid-template-columns:35px 1.7fr .9fr .7fr .7fr .8fr .7fr;gap:9px;align-items:center;
+  display:grid;grid-template-columns:35px 1.7fr .9fr .7fr .7fr .8fr .9fr .7fr;gap:9px;align-items:center;
   padding:12px 8px;border-bottom:1px solid #edf1ee;border-radius:8px;
   transition:background .15s ease;animation:itemIn .3s var(--ease) both
 }
@@ -388,6 +389,14 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .empty{text-align:center;color:var(--muted);padding:24px;animation:fadeIn .3s ease both}
 
 .section-hint{color:#8a958e;font-size:12px;margin:-6px 0 12px}
+.lock-hint{background:#eaf0fb;color:#3059c9;padding:9px 12px;border-radius:10px;margin:0 0 12px}
+.linklike{background:none;border:0;padding:0;color:inherit;text-decoration:underline;font-weight:800;font-size:inherit;cursor:pointer}
+.lock-chip{display:inline-flex;align-items:center;gap:3px;color:#3059c9;font-weight:700;margin-top:1px;max-width:100%}
+.lock-chip svg{flex-shrink:0}
+.lock-chip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lock-btn{display:inline-flex;align-items:center;gap:4px}
+.lock-btn.active{background:#eaf0fb;color:#3059c9;border-color:#cddaf5}
+.lock-btn.pending{background:#fff3d9;color:#9a6b00;border-color:#f2dca3}
 
 /* Not-checked-in list: a quick check-in strip, deliberately lighter than the
    queue table above it — no stats columns, since Players already owns those. */
@@ -421,6 +430,8 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .ministats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;border-top:1px solid var(--line);padding-top:12px}
 .ministats span{display:block;color:#89948d;font-size:9px;text-transform:uppercase}
 .playercard em{display:inline-block;background:#eef5ef;color:#2d7548;font-size:10px;font-style:normal;font-weight:800;padding:4px 7px;border-radius:99px;margin-top:10px}
+.playercard em+em{margin-left:6px}
+.playercard em.locked{display:inline-flex;align-items:center;gap:4px;background:#eaf0fb;color:#3059c9}
 .tiny.accent{background:var(--green);border-color:var(--green);color:#fff}
 .tiny.accent:hover{background:var(--green2)}
 
@@ -616,6 +627,18 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 }
 .clublogin-card .primary{width:100%;justify-content:center;padding:12px 14px;margin-top:2px}
 .clublogin-hint{margin:0;color:#8a958e;font-size:11.5px;line-height:1.5}
+.clublogin-search{position:relative}
+.clublogin-suggestions{
+  position:absolute;left:0;right:0;top:100%;margin-top:4px;background:#fff;border:1px solid var(--line);
+  border-radius:10px;box-shadow:var(--shadow-lg);z-index:5;max-height:220px;overflow-y:auto;padding:4px
+}
+.clublogin-suggestion{
+  display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:none;
+  padding:9px 10px;border-radius:7px;font-weight:700;font-size:13px;color:var(--ink);
+  text-transform:none;letter-spacing:normal;transition:background .15s ease
+}
+.clublogin-suggestion:hover{background:#eef6ef}
+.clublogin-suggestion svg{color:#8a958e;flex-shrink:0}
 
 /* ---------- Public live board ---------- */
 /* A fixed, unscrollable panel meant for an unattended display (a shared tablet,
@@ -831,7 +854,7 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
   /* Compact queue & not-checked-in tables */
   .table{padding:8px}
   .row{grid-template-columns:20px 1fr auto;row-gap:6px;padding:8px 6px;gap:6px}
-  .row>*:nth-child(n+3):nth-child(-n+6){display:none}
+  .row>*:nth-child(n+3):nth-child(-n+7){display:none}
   .row-actions{justify-content:flex-end}
   .row-actions .tiny{padding:5px 7px;font-size:9.5px}
   .person{min-width:0}
