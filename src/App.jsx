@@ -19,15 +19,17 @@ import PlayerModal from "./components/PlayerModal";
 import SessionModal from "./components/SessionModal";
 import ShareModal from "./components/ShareModal";
 import ConfirmDialog from "./components/ConfirmDialog";
+import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Dashboard from "./views/Dashboard";
 import Queue from "./views/Queue";
 import Players from "./views/Players";
 import Cost from "./views/Cost";
 import Stats from "./views/Stats";
 import Guide from "./views/Guide";
+import Account from "./views/Account";
 
 export default function App() {
-  const { club, loggingIn, loginError, login, switchClub, endSession } = useClub();
+  const { club, loggingIn, loginError, login, switchClub, endSession, deleteAccount } = useClub();
   const SESSION_ID = club?.id;
   const [tab, setTab] = useState("dashboard");
   const { session, players, courts, busy } = useSessionData(SESSION_ID);
@@ -36,10 +38,11 @@ export default function App() {
   const [showPlayer, setShowPlayer] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [showSession, setShowSession] = useState(false);
-  const [showEditSession, setShowEditSession] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showEndSession, setShowEndSession] = useState(false);
   const [showSwitchClub, setShowSwitchClub] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [toast, setToast] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("cf-sidebar-collapsed") === "1");
@@ -52,10 +55,10 @@ export default function App() {
   const mode = session.mode || session.rotation || "Balanced";
 
   useEffect(() => {
-    const locked = showPlayer || Boolean(editingPlayer) || showSession || showEditSession || menuOpen;
+    const locked = showPlayer || Boolean(editingPlayer) || showSession || menuOpen;
     document.body.style.overflow = locked ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [showPlayer, editingPlayer, showSession, showEditSession, menuOpen]);
+  }, [showPlayer, editingPlayer, showSession, menuOpen]);
 
   const selectTab = (t) => { setTab(t); setMenuOpen(false); };
 
@@ -449,7 +452,6 @@ export default function App() {
         .forEach((c) => batch.delete(doc(db, "sessions", SESSION_ID, "courts", c.id)));
     }
     await batch.commit();
-    setShowEditSession(false);
     notify("Session updated.");
   }
 
@@ -500,6 +502,23 @@ export default function App() {
     URL.revokeObjectURL(a.href);
   }
 
+  async function handleDeleteAccount() {
+    setDeletingAccount(true);
+    try {
+      await deleteAccount();
+      // Success signs the account out itself (deleteUser), which flips
+      // `club` to null and unmounts this whole tree — nothing left to reset.
+    } catch (err) {
+      setDeletingAccount(false);
+      setShowDeleteAccount(false);
+      if (err.code === "auth/requires-recent-login") {
+        notify("For security, switch club and log back in, then try deleting again.", 5000);
+      } else {
+        notify("Couldn't delete the account — please try again.", 4000);
+      }
+    }
+  }
+
   if (!club) {
     return <ClubLogin onLogin={login} loading={loggingIn} error={loginError} />;
   }
@@ -522,10 +541,7 @@ export default function App() {
         onChangeMode={changeMode}
         tab={tab}
         onSelectTab={selectTab}
-        onNewSession={() => { setShowSession(true); setMenuOpen(false); }}
-        onEditSession={() => { setShowEditSession(true); setMenuOpen(false); }}
         onEndSession={() => { setShowEndSession(true); setMenuOpen(false); }}
-        onSwitchClub={() => { setShowSwitchClub(true); setMenuOpen(false); }}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         collapsed={collapsed}
@@ -571,6 +587,15 @@ export default function App() {
           )}
           {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={SESSION_ID} />}
           {tab === "guide" && <Guide />}
+          {tab === "account" && (
+            <Account
+              session={session}
+              onRenameClub={(location) => updateSessionSettings({ location })}
+              onNewSession={() => setShowSession(true)}
+              onSwitchClub={() => setShowSwitchClub(true)}
+              onDeleteAccount={() => setShowDeleteAccount(true)}
+            />
+          )}
         </div>
 
         {(showPlayer || editingPlayer) && (
@@ -582,9 +607,6 @@ export default function App() {
           />
         )}
         {showSession && <SessionModal close={() => setShowSession(false)} submit={newSession} />}
-        {showEditSession && (
-          <SessionModal session={{ ...session, courts: courts.length }} close={() => setShowEditSession(false)} submit={updateSessionSettings} />
-        )}
         {showShare && (
           <ShareModal url={`${window.location.origin}/live?club=${SESSION_ID}`} close={() => setShowShare(false)} />
         )}
@@ -595,6 +617,14 @@ export default function App() {
             confirmLabel="Switch Club"
             onCancel={() => setShowSwitchClub(false)}
             onConfirm={() => { setShowSwitchClub(false); switchClub(); }}
+          />
+        )}
+        {showDeleteAccount && (
+          <DeleteAccountDialog
+            clubName={session.location || club.name}
+            loading={deletingAccount}
+            onCancel={() => setShowDeleteAccount(false)}
+            onConfirm={handleDeleteAccount}
           />
         )}
         {showEndSession && (

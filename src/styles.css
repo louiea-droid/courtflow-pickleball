@@ -74,8 +74,6 @@ input:focus,select:focus{
 }
 .session>svg{flex-shrink:0;margin-top:2px;animation:pulseDot 2.2s ease-in-out infinite}
 .session b{color:#eff7f0;font-size:12px;display:block}
-.session-edit{margin-left:auto;flex-shrink:0;background:transparent;color:#6b786f;transition:color .15s ease,background .15s ease}
-.session-edit:hover{color:#eef6f0;background:#232f27}
 
 .mode-select{position:relative;margin-bottom:16px}
 .mode-select-trigger{
@@ -119,6 +117,7 @@ nav{display:flex;flex-direction:column}
 .sidefoot{margin-top:16px;display:grid;gap:7px}
 .outline.dark{border-color:#3b493f;color:#eef6f0;background:transparent;transition:background .18s ease,border-color .18s ease}
 .outline.dark:hover{background:#1c2620;border-color:#4a5a4e}
+.outline.dark.active{background:#202c24;border-color:#58c476;color:#58c476}
 .sidebar-collapse-btn{color:#8a958e}
 .sidebar-endsession{
   width:100%;border:0;border-radius:10px;padding:10px 14px;font-weight:800;
@@ -350,6 +349,16 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .rules strong{display:block;font-size:13.5px}
 .rules p{margin:3px 0 0;color:var(--muted);font-size:12.5px;line-height:1.5}
 .guide-intro{color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 16px}
+
+/* ---------- Account ---------- */
+.account-panel{padding:0;overflow:hidden}
+.account-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 17px;border-top:1px solid var(--line)}
+.account-row:first-child{border-top:0}
+.account-row strong{display:block;font-size:13.5px}
+.account-row p{margin:2px 0 0;color:var(--muted);font-size:12px;line-height:1.4}
+.account-edit{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.account-edit b{font-size:14px}
+.account-edit input{width:170px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:600;color:var(--ink)}
 .guide-soon{margin-left:8px}
 .guide-skill-grid{display:grid;gap:2px}
 .guide-skill-row{
@@ -966,4 +975,7 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
   .liveboard-queue-col{margin-bottom:28px}
   .liveboard-box{overflow:visible}
   .ticker,.matchlog-list{mask-image:none;-webkit-mask-image:none}
+
+  .account-row{flex-direction:column;align-items:flex-start;gap:8px}
+  .account-edit input{width:100%}
 }

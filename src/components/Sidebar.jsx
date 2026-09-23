@@ -1,6 +1,6 @@
 import {
-  LayoutDashboard, ListOrdered, Users, Trophy, Plus, Pencil, CircleDot, X,
-  PanelLeftClose, PanelLeftOpen, LogOut, Flag, Receipt, BookOpen,
+  LayoutDashboard, ListOrdered, Users, Trophy, Settings, CircleDot, X,
+  PanelLeftClose, PanelLeftOpen, Flag, Receipt, BookOpen,
 } from "lucide-react";
 import { NAV_ITEMS } from "../data/constants";
 import ModeSelect from "./ModeSelect";
@@ -24,8 +24,8 @@ function Nav({ icon: Icon, label, active, onClick }) {
 }
 
 export default function Sidebar({
-  session, courtCount, mode, onChangeMode, tab, onSelectTab, onNewSession, onEditSession,
-  onEndSession, onSwitchClub,
+  session, courtCount, mode, onChangeMode, tab, onSelectTab,
+  onEndSession,
   open, onClose, collapsed, onToggleCollapse,
 }) {
   return (
@@ -56,20 +56,20 @@ export default function Sidebar({
           <div className="session">
             <CircleDot size={13} />
             <div><b>{session.location}</b><small>{courtCount} {courtCount === 1 ? "court" : "courts"} · {session.format}</small></div>
-            <button className="icon session-edit" title="Edit session" onClick={onEditSession}><Pencil size={12} /></button>
           </div>
 
           <ModeSelect mode={mode} onChange={onChangeMode} />
 
           <div className="sidefoot">
-            <button className="outline dark" onClick={onNewSession} title="New Session">
-              <Plus /> <span>New Session</span>
+            <button
+              className={`outline dark ${tab === "account" ? "active" : ""}`}
+              onClick={() => onSelectTab("account")}
+              title="Account"
+            >
+              <Settings /> <span>Account</span>
             </button>
             <button className="sidebar-endsession" onClick={onEndSession} title="End Session">
               <Flag /> <span>End Session</span>
-            </button>
-            <button className="outline dark" onClick={onSwitchClub} title="Switch Club">
-              <LogOut /> <span>Switch Club</span>
             </button>
             <button
               className="outline dark sidebar-collapse-btn"

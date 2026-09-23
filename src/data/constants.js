@@ -38,4 +38,5 @@ export const TITLES = {
   cost: ["Cost Division",],
   stats: ["Session Stats", ],
   guide: ["Guide",],
+  account: ["Account",],
 };

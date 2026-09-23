@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { collection, doc, getDoc, getDocs, writeBatch } from "firebase/firestore";
 import {
-  createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut,
+  createUserWithEmailAndPassword, deleteUser, onAuthStateChanged, signInWithEmailAndPassword, signOut,
 } from "firebase/auth";
 import { auth, db } from "../firebase";
 import { seedSession } from "../data/constants";
@@ -140,5 +140,27 @@ export function useClub() {
     await signOut(auth);
   }
 
-  return { club, loggingIn, loginError, login, switchClub, endSession };
+  // Permanently erases this club: every player/court/history/cost/match-log
+  // document plus the session doc itself, then the Firebase Auth account,
+  // which frees the club name for anyone to claim again. No undo. Deletes
+  // data first and the account last, so a failure never leaves data orphaned
+  // behind a deleted account nobody can sign in as to remove it.
+  // ponytail: one batch caps at 500 writes; a club with a very long match
+  // history could exceed that and fail here — chunk into multiple batches
+  // if that turns out to matter in practice.
+  async function deleteAccount() {
+    if (!club) return;
+    const { id } = club;
+    const subcollections = ["players", "courts", "history", "costs", "matchLog"];
+    const snaps = await Promise.all(
+      subcollections.map((name) => getDocs(collection(db, "sessions", id, name)))
+    );
+    const batch = writeBatch(db);
+    snaps.forEach((snap) => snap.forEach((d) => batch.delete(d.ref)));
+    batch.delete(doc(db, "sessions", id));
+    await batch.commit();
+    await deleteUser(auth.currentUser);
+  }
+
+  return { club, loggingIn, loginError, login, switchClub, endSession, deleteAccount };
 }
