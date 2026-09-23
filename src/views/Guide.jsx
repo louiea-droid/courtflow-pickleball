@@ -9,7 +9,7 @@ import { SKILL_LEVELS } from "../utils/courtLevels";
 const FEATURES = [
   {
     icon: LogIn, title: "Club Login",
-    body: "Your club name is your session — no password. A new name starts a fresh session; an existing one continues it, keeping your roster but renewing everyone's game count. Whatever was played gets archived first, so nothing is lost — see it under Stats → Past Sessions.",
+    body: "Your club name and password sign you into that club. A new name creates a fresh club; an existing one resumes exactly as you left it — no roster reset just from logging in. When the day's play is done, use End Session in the sidebar to archive today's stats and reset everyone's game count for next time — see it under Stats → Past Sessions.",
   },
   {
     icon: LayoutDashboard, title: "Dashboard",
@@ -29,7 +29,7 @@ const FEATURES = [
   },
   {
     icon: Trophy, title: "Stats",
-    body: "The session leaderboard, sorted by win percentage. Export everything to CSV, or expand Past Sessions to see the results from before the last time this club's games were renewed.",
+    body: "The session leaderboard, sorted by win percentage. Export everything to CSV, or expand Past Sessions to see the results from before the last time this club ended a session.",
   },
   {
     icon: MonitorPlay, title: "Live Board",

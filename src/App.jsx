@@ -603,7 +603,10 @@ export default function App() {
             message="This closes out today's play: stats are archived to Stats → Past Sessions, the match log and courts are cleared, and everyone will need to check in again next time. Signs you out."
             confirmLabel="End Session"
             onCancel={() => setShowEndSession(false)}
-            onConfirm={() => { setShowEndSession(false); endSession(); }}
+            onConfirm={() => {
+              setShowEndSession(false);
+              endSession().catch(() => notify("Couldn't end the session — please try again.", 4000));
+            }}
           />
         )}
         <Toast message={toast} />

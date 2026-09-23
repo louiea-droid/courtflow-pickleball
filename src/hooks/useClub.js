@@ -58,8 +58,20 @@ export function useClub() {
       try {
         await signInWithEmailAndPassword(auth, email, password);
         return;
-      } catch {
-        // No account yet, or wrong password — the create attempt below tells us which.
+      } catch (err) {
+        // Only "no account with this email yet" and "wrong password" fall
+        // through to the create attempt below, which is what disambiguates
+        // them. Throttling and connectivity errors are not password
+        // problems — reporting them as "incorrect password" would send
+        // someone into a retry loop that only makes a rate limit worse.
+        if (err.code === "auth/too-many-requests") {
+          setLoginError("Too many attempts — wait a bit before trying again.");
+          return;
+        }
+        if (err.code === "auth/network-request-failed") {
+          setLoginError("Network error — check your connection and try again.");
+          return;
+        }
       }
       try {
         await createUserWithEmailAndPassword(auth, email, password);
@@ -68,6 +80,8 @@ export function useClub() {
           setLoginError(`Incorrect password for ${clubName}.`);
         } else if (err.code === "auth/weak-password") {
           setLoginError("Password must be at least 6 characters.");
+        } else if (err.code === "auth/operation-not-allowed") {
+          setLoginError("Sign-in isn't enabled for this app yet — contact the admin.");
         } else {
           setLoginError("Couldn't log in — please try again.");
         }
