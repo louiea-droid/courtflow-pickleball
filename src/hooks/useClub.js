@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { doc, getDoc, writeBatch } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, writeBatch } from "firebase/firestore";
 import {
   createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut,
 } from "firebase/auth";
@@ -90,8 +90,41 @@ export function useClub() {
     await signOut(auth);
   }
 
-  // Filled in by the next task (archive + reset today's session).
-  async function endSession() {}
+  // Closes out today's play: archives aggregate stats (if any games were
+  // played), clears the match log, empties every court, resets every
+  // player's stats and checks them all out, then signs out. Roster itself
+  // is kept — this is not the destructive "New Session" wipe.
+  async function endSession() {
+    if (!club) return;
+    const { id } = club;
+    const [playersSnap, courtsSnap, matchLogSnap] = await Promise.all([
+      getDocs(collection(db, "sessions", id, "players")),
+      getDocs(collection(db, "sessions", id, "courts")),
+      getDocs(collection(db, "sessions", id, "matchLog")),
+    ]);
+    const roster = playersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const totalGames = roster.reduce((n, p) => n + (p.games || 0), 0);
+    const batch = writeBatch(db);
+    if (totalGames > 0) {
+      const historyRef = doc(collection(db, "sessions", id, "history"));
+      batch.set(historyRef, {
+        endedAt: Date.now(),
+        matches: Math.round(totalGames / 2),
+        players: roster.map((p) => ({
+          id: p.id, name: p.name, games: p.games || 0, wins: p.wins || 0, losses: p.losses || 0,
+        })),
+      });
+    }
+    roster.forEach((p) => {
+      batch.update(doc(db, "sessions", id, "players", p.id), {
+        games: 0, wins: 0, losses: 0, partners: [], lastResult: null, checked: false,
+      });
+    });
+    courtsSnap.forEach((d) => batch.update(d.ref, { teamA: [], teamB: [] }));
+    matchLogSnap.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+    await signOut(auth);
+  }
 
   return { club, loggingIn, loginError, login, switchClub, endSession };
 }

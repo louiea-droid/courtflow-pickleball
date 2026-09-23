@@ -39,6 +39,7 @@ export default function App() {
   const [showEditSession, setShowEditSession] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showEndSession, setShowEndSession] = useState(false);
+  const [showSwitchClub, setShowSwitchClub] = useState(false);
   const [toast, setToast] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("cf-sidebar-collapsed") === "1");
@@ -524,6 +525,7 @@ export default function App() {
         onNewSession={() => { setShowSession(true); setMenuOpen(false); }}
         onEditSession={() => { setShowEditSession(true); setMenuOpen(false); }}
         onEndSession={() => { setShowEndSession(true); setMenuOpen(false); }}
+        onSwitchClub={() => { setShowSwitchClub(true); setMenuOpen(false); }}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         collapsed={collapsed}
@@ -586,13 +588,22 @@ export default function App() {
         {showShare && (
           <ShareModal url={`${window.location.origin}/live?club=${SESSION_ID}`} close={() => setShowShare(false)} />
         )}
-        {showEndSession && (
+        {showSwitchClub && (
           <ConfirmDialog
             title="Switch Club?"
-            message={`This signs you out of ${session.location || club.name}. Your players and stats are kept — logging back in with this club name will continue the session with game counts reset to zero.`}
+            message={`This signs you out of ${session.location || club.name}. Nothing about this session changes — logging back in with the password picks up right where you left off.`}
             confirmLabel="Switch Club"
+            onCancel={() => setShowSwitchClub(false)}
+            onConfirm={() => { setShowSwitchClub(false); switchClub(); }}
+          />
+        )}
+        {showEndSession && (
+          <ConfirmDialog
+            title="End Session?"
+            message="This closes out today's play: stats are archived to Stats → Past Sessions, the match log and courts are cleared, and everyone will need to check in again next time. Signs you out."
+            confirmLabel="End Session"
             onCancel={() => setShowEndSession(false)}
-            onConfirm={() => { setShowEndSession(false); switchClub(); }}
+            onConfirm={() => { setShowEndSession(false); endSession(); }}
           />
         )}
         <Toast message={toast} />
