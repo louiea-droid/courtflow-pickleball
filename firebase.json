@@ -1,4 +1,10 @@
 {
+  "firestore": {
+    "database": "(default)",
+    "location": "asia-southeast1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -7,7 +13,10 @@
       "**/node_modules/**"
     ],
     "rewrites": [
-      { "source": "**", "destination": "/index.html" }
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   }
 }
