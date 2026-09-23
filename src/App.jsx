@@ -160,6 +160,23 @@ export default function App() {
     notify("Player returned to queue.");
   }
 
+  async function addPlayerToCourt(courtId, team, id) {
+    const c = courts.find((x) => x.id === courtId);
+    const player = players.find((p) => p.id === id);
+    const key = team === "A" ? "teamA" : "teamB";
+    const destTeamIds = new Set(c[key] || []);
+    // A locked pair must land on the same team — block if the partner isn't
+    // already seated on this specific side (whether they're unseated or, worse,
+    // seated on the opposing team, which would split the lock).
+    if (player?.lockedWithId && !destTeamIds.has(player.lockedWithId)) {
+      const partnerName = players.find((p) => p.id === player.lockedWithId)?.name || "their locked partner";
+      return notify(`${player.name} is locked in with ${partnerName} — can't add them without their partner on this team.`, 4000);
+    }
+    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", courtId), { [key]: [...(c[key] || []), id] });
+    await updateDoc(doc(db, "sessions", SESSION_ID, "players", id), { checkedAt: Date.now() });
+    notify(`Added ${player?.name || "Player"} to Court ${c.courtNumber}.`);
+  }
+
   async function swapPlayer(courtId, oldId, newId) {
     const c = courts.find((x) => x.id === courtId);
     const onCourtNow = new Set([...(c.teamA || []), ...(c.teamB || [])]);
@@ -172,10 +189,14 @@ export default function App() {
     if (oldPlayer?.lockedWithId && onCourtNow.has(oldPlayer.lockedWithId)) {
       return notify(`${oldPlayer.name} is locked in with ${nameOf(oldPlayer.lockedWithId)} — can't swap them out this match.`, 4000);
     }
-    if (newPlayer?.lockedWithId && !onCourtNow.has(newPlayer.lockedWithId)) {
-      return notify(`${newPlayer.name} is locked in with ${nameOf(newPlayer.lockedWithId)} — can't add them without their partner.`, 4000);
-    }
     const inTeamA = (c.teamA || []).includes(oldId);
+    // Same rule as addPlayerToCourt: the incoming player's locked partner, if
+    // seated, must be seated on the same team oldId is being swapped out of —
+    // not just anywhere on the court.
+    const destTeamIds = new Set(inTeamA ? c.teamA : c.teamB);
+    if (newPlayer?.lockedWithId && !destTeamIds.has(newPlayer.lockedWithId)) {
+      return notify(`${newPlayer.name} is locked in with ${nameOf(newPlayer.lockedWithId)} — can't add them without their partner on this team.`, 4000);
+    }
     const teamA = inTeamA ? c.teamA.map((x) => (x === oldId ? newId : x)) : c.teamA;
     const teamB = !inTeamA ? c.teamB.map((x) => (x === oldId ? newId : x)) : c.teamB;
     const batch = writeBatch(db);
@@ -389,6 +410,20 @@ export default function App() {
   async function newSession(data) {
     const matchLogSnap = await getDocs(collection(db, "sessions", SESSION_ID, "matchLog"));
     const batch = writeBatch(db);
+    // Same archive-before-wipe as "Continue" on the login screen — otherwise
+    // starting a new session from inside the app silently discards the
+    // roster's game/win history instead of saving it to Stats → Past Sessions.
+    const totalGames = players.reduce((n, p) => n + (p.games || 0), 0);
+    if (totalGames > 0) {
+      const historyRef = doc(collection(db, "sessions", SESSION_ID, "history"));
+      batch.set(historyRef, {
+        endedAt: Date.now(),
+        matches: Math.round(totalGames / 2),
+        players: players.map((p) => ({
+          id: p.id, name: p.name, games: p.games || 0, wins: p.wins || 0, losses: p.losses || 0,
+        })),
+      });
+    }
     batch.set(doc(db, "sessions", SESSION_ID), data, { merge: true });
     courts.forEach((c) => batch.delete(doc(db, "sessions", SESSION_ID, "courts", c.id)));
     players.forEach((p) => batch.delete(doc(db, "sessions", SESSION_ID, "players", p.id)));
@@ -529,7 +564,7 @@ export default function App() {
         <div className="view" key={tab}>
           {tab === "dashboard" && (
             <Dashboard session={session} players={players} courts={courts} queue={queue} matchLog={matchLog} notify={notify}
-              recordWin={recordWin} removePlayer={removePlayer} swapPlayer={swapPlayer}
+              recordWin={recordWin} removePlayer={removePlayer} swapPlayer={swapPlayer} addPlayerToCourt={addPlayerToCourt}
               autoRotateOn={autoRotateOn} onToggleAutoRotate={toggleAutoRotate} onAutoFill={autoFillCourts}
               onAddCourt={addCourt} onRemoveCourt={removeCourt} onSetCourtLevel={setCourtLevel} onRenameCourt={renameCourt}
               onStartNext={startNextMatch} onSwapQueueOrder={swapQueueOrder} onSkipQueued={skipQueuedPlayer}
@@ -570,9 +605,9 @@ export default function App() {
         )}
         {showEndSession && (
           <ConfirmDialog
-            title="End Session?"
+            title="Switch Club?"
             message={`This signs you out of ${session.location || club.name}. Your players and stats are kept — logging back in with this club name will continue the session with game counts reset to zero.`}
-            confirmLabel="End Session"
+            confirmLabel="Switch Club"
             onCancel={() => setShowEndSession(false)}
             onConfirm={() => { setShowEndSession(false); signOutClub(); }}
           />

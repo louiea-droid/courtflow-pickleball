@@ -92,6 +92,8 @@ export function useClub() {
 
   // Clears this club's roster, courts, and match log and starts over, same
   // as the in-app "New Session" action — just reachable straight from login.
+  // Archives the outgoing roster's stats first, same as confirmContinue, so
+  // choosing "Start over" here doesn't lose them the way it used to.
   async function confirmNewSession() {
     if (!pendingClub) return;
     const { id, name } = pendingClub;
@@ -102,7 +104,19 @@ export function useClub() {
         getDocs(collection(db, "sessions", id, "courts")),
         getDocs(collection(db, "sessions", id, "matchLog")),
       ]);
+      const roster = playersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const totalGames = roster.reduce((n, p) => n + (p.games || 0), 0);
       const batch = writeBatch(db);
+      if (totalGames > 0) {
+        const historyRef = doc(collection(db, "sessions", id, "history"));
+        batch.set(historyRef, {
+          endedAt: Date.now(),
+          matches: Math.round(totalGames / 2),
+          players: roster.map((p) => ({
+            id: p.id, name: p.name, games: p.games || 0, wins: p.wins || 0, losses: p.losses || 0,
+          })),
+        });
+      }
       playersSnap.forEach((d) => batch.delete(d.ref));
       courtsSnap.forEach((d) => batch.delete(d.ref));
       matchLogSnap.forEach((d) => batch.delete(d.ref));

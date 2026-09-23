@@ -42,7 +42,7 @@ function Stat({ n, l, s }) {
   );
 }
 
-function Team({ label, color, ids, players, queue, swapOpenId, onSwapClick, onSwap, remove }) {
+function Team({ label, color, ids, openSlots, players, queue, swapOpenId, onSwapClick, onSwap, remove, onAdd }) {
   return (
     <div className="team">
       <div className={color}>{label}</div>
@@ -66,6 +66,30 @@ function Team({ label, color, ids, players, queue, swapOpenId, onSwapClick, onSw
               <div className="swap-menu">
                 {queue.length ? queue.map((q) => (
                   <button key={q.id} className="swap-item" onClick={() => onSwap(id, q.id)}>
+                    {q.name}
+                    {q.lockedWithId && (
+                      <small className="swap-item-lock">
+                        locked w/ {players.find((x) => x.id === q.lockedWithId)?.name || "someone"}
+                      </small>
+                    )}
+                  </button>
+                )) : <div className="swap-empty">No eligible players waiting.</div>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {Array.from({ length: openSlots }).map((_, i) => {
+        const slotId = `add-${color}-${i}`;
+        return (
+          <div className="chip-wrap" key={slotId}>
+            <button className="chip placeholder chip-add" onClick={() => onSwapClick(slotId)}>
+              <Plus size={13} /><small>Add player</small>
+            </button>
+            {swapOpenId === slotId && (
+              <div className="swap-menu">
+                {queue.length ? queue.map((q) => (
+                  <button key={q.id} className="swap-item" onClick={() => onAdd(q.id)}>
                     {q.name}
                     {q.lockedWithId && (
                       <small className="swap-item-lock">
@@ -137,14 +161,18 @@ function CourtTitle({ court, onRename }) {
   return <b className="court-name" title="Click to rename" onClick={startEdit}>{displayName}</b>;
 }
 
-function Court({ c, players, queue, need, upNext, win, remove, swap, onStartNext, onSetLevel, onRemoveCourt, canRemove, onRenameCourt }) {
+function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, onStartNext, onSetLevel, onRemoveCourt, canRemove, onRenameCourt }) {
   const [swapOpen, setSwapOpen] = useState(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const teamsRef = useRef(null);
   const toggleSwap = (id) => setSwapOpen((cur) => (cur === id ? null : id));
   const handleSwap = (oldId, newId) => { swap(c.id, oldId, newId); setSwapOpen(null); };
+  const handleAdd = (team, newId) => { addPlayer(c.id, team, newId); setSwapOpen(null); };
   const isEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
   const eligibleQueue = queue.filter((p) => matchesCourtLevel(p.skill, c.level));
+  const perTeam = need / 2;
+  const openSlotsA = isEmpty ? 0 : Math.max(0, perTeam - (c.teamA?.length || 0));
+  const openSlotsB = isEmpty ? 0 : Math.max(0, perTeam - (c.teamB?.length || 0));
   useCloseSwapOnOutside(teamsRef, swapOpen !== null, () => setSwapOpen(null));
 
   return (
@@ -171,10 +199,12 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, onStartNext
       ) : (
         <>
           <div className="teams" ref={teamsRef}>
-            <Team label="Team 1" color="team1" ids={c.teamA || []} players={players} queue={eligibleQueue}
-              swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} remove={(id) => remove(c.id, id)} />
-            <Team label="Team 2" color="team2" ids={c.teamB || []} players={players} queue={eligibleQueue}
-              swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} remove={(id) => remove(c.id, id)} />
+            <Team label="Team 1" color="team1" ids={c.teamA || []} openSlots={openSlotsA} players={players} queue={eligibleQueue}
+              swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} remove={(id) => remove(c.id, id)}
+              onAdd={(id) => handleAdd("A", id)} />
+            <Team label="Team 2" color="team2" ids={c.teamB || []} openSlots={openSlotsB} players={players} queue={eligibleQueue}
+              swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} remove={(id) => remove(c.id, id)}
+              onAdd={(id) => handleAdd("B", id)} />
           </div>
           <div className="winrow">
             <button onClick={() => win(c.id, "A")}>Team 1 Wins</button>
@@ -298,7 +328,7 @@ function CourtPreview({ label, level, group, need, mode, players, queue, notify,
 }
 
 export default function Dashboard({
-  session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer, notify,
+  session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer, addPlayerToCourt, notify,
   autoRotateOn, onToggleAutoRotate, onAutoFill, onAddCourt, onRemoveCourt, onSetCourtLevel, onRenameCourt,
   onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue,
 }) {
@@ -359,7 +389,7 @@ export default function Dashboard({
       <div className="courts">
         {courtViews.map(({ court: c, upNext }) => (
           <Court key={c.id} c={c} players={players} queue={queue} need={need} upNext={upNext}
-            win={recordWin} remove={removePlayer} swap={swapPlayer} onStartNext={onStartNext} onSetLevel={onSetCourtLevel}
+            win={recordWin} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={onStartNext} onSetLevel={onSetCourtLevel}
             onRemoveCourt={onRemoveCourt} canRemove={courts.length > 1} onRenameCourt={onRenameCourt} />
         ))}
       </div>

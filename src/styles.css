@@ -285,6 +285,9 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .chip small{display:block}
 .chip.placeholder{justify-content:center;color:var(--muted)}
 .chip.placeholder small{color:var(--muted);font-style:italic;letter-spacing:0}
+.chip-add{width:100%;border:0;border-top:1px solid var(--line);background:none;cursor:pointer;gap:6px;font:inherit;transition:color .15s ease,background .15s ease}
+.chip-add small{font-style:normal;font-weight:700}
+.chip-add:hover{color:#2d7747;background:#e9f6ec}
 .chip-wrap{position:relative}
 .chip-actions{display:flex;gap:2px}
 .chip-btn{border:0;background:none;color:#98a49d;padding:3px;border-radius:6px;display:inline-flex;transition:color .15s ease,background .15s ease}
@@ -426,12 +429,13 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .playercard:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
 .playercard-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .playercard-actions{display:flex;gap:4px;flex-shrink:0}
-.icon.danger:hover{background:#fdeaea;color:#c94b4b}
+.icon.danger{color:#c94b4b}
+.icon.danger:hover{background:#fdeaea}
 .ministats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;border-top:1px solid var(--line);padding-top:12px}
-.ministats span{display:block;color:#89948d;font-size:9px;text-transform:uppercase}
-.playercard em{display:inline-block;background:#eef5ef;color:#2d7548;font-size:10px;font-style:normal;font-weight:800;padding:4px 7px;border-radius:99px;margin-top:10px}
-.playercard em+em{margin-left:6px}
-.playercard em.locked{display:inline-flex;align-items:center;gap:4px;background:#eaf0fb;color:#3059c9}
+.ministats span{display:block;color:#89948d;font-size:10px;font-weight:700}
+.playercard-badges{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;min-height:46px;margin-top:10px}
+.playercard em{display:inline-flex;align-items:center;background:#f0f3f1;color:#5b6660;font-size:10px;font-style:normal;font-weight:800;padding:4px 7px;border-radius:99px}
+.playercard em.locked{gap:4px;background:#eaf0fb;color:#3059c9}
 .tiny.accent{background:var(--green);border-color:var(--green);color:#fff}
 .tiny.accent:hover{background:var(--green2)}
 
@@ -880,7 +884,8 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
   .ministats{gap:4px;padding-top:8px}
   .ministats span{font-size:7.5px}
   .ministats b{font-size:13px}
-  .playercard em{font-size:9px;padding:3px 6px;margin-top:6px}
+  .playercard em{font-size:9px;padding:3px 6px}
+  .playercard-badges{min-height:38px;margin-top:6px}
 
   /* Compact stats page */
   .bigstats{grid-template-columns:repeat(3,1fr);gap:6px}

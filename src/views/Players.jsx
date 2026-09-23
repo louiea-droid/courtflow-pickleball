@@ -28,10 +28,12 @@ export default function Players({ players, onEdit, onDelete }) {
                 <div><span>Wins</span><b>{p.wins}</b></div>
                 <div><span>Win %</span><b>{winPct(p)}%</b></div>
               </div>
-              <em>{p.checked ? "Checked in" : "Checked out"}</em>
-              {p.lockedWithId && (
-                <em className="locked"><Link2 size={11} /> Locked with {nameOf(p.lockedWithId) || "player"}</em>
-              )}
+              <div className="playercard-badges">
+                <em className="status">{p.checked ? "Checked in" : "Checked out"}</em>
+                {p.lockedWithId && (
+                  <em className="locked"><Link2 size={11} /> Locked with {nameOf(p.lockedWithId) || "player"}</em>
+                )}
+              </div>
             </div>
           ))}
         </div>

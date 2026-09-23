@@ -19,7 +19,7 @@ export default function SessionModal({ close, submit, session }) {
     <Modal title={isEdit ? "Edit Club" : "New Open Play"} label="SESSION SETUP" close={close}>
       {isEdit
         ? <p className="modal-note info">Just the club name — courts live on the Dashboard, and mode is in the sidebar.</p>
-        : <p className="modal-note">Starting a new session clears the current roster — every player will need to check in again.</p>}
+        : <p className="modal-note">Starting a new session clears the current roster — every player will need to check in again. Game/win totals are saved to Stats → Past Sessions first.</p>}
       <form
         onSubmit={(e) => {
           e.preventDefault();

@@ -64,8 +64,8 @@ export default function Sidebar({
             <button className="outline dark" onClick={onNewSession} title="New Session">
               <Plus /> <span>New Session</span>
             </button>
-            <button className="sidebar-endsession" onClick={onEndSession} title="End Session">
-              <LogOut /> <span>End Session</span>
+            <button className="sidebar-endsession" onClick={onEndSession} title="Switch Club">
+              <LogOut /> <span>Switch Club</span>
             </button>
             <button
               className="outline dark sidebar-collapse-btn"
