@@ -12,7 +12,6 @@ import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
 
 import ClubLogin from "./components/ClubLogin";
-import ClubSessionChoice from "./components/ClubSessionChoice";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import Toast from "./components/Toast";
@@ -28,10 +27,7 @@ import Stats from "./views/Stats";
 import Guide from "./views/Guide";
 
 export default function App() {
-  const {
-    club, loginClub, endSession: signOutClub, loggingIn,
-    pendingClub, confirmContinue, confirmNewSession, cancelPendingClub,
-  } = useClub();
+  const { club, loggingIn, loginError, login, switchClub, endSession } = useClub();
   const SESSION_ID = club?.id;
   const [tab, setTab] = useState("dashboard");
   const { session, players, courts, busy } = useSessionData(SESSION_ID);
@@ -504,20 +500,7 @@ export default function App() {
   }
 
   if (!club) {
-    return (
-      <>
-        <ClubLogin onLogin={loginClub} loading={loggingIn} />
-        {pendingClub && (
-          <ClubSessionChoice
-            clubName={pendingClub.name}
-            loading={loggingIn}
-            onContinue={confirmContinue}
-            onNew={confirmNewSession}
-            onCancel={cancelPendingClub}
-          />
-        )}
-      </>
-    );
+    return <ClubLogin onLogin={login} loading={loggingIn} error={loginError} />;
   }
 
   if (busy) {
@@ -609,7 +592,7 @@ export default function App() {
             message={`This signs you out of ${session.location || club.name}. Your players and stats are kept — logging back in with this club name will continue the session with game counts reset to zero.`}
             confirmLabel="Switch Club"
             onCancel={() => setShowEndSession(false)}
-            onConfirm={() => { setShowEndSession(false); signOutClub(); }}
+            onConfirm={() => { setShowEndSession(false); switchClub(); }}
           />
         )}
         <Toast message={toast} />

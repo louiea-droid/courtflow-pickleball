@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { doc, getDoc, writeBatch } from "firebase/firestore";
 import {
-  collection, doc, getDoc, getDocs, writeBatch,
-} from "firebase/firestore";
-import { db } from "../firebase";
+  createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut,
+} from "firebase/auth";
+import { auth, db } from "../firebase";
 import { seedSession } from "../data/constants";
-import { slugifyClub, loadStoredClub, saveStoredClub } from "../utils/club";
+import { authEmail, loadStoredClub, saveStoredClub, slugifyClub } from "../utils/club";
 
 async function createFreshSession(batch, id, clubName) {
   batch.set(doc(db, "sessions", id), { ...seedSession, location: clubName, createdAt: Date.now() });
@@ -16,129 +17,81 @@ async function createFreshSession(batch, id, clubName) {
 }
 
 export function useClub() {
+  // Seeded from the last-known local cache so the app can paint the
+  // dashboard immediately on a repeat visit instead of flashing the login
+  // screen — onAuthStateChanged (below) corrects this if the cache is
+  // stale or the session is no longer valid.
   const [club, setClub] = useState(loadStoredClub);
   const [loggingIn, setLoggingIn] = useState(false);
-  // Set only when a typed-in club name already has a session — the login
-  // screen asks the person to choose before anything is written.
-  const [pendingClub, setPendingClub] = useState(null);
+  const [loginError, setLoginError] = useState("");
 
-  function finishLogin(id, clubName) {
-    const next = { id, name: clubName };
-    saveStoredClub(next);
-    setClub(next);
-    setPendingClub(null);
-  }
-
-  async function loginClub(rawName) {
-    const clubName = rawName.trim();
-    if (!clubName) return;
-    setLoggingIn(true);
-    try {
-      const id = slugifyClub(clubName);
-      const existing = await getDoc(doc(db, "sessions", id));
-      if (existing.exists()) {
-        setPendingClub({ id, name: clubName });
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setClub(null);
+        saveStoredClub(null);
         return;
       }
-      const batch = writeBatch(db);
-      await createFreshSession(batch, id, clubName);
-      await batch.commit();
-      finishLogin(id, clubName);
-    } finally {
-      setLoggingIn(false);
-    }
-  }
+      const id = user.email.slice(0, user.email.indexOf("@"));
+      const snap = await getDoc(doc(db, "sessions", id));
+      const next = { id, name: snap.exists() ? (snap.data().location || id) : id };
+      setClub(next);
+      saveStoredClub(next);
+    });
+    return unsubscribe;
+  }, []);
 
-  // Keeps the roster, renews game counts. Whatever was played gets archived
-  // first, so "renewed" doesn't mean "lost" — see Stats → Past Sessions.
-  // The match log resets alongside the stats it recorded, so the Dashboard's
-  // recent-matches feed doesn't mix leftover entries from the prior cycle in
-  // with a roster that now reads zero games.
-  async function confirmContinue() {
-    if (!pendingClub) return;
-    const { id, name } = pendingClub;
+  // One form, three outcomes, resolved automatically: sign in (returning
+  // club), create + seed (brand-new club name), or create + leave data
+  // alone (claiming a pre-auth club with data but no password yet). The
+  // create call's own error/success is what disambiguates "wrong
+  // password" from "no account yet" — see spec §6 for why sign-in's error
+  // code is deliberately not branched on.
+  async function login(rawName, password) {
+    const clubName = rawName.trim();
+    if (!clubName || !password) return;
+    const id = slugifyClub(clubName);
+    const email = authEmail(id);
     setLoggingIn(true);
+    setLoginError("");
     try {
-      const batch = writeBatch(db);
-      const [playersSnap, matchLogSnap] = await Promise.all([
-        getDocs(collection(db, "sessions", id, "players")),
-        getDocs(collection(db, "sessions", id, "matchLog")),
-      ]);
-      const roster = playersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const totalGames = roster.reduce((n, p) => n + (p.games || 0), 0);
-      if (totalGames > 0) {
-        const historyRef = doc(collection(db, "sessions", id, "history"));
-        batch.set(historyRef, {
-          endedAt: Date.now(),
-          matches: Math.round(totalGames / 2),
-          players: roster.map((p) => ({
-            id: p.id, name: p.name, games: p.games || 0, wins: p.wins || 0, losses: p.losses || 0,
-          })),
-        });
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        return;
+      } catch {
+        // No account yet, or wrong password — the create attempt below tells us which.
       }
-      roster.forEach((p) => {
-        batch.update(doc(db, "sessions", id, "players", p.id), {
-          games: 0, wins: 0, losses: 0, partners: [], lastResult: null,
-        });
-      });
-      matchLogSnap.forEach((d) => batch.delete(d.ref));
-      batch.set(doc(db, "sessions", id), { location: name }, { merge: true });
-      await batch.commit();
-      finishLogin(id, name);
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        if (err.code === "auth/email-already-in-use") {
+          setLoginError(`Incorrect password for ${clubName}.`);
+        } else if (err.code === "auth/weak-password") {
+          setLoginError("Password must be at least 6 characters.");
+        } else {
+          setLoginError("Couldn't log in — please try again.");
+        }
+        return;
+      }
+      const existing = await getDoc(doc(db, "sessions", id));
+      if (!existing.exists()) {
+        const batch = writeBatch(db);
+        await createFreshSession(batch, id, clubName);
+        await batch.commit();
+      }
+      // Existing doc with no prior Auth account (legacy/claim case): left untouched.
     } finally {
       setLoggingIn(false);
     }
   }
 
-  // Clears this club's roster, courts, and match log and starts over, same
-  // as the in-app "New Session" action — just reachable straight from login.
-  // Archives the outgoing roster's stats first, same as confirmContinue, so
-  // choosing "Start over" here doesn't lose them the way it used to.
-  async function confirmNewSession() {
-    if (!pendingClub) return;
-    const { id, name } = pendingClub;
-    setLoggingIn(true);
-    try {
-      const [playersSnap, courtsSnap, matchLogSnap] = await Promise.all([
-        getDocs(collection(db, "sessions", id, "players")),
-        getDocs(collection(db, "sessions", id, "courts")),
-        getDocs(collection(db, "sessions", id, "matchLog")),
-      ]);
-      const roster = playersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const totalGames = roster.reduce((n, p) => n + (p.games || 0), 0);
-      const batch = writeBatch(db);
-      if (totalGames > 0) {
-        const historyRef = doc(collection(db, "sessions", id, "history"));
-        batch.set(historyRef, {
-          endedAt: Date.now(),
-          matches: Math.round(totalGames / 2),
-          players: roster.map((p) => ({
-            id: p.id, name: p.name, games: p.games || 0, wins: p.wins || 0, losses: p.losses || 0,
-          })),
-        });
-      }
-      playersSnap.forEach((d) => batch.delete(d.ref));
-      courtsSnap.forEach((d) => batch.delete(d.ref));
-      matchLogSnap.forEach((d) => batch.delete(d.ref));
-      await createFreshSession(batch, id, name);
-      await batch.commit();
-      finishLogin(id, name);
-    } finally {
-      setLoggingIn(false);
-    }
+  // Local sign-out only — no data changes. For "the game's over," use endSession.
+  async function switchClub() {
+    await signOut(auth);
   }
 
-  function cancelPendingClub() {
-    setPendingClub(null);
-  }
+  // Filled in by the next task (archive + reset today's session).
+  async function endSession() {}
 
-  function endSession() {
-    saveStoredClub(null);
-    setClub(null);
-  }
-
-  return {
-    club, loginClub, endSession, loggingIn,
-    pendingClub, confirmContinue, confirmNewSession, cancelPendingClub,
-  };
+  return { club, loggingIn, loginError, login, switchClub, endSession };
 }

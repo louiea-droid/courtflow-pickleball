@@ -9,6 +9,10 @@ export function slugifyClub(name) {
   return slug || "club";
 }
 
+export function authEmail(slug) {
+  return `${slug}@courtflow.local`;
+}
+
 export function loadStoredClub() {
   try {
     const raw = localStorage.getItem(CLUB_STORAGE_KEY);

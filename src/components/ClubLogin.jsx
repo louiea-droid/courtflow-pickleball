@@ -3,11 +3,13 @@ import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
 import { LogIn, Search } from "lucide-react";
 import { db } from "../firebase";
 
-export default function ClubLogin({ onLogin, loading }) {
+export default function ClubLogin({ onLogin, loading, error }) {
   const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
   const [directory, setDirectory] = useState([]);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const passwordRef = useRef(null);
 
   // One-time fetch of every club that has ever started a session, so typing
   // can surface a match instead of requiring the exact remembered name.
@@ -43,13 +45,13 @@ export default function ClubLogin({ onLogin, loading }) {
 
   const submit = (e) => {
     e.preventDefault();
-    if (name.trim() && !loading) { setOpen(false); onLogin(name.trim()); }
+    if (name.trim() && password && !loading) { setOpen(false); onLogin(name.trim(), password); }
   };
 
   const pick = (clubName) => {
     setName(clubName);
     setOpen(false);
-    if (!loading) onLogin(clubName);
+    passwordRef.current?.focus();
   };
 
   return (
@@ -57,7 +59,7 @@ export default function ClubLogin({ onLogin, loading }) {
       <form className="clublogin-card" onSubmit={submit}>
         <img className="mark" src="/images/courtflow.png" alt="" />
         <h1>CourtFlow</h1>
-        <p>Enter your club or venue name to start or continue a session.</p>
+        <p>Enter your club or venue name and password to start or continue a session.</p>
         <label className="clublogin-search" ref={wrapRef}>
           Club name
           <input
@@ -79,12 +81,24 @@ export default function ClubLogin({ onLogin, loading }) {
             </div>
           )}
         </label>
-        <button className="primary" disabled={loading || !name.trim()}>
+        <label className="clublogin-password">
+          Password
+          <input
+            ref={passwordRef}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="At least 6 characters"
+            autoComplete="current-password"
+          />
+        </label>
+        {error && <p className="clublogin-error">{error}</p>}
+        <button className="primary" disabled={loading || !name.trim() || !password}>
           <LogIn size={16} /> {loading ? "Loading…" : "Continue"}
         </button>
         <p className="clublogin-hint">
-          New club name → starts a fresh session. Existing club name → we'll ask whether to
-          continue where you left off or start over.
+          New club name + password → creates a new club. Existing club name → enter its
+          password to continue right where you left off.
         </p>
       </form>
     </div>
