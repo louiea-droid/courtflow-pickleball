@@ -62,11 +62,11 @@ export default function Sidebar({
 
           <div className="sidefoot">
             <button
-              className={`outline dark ${tab === "account" ? "active" : ""}`}
-              onClick={() => onSelectTab("account")}
-              title="Account"
+              className={`outline dark ${tab === "settings" ? "active" : ""}`}
+              onClick={() => onSelectTab("settings")}
+              title="Settings"
             >
-              <Settings /> <span>Account</span>
+              <Settings /> <span>Settings</span>
             </button>
             <button className="sidebar-endsession" onClick={onEndSession} title="End Session">
               <Flag /> <span>End Session</span>

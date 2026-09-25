@@ -85,7 +85,7 @@ function GuideSection({ title, sub, defaultOpen, children }) {
 export default function Guide() {
   return (
     <>
-      <GuideSection title="How CourtFlow Works" sub="What each part of the app does" defaultOpen>
+      <GuideSection title="How CourtFlow Works" sub="What each part of the app does">
         <div className="rules guide-features">
           {FEATURES.map((f) => (
             <div key={f.title}>

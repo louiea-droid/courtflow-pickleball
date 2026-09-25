@@ -7,9 +7,10 @@ import MatchLogRow from "./components/MatchLogRow";
 import PhClock from "./components/PhClock";
 import StarDisplay from "./components/StarDisplay";
 import ElapsedTimer from "./components/ElapsedTimer";
-import { money } from "./utils/format";
+import { applyDisplayPrefs, money } from "./utils/format";
+import { DEFAULT_LIVE } from "./data/constants";
 
-function LiveTeam({ label, color, ids, players }) {
+function LiveTeam({ label, color, ids, players, showSkill }) {
   return (
     <div className="team">
       <div className={color}>{label}</div>
@@ -18,7 +19,7 @@ function LiveTeam({ label, color, ids, players }) {
         if (!p) return null;
         return (
           <div className="chip" key={id}>
-            <div><b>{p.name}</b><small><StarDisplay value={p.skill} /></small></div>
+            <div><b>{p.name}</b>{showSkill && <small><StarDisplay value={p.skill} /></small>}</div>
           </div>
         );
       })}
@@ -26,7 +27,7 @@ function LiveTeam({ label, color, ids, players }) {
   );
 }
 
-function LiveCourt({ c, players }) {
+function LiveCourt({ c, players, showSkill }) {
   const isEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
   return (
     <div className="court">
@@ -40,8 +41,8 @@ function LiveCourt({ c, players }) {
         <div className="court-empty"><p>Court is open.</p></div>
       ) : (
         <div className="teams">
-          <LiveTeam label="Team 1" color="team1" ids={c.teamA || []} players={players} />
-          <LiveTeam label="Team 2" color="team2" ids={c.teamB || []} players={players} />
+          <LiveTeam label="Team 1" color="team1" ids={c.teamA || []} players={players} showSkill={showSkill} />
+          <LiveTeam label="Team 2" color="team2" ids={c.teamB || []} players={players} showSkill={showSkill} />
         </div>
       )}
     </div>
@@ -113,6 +114,17 @@ export default function LiveBoard() {
     );
   }
 
+  // Club's Live Board settings (Settings page). These only gate this page —
+  // session data stays readable by anyone with the club id (Firestore rules).
+  const live = { ...DEFAULT_LIVE, ...session.live };
+  applyDisplayPrefs(session.display);
+  if (!live.enabled) {
+    return <div className="loading">This Live Board is turned off. Ask the club to switch it back on.</div>;
+  }
+  if (live.key && new URLSearchParams(window.location.search).get("key") !== live.key) {
+    return <div className="loading">This link is no longer active. Ask the club for the new Live Board link.</div>;
+  }
+
   const playing = new Set(courts.flatMap((c) => [...(c.teamA || []), ...(c.teamB || [])]));
   const queue = players.filter((p) => p.checked && !playing.has(p.id))
     .sort((a, b) => a.games - b.games || a.checkedAt - b.checkedAt);
@@ -120,13 +132,15 @@ export default function LiveBoard() {
 
   const queueRows = queue.map((p, i) => (
     <div className="queue-row" key={p.id}>
-      <span className="queue-rank">{i + 1}</span>
+      {live.showQueueRank && <span className="queue-rank">{i + 1}</span>}
       <b>{p.name}</b>
-      <StarDisplay value={p.skill} />
-      <span className="queue-stats">
-        <span className="queue-stat games">{p.games} <small>games</small></span>
-        <span className="queue-stat wins">{p.wins} <small>wins</small></span>
-      </span>
+      {live.showSkill && <StarDisplay value={p.skill} />}
+      {live.showStats && (
+        <span className="queue-stats">
+          <span className="queue-stat games">{p.games} <small>games</small></span>
+          <span className="queue-stat wins">{p.wins} <small>wins</small></span>
+        </span>
+      )}
     </div>
   ));
 
@@ -159,7 +173,7 @@ export default function LiveBoard() {
         <section className="liveboard-col liveboard-courts-col">
           <div className="liveboard-section-title"><h2>Live Courts</h2></div>
           <div className="liveboard-courts-grid">
-            {courts.map((c) => <LiveCourt key={c.id} c={c} players={players} />)}
+            {courts.map((c) => <LiveCourt key={c.id} c={c} players={players} showSkill={live.showSkill} />)}
             {!courts.length && <div className="empty">No courts yet.</div>}
           </div>
         </section>

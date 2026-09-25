@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link2 } from "lucide-react";
 import PersonBadge from "../components/PersonBadge";
 import StarDisplay from "../components/StarDisplay";
-import { waitMinutes, formatPHTime } from "../utils/format";
+import { waitMinutes, formatTime } from "../utils/format";
 
 export default function Queue({ queue, notCheckedIn, players, onCall, onCheckOut, onCheckIn, onSetLock }) {
   const [pendingLockId, setPendingLockId] = useState(null);
@@ -54,7 +54,7 @@ export default function Queue({ queue, notCheckedIn, players, onCall, onCheckOut
             <span><StarDisplay value={p.skill} /></span>
             <span>{p.games}</span>
             <span>{p.wins}/{p.losses}</span>
-            <span className="wait-cell"><b>{waitMinutes(p)} min</b><small>since {formatPHTime(p.checkedAt)}</small></span>
+            <span className="wait-cell"><b>{waitMinutes(p)} min</b><small>since {formatTime(p.checkedAt)}</small></span>
             <span>
               <button
                 className={`tiny lock-btn ${p.lockedWithId ? "active" : ""} ${pendingLockId === p.id ? "pending" : ""}`}

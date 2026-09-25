@@ -18,7 +18,11 @@ export default function ClubLogin({ onLogin, loading, error }) {
     (async () => {
       try {
         const snap = await getDocs(query(collection(db, "sessions"), orderBy("createdAt", "desc"), limit(200)));
-        if (!cancelled) setDirectory(snap.docs.map((d) => ({ id: d.id, name: d.data().location || d.id })));
+        if (!cancelled) {
+          setDirectory(snap.docs.map((d) => ({
+            id: d.id, name: d.data().location || d.id, hint: d.data().passwordHint || "",
+          })));
+        }
       } catch {
         // Directory is a nice-to-have; typing the exact name still works without it.
       }
@@ -42,6 +46,7 @@ export default function ClubLogin({ onLogin, loading, error }) {
   const matches = typed
     ? directory.filter((c) => c.name.toLowerCase().includes(typed)).slice(0, 8)
     : [];
+  const selectedHint = directory.find((c) => c.name.toLowerCase() === typed)?.hint;
 
   const submit = (e) => {
     e.preventDefault();
@@ -92,6 +97,7 @@ export default function ClubLogin({ onLogin, loading, error }) {
             autoComplete="current-password"
           />
         </label>
+        {selectedHint && <p className="clublogin-pwhint">Hint: {selectedHint}</p>}
         {error && <p className="clublogin-error">{error}</p>}
         <button className="primary" disabled={loading || !name.trim() || !password}>
           <LogIn size={16} /> {loading ? "Loading…" : "Continue"}

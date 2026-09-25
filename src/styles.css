@@ -165,17 +165,17 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .ph-clock span{display:inline-block;min-width:9.5ch}
 .ph-clock b{font-size:9px;color:#8a958e;font-weight:900;letter-spacing:.04em}
 
-.primary,.outline,.tiny,.icon,.text{
+.primary,.outline,.tiny,.icon,.text,.danger{
   border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px 14px;font-weight:800;
   display:inline-flex;gap:8px;align-items:center;justify-content:center;
   transition:transform .15s var(--ease),box-shadow .18s ease,background .18s ease,border-color .18s ease,color .18s ease
 }
-.primary:hover,.outline:hover,.tiny:hover,.icon:hover{transform:translateY(-1px);box-shadow:0 8px 18px #13231b14}
-.primary:active,.outline:active,.tiny:active,.icon:active{transform:translateY(0) scale(.97)}
+.primary:hover,.outline:hover,.tiny:hover,.icon:hover,.danger:hover{transform:translateY(-1px);box-shadow:0 8px 18px #13231b14}
+.primary:active,.outline:active,.tiny:active,.icon:active,.danger:active{transform:translateY(0) scale(.97)}
 .primary{background:var(--green);border-color:var(--green);color:white;box-shadow:0 6px 16px #2fa55b2b}
 .primary:hover{background:var(--green2)}
 .fab-add{display:none}
-.primary:disabled,.outline:disabled,.tiny:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.primary:disabled,.outline:disabled,.tiny:disabled,.danger:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 
 .warning{
   border:1px solid #e4c47f;background:#fff7df;color:#6f541f;padding:12px;border-radius:11px;
@@ -351,13 +351,20 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .guide-intro{color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 16px}
 
 /* ---------- Account ---------- */
+.account-groups{display:flex;flex-direction:column;gap:22px}
+.account-group .eyebrow{display:block;margin:0 0 8px 2px}
 .account-panel{padding:0;overflow:hidden}
+.account-danger{border-color:#f3d7cf;background:#fff6f3}
+.account-danger .account-row p{color:#b3402e}
 .account-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 17px;border-top:1px solid var(--line)}
 .account-row:first-child{border-top:0}
 .account-row strong{display:block;font-size:13.5px}
 .account-row p{margin:2px 0 0;color:var(--muted);font-size:12px;line-height:1.4}
 .account-edit{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .account-edit b{font-size:14px}
+.court-top small.timer-over{color:#b3402e;background:#fff0ec;border-radius:99px;padding:3px 8px;font-weight:800}
+.account-select{width:210px;flex-shrink:0}
+.account-select .field-select{margin-top:0}
 .account-edit input{width:170px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:600;color:var(--ink)}
 .guide-soon{margin-left:8px}
 .guide-skill-grid{display:grid;gap:2px}
@@ -392,7 +399,7 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .star-display svg{width:14.4px;height:14.4px;stroke-width:1.5px;color:#dfe7e1}
 .star-display svg.filled{color:#f5a623}
 .tiny{padding:7px 10px;font-size:11px}
-.tiny.danger{color:#b3402e;border-color:#f3d7cf;background:#fff6f3}
+.tiny.danger{color:#b3402e;border-color:#f3d7cf;background:#fff6f3;box-shadow:none}
 .tiny.danger:hover{background:#fdece5;border-color:#eac0b3}
 .row-actions{display:flex;gap:6px;justify-content:flex-end;align-items:center}
 .row-actions .icon{padding:6px}
@@ -523,13 +530,18 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .confirm-modal{width:min(400px,100%)}
 .confirm-modal h3{font:700 20px "Space Grotesk";margin:0 0 8px}
 .confirm-modal p{margin:0 0 18px;color:var(--muted);font-size:13px;line-height:1.5}
+/* Confirm dialogs with fields (Delete Account): even spacing, room above the buttons. */
+form.confirm-modal{display:flex;flex-direction:column;gap:14px}
+form.confirm-modal h3,form.confirm-modal p{margin:0}
+form.confirm-modal .clublogin-error{margin:-4px 0 0}
+form.confirm-modal .modalactions{margin-top:4px}
 
 .club-choice-actions{display:grid;gap:4px}
 .club-choice-actions .primary,.club-choice-actions .outline{width:100%;justify-content:center}
 .club-choice-hint{color:var(--muted);font-size:11.5px;line-height:1.4;padding:0 2px 10px}
 .club-choice-cancel{display:block;margin:10px auto 0}
 .danger{background:#e6483a;border-color:#e6483a;color:#fff;box-shadow:0 6px 16px #e6483a2b}
-.danger:hover{background:#c93a2e}
+.danger:hover{background:#c93a2e;border-color:#c93a2e;box-shadow:0 8px 18px #e6483a33}
 .icon{padding:6px;background:#f0f3f1;border:0}
 .icon:hover{background:#e4e9e5}
 .modal form,.cost-form form{display:grid;gap:15px}
@@ -640,6 +652,7 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 }
 .clublogin-card .primary{width:100%;justify-content:center;padding:12px 14px;margin-top:2px}
 .clublogin-hint{margin:0;color:#8a958e;font-size:11.5px;line-height:1.5}
+.clublogin-pwhint{margin:-4px 0 0;color:var(--muted);font-size:12.5px;font-weight:600}
 .clublogin-error{color:#c94b4b;font-size:12.5px;font-weight:700;margin:-4px 0 0}
 .clublogin-search{position:relative}
 .clublogin-suggestions{
@@ -817,7 +830,8 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
   .sidebar.collapsed .brand,.sidebar.collapsed .nav,.sidebar.collapsed .outline.dark{justify-content:flex-start}
   .sidebar-collapse-btn{display:none}
 
-  main{padding:18px}
+  /* Bottom room so the floating + button (52px at bottom:22px) never covers the last row. */
+  main{padding:18px 18px 92px}
   .topbar .hamburger{display:inline-flex;order:0;margin-top:1px}
   .topbar{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;padding:14px 0 12px;margin-bottom:0}
   .topbar h1{font-size:23px;margin:2px 0}
@@ -839,9 +853,12 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
   .fab-add:hover{background:var(--green2);transform:translateY(-1px)}
   .fab-add:active{transform:translateY(0) scale(.95)}
   .fab-add svg{width:22px;height:22px}
+  .toast{right:18px;left:18px;bottom:86px;text-align:center}
 
   .formgrid{grid-template-columns:1fr;gap:14px}
-  .cost-calc-grid{grid-template-columns:1fr;gap:14px}
+  .cost-calc-grid{grid-template-columns:1.2fr 1fr 1fr;gap:8px}
+  .cost-calc-grid label{font-size:10px;white-space:nowrap}
+  .cost-calc-grid input{padding-left:10px;padding-right:8px}
 
   .heading{flex-wrap:wrap;row-gap:10px}
   .heading>div:first-child{width:100%}
@@ -976,6 +993,18 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
   .liveboard-box{overflow:visible}
   .ticker,.matchlog-list{mask-image:none;-webkit-mask-image:none}
 
-  .account-row{flex-direction:column;align-items:flex-start;gap:8px}
-  .account-edit input{width:100%}
+  /* Title and control share the first line; the description runs full width under both. */
+  .account-row{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:10px;row-gap:3px;padding:11px 14px}
+  .account-row > div:first-child{display:contents}
+  .account-row strong{grid-column:1;grid-row:1;font-size:13px}
+  .account-row p{grid-column:1 / -1;grid-row:2;margin:0;font-size:11.5px}
+  .account-row > :last-child{grid-column:2;grid-row:1}
+  .account-group .eyebrow{margin-bottom:6px}
+  .account-groups{gap:16px}
+  .account-select{width:156px}
+  .account-select .field-select-trigger{padding:9px 10px;min-height:40px;font-size:13px}
+  .account-select .field-select-trigger span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .account-edit b{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+  .account-edit input{width:130px}
+  .account-row .outline,.account-row .danger{padding:9px 11px;font-size:12.5px;min-height:40px}
 }

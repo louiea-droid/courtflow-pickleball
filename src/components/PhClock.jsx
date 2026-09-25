@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
-import { formatPHClock } from "../utils/format";
+import { formatClock, timeZoneLabel } from "../utils/format";
 
+// Club clock — time zone and 12/24h come from Settings → Display.
 export default function PhClock() {
   const [now, setNow] = useState(() => new Date());
 
@@ -11,10 +12,10 @@ export default function PhClock() {
   }, []);
 
   return (
-    <div className="ph-clock" title="Philippine Time (Asia/Manila)">
+    <div className="ph-clock" title="Club time">
       <Clock size={14} />
-      <span>{formatPHClock(now)}</span>
-      <b>PHT</b>
+      <span>{formatClock(now)}</span>
+      <b>{timeZoneLabel()}</b>
     </div>
   );
 }

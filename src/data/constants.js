@@ -1,5 +1,5 @@
 export const MODE_DESCRIPTIONS = {
-  "Balanced": "Builds fair teams and rotates turns while trying to reduce repeat partners.",
+  "Balanced": "Rotates turns fairly and evens out each match by star rating: the strongest player teams with the weakest, so similar levels face each other. Avoids repeat partners when it can.",
   "Skill Separated": "Keeps similar skill levels together on open courts, even if a court has to wait.",
   "Skill Courts": "Runs separate queues for named skill groups on courts you've set a level for.",
   "Winners / Losers": "Winners play winners and losers play losers.",
@@ -12,6 +12,26 @@ export const MODE_DESCRIPTIONS = {
 export const COMING_SOON_MODES = ["King/Queen of the Court", "Club Wars", "Tournament"];
 
 export const MODE_OPTIONS = Object.keys(MODE_DESCRIPTIONS);
+
+// Club-wide queue rules and cost defaults, set on the Settings page. Saved
+// values are merged over these, so a club that never touched them gets these.
+export const DEFAULT_RULES = {
+  gameAlertMinutes: 0, // 0 = off
+  winnersStay: false,
+  maxWinStreak: 2, // only used when winnersStay is on
+  avoidRepeatPartners: false, // Balanced mode always does this
+};
+export const DEFAULT_COST = { rate: 0, roundTo: 0 }; // roundTo 0 = exact split
+// `key` null = the plain ?club= link works; once regenerated, only ?key=<key> does.
+export const DEFAULT_LIVE = { enabled: true, key: null, showSkill: true, showQueueRank: true, showStats: true };
+export const DEFAULT_DISPLAY = { timeZone: "Asia/Manila", hour12: true };
+
+// Shape the custom <Select> expects, with coming-soon modes shown but disabled.
+export const MODE_SELECT_OPTIONS = MODE_OPTIONS.map((m) => ({
+  value: m,
+  disabled: COMING_SOON_MODES.includes(m),
+  tag: COMING_SOON_MODES.includes(m) ? "Soon" : undefined,
+}));
 
 export const seedSession = {
   location: "Centro Pickle Club",
@@ -38,5 +58,5 @@ export const TITLES = {
   cost: ["Cost Division",],
   stats: ["Session Stats", ],
   guide: ["Guide",],
-  account: ["Account",],
+  settings: ["Settings",],
 };

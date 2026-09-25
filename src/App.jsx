@@ -3,9 +3,10 @@ import {
   addDoc, collection, doc, setDoc, updateDoc, deleteDoc, writeBatch, getDocs,
 } from "firebase/firestore";
 import { db, firebaseConfigured } from "./firebase";
-import { winPct } from "./utils/format";
+import { applyDisplayPrefs, splitCost, winPct } from "./utils/format";
 import { matchesCourtLevel } from "./utils/courtLevels";
 import { selectForCourt, splitTeams } from "./utils/rotationModes";
+import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES } from "./data/constants";
 import { useSessionData } from "./hooks/useSessionData";
 import { useClub } from "./hooks/useClub";
 import { useCosts } from "./hooks/useCosts";
@@ -26,10 +27,12 @@ import Players from "./views/Players";
 import Cost from "./views/Cost";
 import Stats from "./views/Stats";
 import Guide from "./views/Guide";
-import Account from "./views/Account";
+import Settings from "./views/Settings";
 
 export default function App() {
-  const { club, loggingIn, loginError, login, switchClub, endSession, deleteAccount } = useClub();
+  const {
+    club, loggingIn, loginError, login, switchClub, endSession, deleteAccount, changePassword,
+  } = useClub();
   const SESSION_ID = club?.id;
   const [tab, setTab] = useState("dashboard");
   const { session, players, courts, busy } = useSessionData(SESSION_ID);
@@ -53,6 +56,11 @@ export default function App() {
 
   const autoRotateOn = session.autoRotate !== false;
   const mode = session.mode || session.rotation || "Balanced";
+  const rules = { ...DEFAULT_RULES, ...session.rules };
+  const costDefaults = { ...DEFAULT_COST, ...session.costDefaults };
+  const live = { ...DEFAULT_LIVE, ...session.live };
+  const display = { ...DEFAULT_DISPLAY, ...session.display };
+  applyDisplayPrefs(display);
 
   useEffect(() => {
     const locked = showPlayer || Boolean(editingPlayer) || showSession || menuOpen;
@@ -143,11 +151,14 @@ export default function App() {
     const c = courts.find((x) => (x.teamA?.length || 0) + (x.teamB?.length || 0) < need
       && matchesCourtLevel(p?.skill, x.level));
     if (!c) return notify("No open court matches this player's level.");
+    const wasEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
     const a = [...(c.teamA || [])], b = [...(c.teamB || [])];
     if (need === 2) { if (!a.length) a.push(id); else b.push(id); }
     else if (a.length < 2) a.push(id);
     else b.push(id);
-    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", c.id), { teamA: a, teamB: b });
+    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", c.id), {
+      teamA: a, teamB: b, ...(wasEmpty ? { start: Date.now() } : {}),
+    });
     notify(`Called ${players.find((p) => p.id === id)?.name || "player"} to Court ${c.courtNumber}.`);
   }
 
@@ -172,7 +183,10 @@ export default function App() {
       const partnerName = players.find((p) => p.id === player.lockedWithId)?.name || "their locked partner";
       return notify(`${player.name} is locked in with ${partnerName} — can't add them without their partner on this team.`, 4000);
     }
-    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", courtId), { [key]: [...(c[key] || []), id] });
+    const wasEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
+    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", courtId), {
+      [key]: [...(c[key] || []), id], ...(wasEmpty ? { start: Date.now() } : {}),
+    });
     await updateDoc(doc(db, "sessions", SESSION_ID, "players", id), { checkedAt: Date.now() });
     notify(`Added ${player?.name || "Player"} to Court ${c.courtNumber}.`);
   }
@@ -243,7 +257,7 @@ export default function App() {
       const label = c?.level && c.level !== "Any Level" ? `${c.level.toLowerCase()} ` : "";
       return notify(`Waiting on ${need - next.length} more ${label}player(s) to check in.`);
     }
-    const [teamA, teamB] = splitTeams(next, mode);
+    const [teamA, teamB] = splitTeams(next, mode, rules.avoidRepeatPartners);
     await updateDoc(doc(db, "sessions", SESSION_ID, "courts", courtId), { teamA, teamB, start: Date.now() });
     notify(`Court ${c?.courtNumber ?? ""} match started.`);
   }
@@ -337,7 +351,7 @@ export default function App() {
           const { taken, remaining } = selectForCourt({ pool, court: c, mode, need });
           if (taken.length === need) {
             pool = remaining;
-            const [a, b] = splitTeams(taken, mode);
+            const [a, b] = splitTeams(taken, mode, rules.avoidRepeatPartners);
             teamA = a;
             teamB = b;
             filledAny = true;
@@ -394,21 +408,39 @@ export default function App() {
       recordedAt: Date.now(),
     });
     const need = session.format === "Singles" ? 2 : 4;
-    if (autoRotateOn) {
-      const { taken: next } = selectForCourt({ pool: queue, court: c, mode, need });
-      const [teamA, teamB] = splitTeams(next, mode);
-      batch.update(doc(db, "sessions", SESSION_ID, "courts", c.id), { teamA, teamB, start: Date.now() });
-    } else {
-      batch.update(doc(db, "sessions", SESSION_ID, "courts", c.id), {
-        teamA: [], teamB: [], start: Date.now(),
+    const courtRef = doc(db, "sessions", SESSION_ID, "courts", c.id);
+    // Winners-stay: count consecutive wins by the exact same team, and keep
+    // them on until they hit the club's cap. Challengers come straight off
+    // the front of the queue (court level still applies).
+    const sameTeam = (c.stayingIds || []).length === winners.length
+      && winners.every((id) => c.stayingIds.includes(id));
+    const streak = sameTeam ? (c.winStreak || 0) + 1 : 1;
+    const stay = rules.winnersStay && winners.length > 0 && streak < rules.maxWinStreak;
+    if (stay) {
+      const challengers = autoRotateOn
+        ? selectForCourt({ pool: queue, court: c, mode: null, need: need / 2 }).taken.map((p) => p.id)
+        : [];
+      batch.update(courtRef, {
+        [side === "A" ? "teamA" : "teamB"]: winners,
+        [side === "A" ? "teamB" : "teamA"]: challengers,
+        start: Date.now(), winStreak: streak, stayingIds: winners,
       });
+    } else if (autoRotateOn) {
+      const { taken: next } = selectForCourt({ pool: queue, court: c, mode, need });
+      const [teamA, teamB] = splitTeams(next, mode, rules.avoidRepeatPartners);
+      batch.update(courtRef, { teamA, teamB, start: Date.now(), winStreak: 0, stayingIds: [] });
+    } else {
+      batch.update(courtRef, { teamA: [], teamB: [], start: Date.now(), winStreak: 0, stayingIds: [] });
     }
     await batch.commit();
-    notify(`Court ${c.courtNumber} rotated.`);
+    notify(stay ? `Winners stay on Court ${c.courtNumber} (${streak} in a row).` : `Court ${c.courtNumber} rotated.`);
   }
 
   async function newSession(data) {
-    const matchLogSnap = await getDocs(collection(db, "sessions", SESSION_ID, "matchLog"));
+    const [matchLogSnap, costsSnap] = await Promise.all([
+      getDocs(collection(db, "sessions", SESSION_ID, "matchLog")),
+      getDocs(collection(db, "sessions", SESSION_ID, "costs")),
+    ]);
     const batch = writeBatch(db);
     // Same archive-before-wipe as "Continue" on the login screen — otherwise
     // starting a new session from inside the app silently discards the
@@ -428,6 +460,7 @@ export default function App() {
     courts.forEach((c) => batch.delete(doc(db, "sessions", SESSION_ID, "courts", c.id)));
     players.forEach((p) => batch.delete(doc(db, "sessions", SESSION_ID, "players", p.id)));
     matchLogSnap.forEach((d) => batch.delete(d.ref));
+    costsSnap.forEach((d) => batch.delete(d.ref));
     for (let i = 1; i <= data.courts; i++) {
       batch.set(doc(db, "sessions", SESSION_ID, "courts", `court-${i}`), {
         courtNumber: i, start: Date.now(), teamA: [], teamB: [],
@@ -457,7 +490,7 @@ export default function App() {
 
   async function addCostEntry({ label, rate, hours, courts: courtCount, playerIds }) {
     const total = Math.round(rate * hours * courtCount * 100) / 100;
-    const perPerson = playerIds.length ? Math.round((total / playerIds.length) * 100) / 100 : 0;
+    const perPerson = splitCost(total, playerIds.length, costDefaults.roundTo);
     await addDoc(collection(db, "sessions", SESSION_ID, "costs"), {
       label: label || "Court", rate, hours, courts: courtCount, total, perPerson, playerIds,
       paid: Object.fromEntries(playerIds.map((id) => [id, false])),
@@ -502,20 +535,18 @@ export default function App() {
     URL.revokeObjectURL(a.href);
   }
 
-  async function handleDeleteAccount() {
+  // Returns "" on success, or a message the dialog shows inline (it stays open).
+  async function handleDeleteAccount(password) {
     setDeletingAccount(true);
     try {
-      await deleteAccount();
+      const err = await deleteAccount(password);
       // Success signs the account out itself (deleteUser), which flips
       // `club` to null and unmounts this whole tree — nothing left to reset.
-    } catch (err) {
+      if (err) setDeletingAccount(false);
+      return err;
+    } catch {
       setDeletingAccount(false);
-      setShowDeleteAccount(false);
-      if (err.code === "auth/requires-recent-login") {
-        notify("For security, switch club and log back in, then try deleting again.", 5000);
-      } else {
-        notify("Couldn't delete the account — please try again.", 4000);
-      }
+      return "Couldn't delete the account — please try again.";
     }
   }
 
@@ -569,7 +600,7 @@ export default function App() {
               autoRotateOn={autoRotateOn} onToggleAutoRotate={toggleAutoRotate} onAutoFill={autoFillCourts}
               onAddCourt={addCourt} onRemoveCourt={removeCourt} onSetCourtLevel={setCourtLevel} onRenameCourt={renameCourt}
               onStartNext={startNextMatch} onSwapQueueOrder={swapQueueOrder} onSkipQueued={skipQueuedPlayer}
-              onEditPlayer={setEditingPlayer} onSendToCourt={sendPreviewToCourt}
+              onEditPlayer={setEditingPlayer} onSendToCourt={sendPreviewToCourt} rules={rules}
               goQueue={() => setTab("queue")} />
           )}
           {tab === "queue" && (
@@ -581,19 +612,27 @@ export default function App() {
           )}
           {tab === "cost" && (
             <Cost
-              players={players} costs={costs} onAdd={addCostEntry}
+              players={players} costs={costs} onAdd={addCostEntry} costDefaults={costDefaults}
               onTogglePaid={toggleCostPaid} onToggleLive={toggleCostLive} onDelete={deleteCostEntry}
             />
           )}
           {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={SESSION_ID} />}
           {tab === "guide" && <Guide />}
-          {tab === "account" && (
-            <Account
+          {tab === "settings" && (
+            <Settings
               session={session}
               onRenameClub={(location) => updateSessionSettings({ location })}
               onNewSession={() => setShowSession(true)}
               onSwitchClub={() => setShowSwitchClub(true)}
               onDeleteAccount={() => setShowDeleteAccount(true)}
+              onChangePassword={changePassword}
+              onSetPasswordHint={(passwordHint) => updateSessionSettings({ passwordHint })}
+              onSetDefaults={(defaults) => updateSessionSettings({ defaults })}
+              rules={rules} costDefaults={costDefaults} live={live} display={display}
+              onSetLive={(change) => updateSessionSettings({ live: { ...live, ...change } })}
+              onSetDisplay={(change) => updateSessionSettings({ display: { ...display, ...change } })}
+              onSetRules={(change) => updateSessionSettings({ rules: { ...rules, ...change } })}
+              onSetCostDefaults={(change) => updateSessionSettings({ costDefaults: { ...costDefaults, ...change } })}
             />
           )}
         </div>
@@ -606,9 +645,14 @@ export default function App() {
             submit={editingPlayer ? (data) => updatePlayerInfo(editingPlayer.id, data) : addPlayer}
           />
         )}
-        {showSession && <SessionModal close={() => setShowSession(false)} submit={newSession} />}
+        {showSession && (
+          <SessionModal
+            close={() => setShowSession(false)} submit={newSession}
+            clubName={session.location} defaults={session.defaults}
+          />
+        )}
         {showShare && (
-          <ShareModal url={`${window.location.origin}/live?club=${SESSION_ID}`} close={() => setShowShare(false)} />
+          <ShareModal url={`${window.location.origin}/live?club=${SESSION_ID}${live.key ? `&key=${live.key}` : ""}`} close={() => setShowShare(false)} />
         )}
         {showSwitchClub && (
           <ConfirmDialog

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, ChevronDown, MonitorPlay, Save, Trash2 } from "lucide-react";
 import PanelHead from "../components/PanelHead";
 import PersonBadge from "../components/PersonBadge";
-import { formatPHDate, money } from "../utils/format";
+import { formatDate, money, splitCost } from "../utils/format";
 
 function CostEntry({ entry, players, onTogglePaid, onToggleLive, onDelete }) {
   const [open, setOpen] = useState(false);
@@ -15,7 +15,7 @@ function CostEntry({ entry, players, onTogglePaid, onToggleLive, onDelete }) {
     <div className="history-entry">
       <button className="history-entry-head" onClick={() => setOpen((o) => !o)}>
         <div>
-          <b>{entry.label} · {formatPHDate(entry.createdAt)}</b>
+          <b>{entry.label} · {formatDate(entry.createdAt)}</b>
           <small>
             {money(entry.total)} total ({entry.courts} court{entry.courts === 1 ? "" : "s"}) · {money(entry.perPerson)} / player
           </small>
@@ -59,9 +59,10 @@ function CostEntry({ entry, players, onTogglePaid, onToggleLive, onDelete }) {
   );
 }
 
-export default function Cost({ players, costs, onAdd, onTogglePaid, onToggleLive, onDelete }) {
+export default function Cost({ players, costs, costDefaults, onAdd, onTogglePaid, onToggleLive, onDelete }) {
+  const defaultRate = costDefaults.rate ? String(costDefaults.rate) : "";
   const [label, setLabel] = useState("");
-  const [rate, setRate] = useState("");
+  const [rate, setRate] = useState(defaultRate);
   const [hours, setHours] = useState("");
   const [courtCount, setCourtCount] = useState("1");
   const [selected, setSelected] = useState(() => players.filter((p) => p.checked).map((p) => p.id));
@@ -70,7 +71,7 @@ export default function Cost({ players, costs, onAdd, onTogglePaid, onToggleLive
   const hoursNum = parseFloat(hours) || 0;
   const courtsNum = parseFloat(courtCount) || 0;
   const total = rateNum * hoursNum * courtsNum;
-  const perPerson = selected.length ? total / selected.length : 0;
+  const perPerson = splitCost(total, selected.length, costDefaults.roundTo);
   const canSave = rateNum > 0 && hoursNum > 0 && courtsNum > 0 && selected.length > 0;
 
   const allSelected = players.length > 0 && selected.length === players.length;
@@ -87,7 +88,7 @@ export default function Cost({ players, costs, onAdd, onTogglePaid, onToggleLive
     e.preventDefault();
     if (!canSave) return;
     onAdd({ label: label.trim(), rate: rateNum, hours: hoursNum, courts: courtsNum, playerIds: selected });
-    setLabel(""); setRate(""); setHours(""); setCourtCount("1");
+    setLabel(""); setRate(defaultRate); setHours(""); setCourtCount("1");
     setSelected(players.filter((p) => p.checked).map((p) => p.id));
   };
 
@@ -111,7 +112,7 @@ export default function Cost({ players, costs, onAdd, onTogglePaid, onToggleLive
               <input type="number" min="0" step="0.25" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="1" />
             </label>
             <label>
-              Courts rented
+              Courts
               <input type="number" min="1" step="1" value={courtCount} onChange={(e) => setCourtCount(e.target.value)} placeholder="1" />
             </label>
           </div>
@@ -141,7 +142,7 @@ export default function Cost({ players, costs, onAdd, onTogglePaid, onToggleLive
 
           <div className="cards cost-preview">
             <div className="stat"><span>TOTAL</span><b>{money(total)}</b><small>rate × hours × courts</small></div>
-            <div className="stat"><span>PER PLAYER</span><b>{money(perPerson)}</b><small>{selected.length || 0} splitting</small></div>
+            <div className="stat"><span>PER PLAYER</span><b>{money(perPerson)}</b><small>{selected.length || 0} splitting{costDefaults.roundTo ? `, rounded up to ₱${costDefaults.roundTo}` : ""}</small></div>
           </div>
 
           <div className="modalactions">

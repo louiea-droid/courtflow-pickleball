@@ -161,7 +161,7 @@ function CourtTitle({ court, onRename }) {
   return <b className="court-name" title="Click to rename" onClick={startEdit}>{displayName}</b>;
 }
 
-function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, onStartNext, onSetLevel, onRemoveCourt, canRemove, onRenameCourt }) {
+function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, onStartNext, onSetLevel, onRemoveCourt, canRemove, onRenameCourt, alertAfterMin }) {
   const [swapOpen, setSwapOpen] = useState(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const teamsRef = useRef(null);
@@ -184,7 +184,7 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, 
         <CourtTitle court={c} onRename={onRenameCourt} />
         <CourtLevelSelect level={c.level} onChange={(level) => onSetLevel(c.id, level)} />
         {isEmpty ? <span className="badge-open">OPEN</span> : <span>● LIVE</span>}
-        {!isEmpty && <ElapsedTimer start={c.start} />}
+        {!isEmpty && <ElapsedTimer start={c.start} alertAfterMin={alertAfterMin} />}
       </div>
       {confirmRemove && (
         <ConfirmDialog
@@ -284,7 +284,7 @@ function PreviewTeam({ label, color, list, players, groupIds, notify, queue, swa
   );
 }
 
-function CourtPreview({ label, level, group, need, mode, players, queue, notify, onSwapOrder, onSkip, onSendToCourt, canSend }) {
+function CourtPreview({ label, level, group, need, mode, avoidRepeats, players, queue, notify, onSwapOrder, onSkip, onSendToCourt, canSend }) {
   const [swapOpen, setSwapOpen] = useState(null);
   const teamsRef = useRef(null);
   const toggleSwap = (id) => setSwapOpen((cur) => (cur === id ? null : id));
@@ -294,7 +294,7 @@ function CourtPreview({ label, level, group, need, mode, players, queue, notify,
   // so a locked pair previewed here shows on one side, not straddled.
   const byId = new Map(group.map((p) => [p.id, p]));
   const groupIds = new Set(group.map((p) => p.id));
-  const [teamAIds, teamBIds] = ready ? splitTeams(group, mode) : [[], []];
+  const [teamAIds, teamBIds] = ready ? splitTeams(group, mode, avoidRepeats) : [[], []];
   const teamA = teamAIds.map((id) => byId.get(id));
   const teamB = teamBIds.map((id) => byId.get(id));
   const eligibleQueue = queue.filter((p) => matchesCourtLevel(p.skill, level));
@@ -330,7 +330,7 @@ function CourtPreview({ label, level, group, need, mode, players, queue, notify,
 export default function Dashboard({
   session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer, addPlayerToCourt, notify,
   autoRotateOn, onToggleAutoRotate, onAutoFill, onAddCourt, onRemoveCourt, onSetCourtLevel, onRenameCourt,
-  onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue,
+  onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue, rules,
 }) {
   const need = session.format === "Singles" ? 2 : 4;
   const mode = session.mode || session.rotation || "Balanced";
@@ -390,7 +390,8 @@ export default function Dashboard({
         {courtViews.map(({ court: c, upNext }) => (
           <Court key={c.id} c={c} players={players} queue={queue} need={need} upNext={upNext}
             win={recordWin} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={onStartNext} onSetLevel={onSetCourtLevel}
-            onRemoveCourt={onRemoveCourt} canRemove={courts.length > 1} onRenameCourt={onRenameCourt} />
+            onRemoveCourt={onRemoveCourt} canRemove={courts.length > 1} onRenameCourt={onRenameCourt}
+            alertAfterMin={rules.gameAlertMinutes} />
         ))}
       </div>
 
@@ -401,7 +402,7 @@ export default function Dashboard({
           </div>
           <div className="courts">
             {upcomingPreviews.map((pv) => (
-              <CourtPreview key={pv.key} label={pv.label} level={pv.level} group={pv.group} need={need} mode={mode} players={players} queue={queue}
+              <CourtPreview key={pv.key} label={pv.label} level={pv.level} group={pv.group} need={need} mode={mode} avoidRepeats={rules.avoidRepeatPartners} players={players} queue={queue}
                 notify={notify} onSwapOrder={onSwapQueueOrder} onSkip={onSkipQueued} onSendToCourt={onSendToCourt} canSend={hasOpenCourt} />
             ))}
           </div>

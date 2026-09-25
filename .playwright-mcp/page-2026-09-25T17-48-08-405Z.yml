@@ -1,0 +1,15 @@
+- generic [ref=e6]:
+  - heading "CourtFlow" [level=1] [ref=e7]
+  - paragraph [ref=e8]: Enter your club or venue name and password to start or continue a session.
+  - generic [ref=e9]:
+    - text: Club name
+    - textbox "Club name" [ref=e10]:
+      - /placeholder: e.g. Centro Pickle Club
+      - text: mobile-check-0925
+  - generic [ref=e11]:
+    - text: Password
+    - textbox "Password" [ref=e12]:
+      - /placeholder: At least 6 characters
+      - text: testpass123
+  - button "Loading…" [disabled] [ref=e18]
+  - paragraph [ref=e17]: New club name + password → creates a new club. Existing club name → enter its password to continue right where you left off.

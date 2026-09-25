@@ -1,19 +1,16 @@
 import { useState } from "react";
 import Modal from "./Modal";
 import Select from "./Select";
-import { MODE_OPTIONS, COMING_SOON_MODES } from "../data/constants";
+import { MODE_SELECT_OPTIONS } from "../data/constants";
 
-export default function SessionModal({ close, submit, session }) {
+// `session` = edit that session. For a new one, `clubName` and the club's
+// saved `defaults` (Settings → Session defaults) pre-fill the form.
+export default function SessionModal({ close, submit, session, clubName, defaults }) {
   const isEdit = Boolean(session);
-  const [location, setLocation] = useState(session?.location || "Centro Pickle Club");
-  const [courts, setCourts] = useState(session?.courts || 2);
-  const modeOptions = MODE_OPTIONS.map((m) => ({
-    value: m,
-    disabled: COMING_SOON_MODES.includes(m),
-    tag: COMING_SOON_MODES.includes(m) ? "Soon" : undefined,
-  }));
-  const [format, setFormat] = useState(session?.format || "Doubles");
-  const [mode, setMode] = useState(session?.mode || session?.rotation || "Balanced");
+  const [location, setLocation] = useState(session?.location || clubName || "Centro Pickle Club");
+  const [courts, setCourts] = useState(session?.courts || defaults?.courts || 2);
+  const [format, setFormat] = useState(session?.format || defaults?.format || "Doubles");
+  const [mode, setMode] = useState(session?.mode || session?.rotation || defaults?.mode || "Balanced");
 
   return (
     <Modal title={isEdit ? "Edit Club" : "New Open Play"} label="SESSION SETUP" close={close}>
@@ -45,7 +42,7 @@ export default function SessionModal({ close, submit, session }) {
             </div>
             <label>
               Mode
-              <Select value={mode} onChange={setMode} options={modeOptions} />
+              <Select value={mode} onChange={setMode} options={MODE_SELECT_OPTIONS} />
             </label>
           </>
         )}

@@ -1,0 +1,170 @@
+- generic [ref=e19]:
+  - complementary [ref=e20]:
+    - generic [ref=e21]:
+      - img "CourtFlow — Pickleball Queue" [ref=e23]
+      - button "Close menu" [ref=e24] [cursor=pointer]
+    - navigation [ref=e28]:
+      - button "Dashboard" [ref=e29] [cursor=pointer]
+      - button "Queue" [ref=e36] [cursor=pointer]
+      - button "Players" [ref=e41] [cursor=pointer]
+      - button "Cost" [ref=e48] [cursor=pointer]
+      - button "Stats" [ref=e53] [cursor=pointer]
+      - button "Guide" [ref=e61] [cursor=pointer]
+    - generic [ref=e65]:
+      - generic [ref=e70]:
+        - generic [ref=e71]: mobile-check-0925
+        - generic [ref=e72]: 2 courts · Doubles
+      - button "MODE Balanced" [ref=e74] [cursor=pointer]:
+        - generic [ref=e75]: MODE
+        - generic [ref=e76]: Balanced
+      - generic [ref=e79]:
+        - button "Settings" [active] [ref=e80] [cursor=pointer]
+        - button "End Session" [ref=e85] [cursor=pointer]
+  - main [ref=e89]:
+    - generic [ref=e90]:
+      - button "Open menu" [ref=e91] [cursor=pointer]
+      - generic [ref=e93]:
+        - generic [ref=e94]: OPEN PLAY SESSION
+        - heading "Settings" [level=1] [ref=e1195]
+        - paragraph
+      - generic [ref=e96]:
+        - generic "Club time" [ref=e97]:
+          - generic [ref=e101]: 1:50:22 AM
+          - generic [ref=e102]: PHT
+        - button "Share" [ref=e103] [cursor=pointer]
+      - button "Add player" [ref=e110] [cursor=pointer]
+    - generic [ref=e1197]:
+      - generic [ref=e1198]:
+        - generic [ref=e1199]: Club
+        - generic [ref=e1200]:
+          - generic [ref=e1201]:
+            - generic [ref=e1202]:
+              - strong [ref=e1203]: Club name
+              - paragraph [ref=e1204]: Shown throughout the app and on your public Live Board link.
+            - generic [ref=e1205]:
+              - generic [ref=e1206]: mobile-check-0925
+              - button "Rename" [ref=e1207] [cursor=pointer]
+          - generic [ref=e1211]:
+            - generic [ref=e1212]:
+              - strong [ref=e1213]: Password
+              - paragraph [ref=e1214]: Used to log back into this club. Can't be looked up or displayed, only changed.
+            - button "Change Password" [ref=e1215] [cursor=pointer]
+          - generic [ref=e1219]:
+            - generic [ref=e1220]:
+              - strong [ref=e1221]: Password hint
+              - paragraph [ref=e1222]: Shown on the login screen once this club name is typed — a private note to jog your memory, never the password itself.
+            - generic [ref=e1223]:
+              - generic [ref=e1224]: Not set
+              - button "Edit hint" [ref=e1225] [cursor=pointer]
+      - generic [ref=e1229]:
+        - generic [ref=e1230]: Session defaults
+        - generic [ref=e1231]:
+          - generic [ref=e1232]:
+            - generic [ref=e1233]:
+              - strong [ref=e1234]: Courts
+              - paragraph [ref=e1235]: How many courts a new session starts with.
+            - button "2" [ref=e1238] [cursor=pointer]
+          - generic [ref=e1242]:
+            - generic [ref=e1243]:
+              - strong [ref=e1244]: Format
+              - paragraph [ref=e1245]: Doubles puts four players on a court, Singles puts two.
+            - button "Doubles" [ref=e1248] [cursor=pointer]
+          - generic [ref=e1252]:
+            - generic [ref=e1253]:
+              - strong [ref=e1254]: Mode
+              - paragraph [ref=e1255]: How the queue picks players when a new session starts. You can still switch it from the sidebar.
+            - button "Balanced" [ref=e1258] [cursor=pointer]
+      - generic [ref=e1262]:
+        - generic [ref=e1263]: Queue rules
+        - generic [ref=e1264]:
+          - generic [ref=e1265]:
+            - generic [ref=e1266]:
+              - strong [ref=e1267]: Game length alert
+              - paragraph [ref=e1268]: Turns a court's timer red once a game runs this long.
+            - button "Off" [ref=e1271] [cursor=pointer]
+          - generic [ref=e1275]:
+            - generic [ref=e1276]:
+              - strong [ref=e1277]: After a game
+              - paragraph [ref=e1278]: Winners can hold the court and face the next players in the queue.
+            - button "Everyone rotates off" [ref=e1281] [cursor=pointer]
+          - generic [ref=e1285]:
+            - generic [ref=e1286]:
+              - strong [ref=e1287]: Avoid repeat partners
+              - paragraph [ref=e1288]: Pairs each foursome so nobody teams up with a recent partner. Balanced mode always does this; Mixed Doubles keeps its own pairing.
+            - button "Off" [ref=e1291] [cursor=pointer]
+      - generic [ref=e1295]:
+        - generic [ref=e1296]: Cost
+        - generic [ref=e1297]:
+          - generic [ref=e1298]:
+            - generic [ref=e1299]:
+              - strong [ref=e1300]: Court rate
+              - paragraph [ref=e1301]: Pre-filled on the Cost page each time you log a rental.
+            - generic [ref=e1302]:
+              - generic [ref=e1303]: Not set
+              - button "Edit rate" [ref=e1304] [cursor=pointer]
+          - generic [ref=e1308]:
+            - generic [ref=e1309]:
+              - strong [ref=e1310]: Round each share
+              - paragraph [ref=e1311]: Rounds every player's share up, so the total collected always covers the rental.
+            - button "Exact split" [ref=e1314] [cursor=pointer]
+      - generic [ref=e1318]:
+        - generic [ref=e1319]: Live Board
+        - generic [ref=e1320]:
+          - generic [ref=e1321]:
+            - generic [ref=e1322]:
+              - strong [ref=e1323]: Public Live Board
+              - paragraph [ref=e1324]: When off, anyone opening your link sees a notice instead of the courts.
+            - button "On" [ref=e1327] [cursor=pointer]
+          - generic [ref=e1331]:
+            - generic [ref=e1332]:
+              - strong [ref=e1333]: Link
+              - paragraph [ref=e1334]: Makes a new link and stops every old one, including any TV already showing the board.
+            - button "New Link" [ref=e1335] [cursor=pointer]
+          - generic [ref=e1341]:
+            - generic [ref=e1342]:
+              - strong [ref=e1343]: Skill stars
+              - paragraph [ref=e1344]: Star ratings next to player names.
+            - button "Shown" [ref=e1347] [cursor=pointer]
+          - generic [ref=e1351]:
+            - generic [ref=e1352]:
+              - strong [ref=e1353]: Queue position
+              - paragraph [ref=e1354]: The 1, 2, 3 numbers in the waiting queue.
+            - button "Shown" [ref=e1357] [cursor=pointer]
+          - generic [ref=e1361]:
+            - generic [ref=e1362]:
+              - strong [ref=e1363]: Games and wins
+              - paragraph [ref=e1364]: Each waiting player's game and win counts.
+            - button "Shown" [ref=e1367] [cursor=pointer]
+      - generic [ref=e1371]:
+        - generic [ref=e1372]: Display
+        - generic [ref=e1373]:
+          - generic [ref=e1374]:
+            - generic [ref=e1375]:
+              - strong [ref=e1376]: Time zone
+              - paragraph [ref=e1377]: Used for the clock, check-in times, and dates across the app and Live Board.
+            - button "Philippines" [ref=e1380] [cursor=pointer]
+          - generic [ref=e1384]:
+            - generic [ref=e1385]:
+              - strong [ref=e1386]: Clock
+              - paragraph [ref=e1387]: How times are written everywhere.
+            - button "12-hour (1:05 PM)" [ref=e1390] [cursor=pointer]
+      - generic [ref=e1394]:
+        - generic [ref=e1395]: Session
+        - generic [ref=e1396]:
+          - generic [ref=e1397]:
+            - generic [ref=e1398]:
+              - strong [ref=e1399]: New Session
+              - paragraph [ref=e1400]: Clears the roster, courts, and match log and starts fresh. Stats are archived first.
+            - button "Start New Session" [ref=e1401] [cursor=pointer]
+          - generic [ref=e1403]:
+            - generic [ref=e1404]:
+              - strong [ref=e1405]: Switch Club
+              - paragraph [ref=e1406]: Signs you out. Log back in with the password to pick up right where you left off.
+            - button "Switch Club" [ref=e1407] [cursor=pointer]
+      - generic [ref=e1411]:
+        - generic [ref=e1412]: Danger Zone
+        - generic [ref=e1414]:
+          - generic [ref=e1415]:
+            - strong [ref=e1416]: Delete Account
+            - paragraph [ref=e1417]: Permanently erases this club and everything in it. Cannot be undone.
+          - button "Delete Account" [ref=e1418] [cursor=pointer]

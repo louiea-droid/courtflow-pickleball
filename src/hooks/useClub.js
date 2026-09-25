@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { collection, doc, getDoc, getDocs, writeBatch } from "firebase/firestore";
 import {
-  createUserWithEmailAndPassword, deleteUser, onAuthStateChanged, signInWithEmailAndPassword, signOut,
+  createUserWithEmailAndPassword, deleteUser, EmailAuthProvider, onAuthStateChanged,
+  reauthenticateWithCredential, signInWithEmailAndPassword, signOut, updatePassword,
 } from "firebase/auth";
 import { auth, db } from "../firebase";
 import { seedSession } from "../data/constants";
@@ -26,7 +27,9 @@ export function useClub() {
   const [loginError, setLoginError] = useState("");
 
   useEffect(() => {
+    let latest = 0;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      const call = ++latest;
       if (!user) {
         setClub(null);
         saveStoredClub(null);
@@ -34,6 +37,7 @@ export function useClub() {
       }
       const id = user.email.slice(0, user.email.indexOf("@"));
       const snap = await getDoc(doc(db, "sessions", id));
+      if (call !== latest) return; // a newer auth transition already resolved
       const next = { id, name: snap.exists() ? (snap.data().location || id) : id };
       setClub(next);
       saveStoredClub(next);
@@ -104,6 +108,28 @@ export function useClub() {
     await signOut(auth);
   }
 
+  // Firebase never stores the password itself, only a one-way hash — so this
+  // is the only way to change it, and there is no way to display it.
+  // Re-proving the current password (reauthenticate) is required before
+  // Firebase allows the change, since the session may be long-lived.
+  async function changePassword(currentPassword, newPassword) {
+    try {
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+    } catch (err) {
+      if (err.code === "auth/too-many-requests") return "Too many attempts — wait a bit before trying again.";
+      if (err.code === "auth/network-request-failed") return "Network error — check your connection and try again.";
+      return "Current password is incorrect.";
+    }
+    try {
+      await updatePassword(auth.currentUser, newPassword);
+      return "";
+    } catch (err) {
+      if (err.code === "auth/weak-password") return "Password must be at least 6 characters.";
+      return "Couldn't change password — please try again.";
+    }
+  }
+
   // Closes out today's play: archives aggregate stats (if any games were
   // played), clears the match log, empties every court, resets every
   // player's stats and checks them all out, then signs out. Roster itself
@@ -111,10 +137,11 @@ export function useClub() {
   async function endSession() {
     if (!club) return;
     const { id } = club;
-    const [playersSnap, courtsSnap, matchLogSnap] = await Promise.all([
+    const [playersSnap, courtsSnap, matchLogSnap, costsSnap] = await Promise.all([
       getDocs(collection(db, "sessions", id, "players")),
       getDocs(collection(db, "sessions", id, "courts")),
       getDocs(collection(db, "sessions", id, "matchLog")),
+      getDocs(collection(db, "sessions", id, "costs")),
     ]);
     const roster = playersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     const totalGames = roster.reduce((n, p) => n + (p.games || 0), 0);
@@ -136,6 +163,7 @@ export function useClub() {
     });
     courtsSnap.forEach((d) => batch.update(d.ref, { teamA: [], teamB: [] }));
     matchLogSnap.forEach((d) => batch.delete(d.ref));
+    costsSnap.forEach((d) => batch.delete(d.ref));
     await batch.commit();
     await signOut(auth);
   }
@@ -148,8 +176,20 @@ export function useClub() {
   // ponytail: one batch caps at 500 writes; a club with a very long match
   // history could exceed that and fail here — chunk into multiple batches
   // if that turns out to matter in practice.
-  async function deleteAccount() {
-    if (!club) return;
+  // Returns "" on success or a message to show in the dialog.
+  async function deleteAccount(password) {
+    if (!club) return "";
+    // Firebase only deletes an account whose sign-in is recent, so re-prove
+    // the password FIRST — otherwise the data below gets wiped and then
+    // deleteUser refuses, leaving an empty club behind a live account.
+    try {
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, password);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+    } catch (err) {
+      if (err.code === "auth/too-many-requests") return "Too many attempts — wait a bit before trying again.";
+      if (err.code === "auth/network-request-failed") return "Network error — check your connection and try again.";
+      return "Password is incorrect.";
+    }
     const { id } = club;
     const subcollections = ["players", "courts", "history", "costs", "matchLog"];
     const snaps = await Promise.all(
@@ -160,7 +200,8 @@ export function useClub() {
     batch.delete(doc(db, "sessions", id));
     await batch.commit();
     await deleteUser(auth.currentUser);
+    return "";
   }
 
-  return { club, loggingIn, loginError, login, switchClub, endSession, deleteAccount };
+  return { club, loggingIn, loginError, login, switchClub, endSession, deleteAccount, changePassword };
 }

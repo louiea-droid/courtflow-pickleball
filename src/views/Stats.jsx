@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Download, ChevronDown } from "lucide-react";
 import PanelHead from "../components/PanelHead";
 import PersonBadge from "../components/PersonBadge";
-import { winPct, formatPHDate } from "../utils/format";
+import { winPct, formatDate } from "../utils/format";
 import { useSessionHistory } from "../hooks/useSessionHistory";
 
 function PastSession({ entry }) {
@@ -14,7 +14,7 @@ function PastSession({ entry }) {
     <div className="history-entry">
       <button className="history-entry-head" onClick={() => setOpen((o) => !o)}>
         <div>
-          <b>{formatPHDate(entry.endedAt)}</b>
+          <b>{formatDate(entry.endedAt)}</b>
           <small>{entry.matches} match{entry.matches === 1 ? "" : "es"} · {entry.players.length} players</small>
         </div>
         {top && <span className="history-top">Top: {top.name} ({winPct(top)}%)</span>}

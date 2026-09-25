@@ -11,7 +11,7 @@ export const COURT_LEVEL_OPTIONS = ["Any Level", ...SKILL_LEVELS.map((t) => t.ke
 
 export function skillLevelLabel(skill) {
   const tier = SKILL_LEVELS.find((t) => t.stars === skill);
-  return tier ? tier.key : SKILL_LEVELS[0].key;
+  return tier ? tier.key : "Unrated";
 }
 
 export function matchesCourtLevel(skill, courtLevel) {

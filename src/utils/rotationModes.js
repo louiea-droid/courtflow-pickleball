@@ -1,4 +1,4 @@
-import { matchesCourtLevel, skillLevelLabel, pickForLevel } from "./courtLevels";
+import { matchesCourtLevel, skillLevelLabel, pickForLevel } from "./courtLevels.js";
 
 // Groups by a shared key (skill tier, last result, ...), anchored on whoever's
 // at the front of the queue. Only commits if a full group is actually
@@ -45,9 +45,10 @@ function partnerId(p) {
 // front of the queue, both come in, and splitTeams keeps them on one side.
 // Doubles-only (need === 4) — singles pits opponents 1v1, so there's no
 // "teammate" slot for a lock to fill.
-function enforceLockedPairs(taken, remaining) {
+function enforceLockedPairs(taken, remaining, mode) {
   const working = [...taken];
   const pool = [...remaining];
+  const genderLocked = mode === "Mixed Doubles";
   for (const original of taken) {
     const p = working.find((x) => x.id === original.id);
     if (!p) continue;
@@ -55,9 +56,11 @@ function enforceLockedPairs(taken, remaining) {
     if (!pid || working.some((x) => x.id === pid)) continue;
     const poolIdx = pool.findIndex((x) => x.id === pid);
     if (poolIdx === -1) continue; // partner not available this round
+    const incoming = pool[poolIdx];
     let bumpIdx = -1;
     for (let i = working.length - 1; i >= 0; i--) {
       if (working[i].id === p.id) continue;
+      if (genderLocked && working[i].gender !== incoming.gender) continue; // keep the M/F count balanced
       const otherPid = partnerId(working[i]);
       if (otherPid && working.some((x) => x.id === otherPid)) continue; // don't break another satisfied lock
       bumpIdx = i;
@@ -65,7 +68,7 @@ function enforceLockedPairs(taken, remaining) {
     }
     if (bumpIdx === -1) continue; // no safe seat to free up
     const bumped = working[bumpIdx];
-    working[bumpIdx] = pool[poolIdx];
+    working[bumpIdx] = incoming;
     pool[poolIdx] = bumped;
   }
   return { taken: working, remaining: pool };
@@ -92,7 +95,7 @@ export function selectForCourt({ pool, court, mode, need }) {
   // A level-restricted court stays reserved for that level even if it means
   // splitting up a locked duo of different skill tiers.
   if (!levelRestricted && need === 4 && result.taken.length === need) {
-    return enforceLockedPairs(result.taken, result.remaining);
+    return enforceLockedPairs(result.taken, result.remaining, mode);
   }
   return result;
 }
@@ -101,12 +104,27 @@ function sharedPartnerCount(a, b) {
   return (a.partners || []).includes(b.id) ? 1 : 0;
 }
 
+// Star ratings used only for balancing teams (the UI still shows unrated
+// players as unrated). An unrated player counts as the average of the rated
+// players in the group, so they don't tip the split either way; if nobody is
+// rated, everyone is equal and the split falls to the repeat-partner check.
+function balanceStars(group) {
+  const rated = group.filter((p) => p.skill > 0).map((p) => p.skill);
+  const avg = rated.length ? rated.reduce((s, n) => s + n, 0) / rated.length : 0;
+  return new Map(group.map((p) => [p.id, p.skill > 0 ? p.skill : avg]));
+}
+
 // For a full doubles group, tries all 3 ways to split the 4 selected players
 // into two teams of 2. Any split that would put locked partners on opposite
-// teams is discarded first; among what's left, Balanced mode keeps whichever
-// pairing repeats the fewest recent partnerships, everything else just takes
-// the first (front/back) split. Non-doubles groups just split front/back.
-export function splitTeams(taken, mode) {
+// teams is discarded first. Among what's left:
+// - Balanced picks the split whose team star totals are closest (strongest +
+//   weakest vs the middle two, e.g. 3★+2★ vs 3★+2★), then fewest repeat
+//   partners, then queue order.
+// - Any other mode with `avoidRepeats` on picks fewest repeat partners.
+// - Otherwise the first (front/back) split.
+// Mixed Doubles never re-pairs — its front/back split is what keeps each
+// team one M + one F. Non-doubles groups just split front/back.
+export function splitTeams(taken, mode, avoidRepeats = false) {
   if (taken.length === 4) {
     const [a, b, c, d] = taken;
     const options = [[[a, b], [c, d]], [[a, c], [b, d]], [[a, d], [b, c]]];
@@ -117,12 +135,21 @@ export function splitTeams(taken, mode) {
     };
     const valid = options.filter(keepsLocksTogether);
     const candidates = valid.length ? valid : options;
-    if (mode === "Balanced") {
+    const balanced = mode === "Balanced";
+    if (balanced || (avoidRepeats && mode !== "Mixed Doubles")) {
+      const stars = balanced ? balanceStars(taken) : null;
+      const teamStars = (team) => stars.get(team[0].id) + stars.get(team[1].id);
       let best = candidates[0];
-      let bestScore = Infinity;
+      let bestGap = Infinity;
+      let bestRepeats = Infinity;
       for (const [teamA, teamB] of candidates) {
-        const score = sharedPartnerCount(teamA[0], teamA[1]) + sharedPartnerCount(teamB[0], teamB[1]);
-        if (score < bestScore) { bestScore = score; best = [teamA, teamB]; }
+        // Rounded so an averaged (fractional) unrated rating can't break a real tie with float noise.
+        const gap = balanced ? Math.round(Math.abs(teamStars(teamA) - teamStars(teamB)) * 1000) : 0;
+        const repeats = sharedPartnerCount(teamA[0], teamA[1]) + sharedPartnerCount(teamB[0], teamB[1]);
+        // Strict < keeps the earlier (queue-order) split on a full tie.
+        if (gap < bestGap || (gap === bestGap && repeats < bestRepeats)) {
+          best = [teamA, teamB]; bestGap = gap; bestRepeats = repeats;
+        }
       }
       return [best[0].map((p) => p.id), best[1].map((p) => p.id)];
     }

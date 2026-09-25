@@ -3,6 +3,14 @@ export const initials = (name) =>
 
 export const money = (n) => `₱${(n || 0).toFixed(2)}`;
 
+// Per-player share, to the cent, then rounded UP to the nearest `roundTo`
+// pesos when set (so the pot never comes up short). 0 = exact split.
+export const splitCost = (total, count, roundTo = 0) => {
+  if (!count) return 0;
+  const exact = Math.round((total / count) * 100) / 100;
+  return roundTo > 0 ? Math.ceil(exact / roundTo) * roundTo : exact;
+};
+
 export const winPct = (p) => Math.round((p.wins / (p.games || 1)) * 100);
 
 export const waitMinutes = (p) =>
@@ -13,18 +21,31 @@ export const elapsed = (start) => {
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 };
 
-export const PH_TIMEZONE = "Asia/Manila";
+// Every time and date in the app goes through these formatters, which follow
+// the club's Display settings (Settings page). App and LiveBoard call
+// applyDisplayPrefs with the session's saved prefs before their children
+// render; a club that never set them stays on Philippine time, 12-hour.
+// ponytail: module-level state, fine for one club per tab; move to context
+// if a page ever shows two clubs at once.
+let prefsKey = "";
+let timeFmt, clockFmt, dateFmt;
+let zoneLabel = "PHT";
 
-const phTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  timeZone: PH_TIMEZONE, hour: "numeric", minute: "2-digit", hour12: true,
-});
-const phClockFormatter = new Intl.DateTimeFormat("en-US", {
-  timeZone: PH_TIMEZONE, hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true,
-});
-const phDateFormatter = new Intl.DateTimeFormat("en-US", {
-  timeZone: PH_TIMEZONE, month: "short", day: "numeric", year: "numeric",
-});
+export function applyDisplayPrefs({ timeZone = "Asia/Manila", hour12 = true } = {}) {
+  const key = `${timeZone}|${hour12}`;
+  if (key === prefsKey) return;
+  prefsKey = key;
+  const base = { timeZone, hour: "numeric", minute: "2-digit", hourCycle: hour12 ? "h12" : "h23" };
+  timeFmt = new Intl.DateTimeFormat("en-US", base);
+  clockFmt = new Intl.DateTimeFormat("en-US", { ...base, second: "2-digit" });
+  dateFmt = new Intl.DateTimeFormat("en-US", { timeZone, month: "short", day: "numeric", year: "numeric" });
+  zoneLabel = timeZone === "Asia/Manila" ? "PHT"
+    : new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "short" })
+      .formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value || timeZone;
+}
+applyDisplayPrefs();
 
-export const formatPHTime = (ms) => phTimeFormatter.format(new Date(ms || Date.now()));
-export const formatPHClock = (date) => phClockFormatter.format(date);
-export const formatPHDate = (ms) => phDateFormatter.format(new Date(ms || Date.now()));
+export const formatTime = (ms) => timeFmt.format(new Date(ms || Date.now()));
+export const formatClock = (date) => clockFmt.format(date);
+export const formatDate = (ms) => dateFmt.format(new Date(ms || Date.now()));
+export const timeZoneLabel = () => zoneLabel;
