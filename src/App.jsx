@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  addDoc, collection, doc, setDoc, updateDoc, deleteDoc, writeBatch, getDocs,
+  addDoc, collection, doc, setDoc, updateDoc, deleteDoc, deleteField, writeBatch, getDocs,
 } from "firebase/firestore";
 import { db, firebaseConfigured } from "./firebase";
 import { applyDisplayPrefs, splitCost, winPct } from "./utils/format";
+import { applyTheme } from "./utils/theme";
 import { matchesCourtLevel } from "./utils/courtLevels";
 import { selectForCourt, splitTeams } from "./utils/rotationModes";
 import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES } from "./data/constants";
@@ -46,7 +47,8 @@ export default function App() {
   const [showSwitchClub, setShowSwitchClub] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("cf-sidebar-collapsed") === "1");
 
@@ -61,6 +63,9 @@ export default function App() {
   const live = { ...DEFAULT_LIVE, ...session.live };
   const display = { ...DEFAULT_DISPLAY, ...session.display };
   applyDisplayPrefs(display);
+  // Signed out or still loading, display is just the defaults; applying it would
+  // flip the login/loading screen to Light and overwrite the cached theme.
+  if (club && !busy) applyTheme(display);
 
   useEffect(() => {
     const locked = showPlayer || Boolean(editingPlayer) || showSession || menuOpen;
@@ -81,7 +86,14 @@ export default function App() {
   );
   const notCheckedIn = useMemo(() => players.filter((p) => !p.checked), [players]);
 
-  const notify = (m, ms = 2200) => { setToast(m); setTimeout(() => setToast(""), ms); };
+  // action: optional { label, run } button (e.g. Undo). One timer, so an older
+  // toast’s timeout never clears a newer one early.
+  const notify = (message, ms = 2200, action = null) => {
+    clearTimeout(toastTimer.current);
+    setToast({ message, action });
+    toastTimer.current = setTimeout(() => setToast(null), ms);
+  };
+  const dismissToast = () => { clearTimeout(toastTimer.current); setToast(null); };
 
   async function addPlayer(data) {
     const id = crypto.randomUUID();
@@ -384,6 +396,9 @@ export default function App() {
     const winners = side === "A" ? c.teamA : c.teamB;
     const losers = side === "A" ? c.teamB : c.teamA;
     const batch = writeBatch(db);
+    // What this result changes, so Undo can put it back exactly.
+    const undo = writeBatch(db);
+    const was = (v) => (v === undefined ? deleteField() : v);
     const partnerOf = {};
     if (winners.length === 2) { partnerOf[winners[0]] = winners[1]; partnerOf[winners[1]] = winners[0]; }
     if (losers.length === 2) { partnerOf[losers[0]] = losers[1]; partnerOf[losers[1]] = losers[0]; }
@@ -399,9 +414,13 @@ export default function App() {
       };
       if (partnerOf[id]) update.partners = [...(p.partners || []).slice(-4), partnerOf[id]];
       batch.update(doc(db, "sessions", SESSION_ID, "players", id), update);
+      undo.update(doc(db, "sessions", SESSION_ID, "players", id),
+        Object.fromEntries(Object.keys(update).map((k) => [k, was(p[k])])));
     });
     const nameOf = (id) => players.find((x) => x.id === id)?.name || "Player";
-    batch.set(doc(collection(db, "sessions", SESSION_ID, "matchLog")), {
+    const logRef = doc(collection(db, "sessions", SESSION_ID, "matchLog"));
+    undo.delete(logRef);
+    batch.set(logRef, {
       court: c.name || `Court ${c.courtNumber}`,
       winners: winners.map(nameOf),
       losers: losers.map(nameOf),
@@ -409,6 +428,10 @@ export default function App() {
     });
     const need = session.format === "Singles" ? 2 : 4;
     const courtRef = doc(db, "sessions", SESSION_ID, "courts", c.id);
+    undo.update(courtRef, {
+      teamA: c.teamA || [], teamB: c.teamB || [], start: was(c.start),
+      winStreak: was(c.winStreak), stayingIds: was(c.stayingIds),
+    });
     // Winners-stay: count consecutive wins by the exact same team, and keep
     // them on until they hit the club's cap. Challengers come straight off
     // the front of the queue (court level still applies).
@@ -433,7 +456,16 @@ export default function App() {
       batch.update(courtRef, { teamA: [], teamB: [], start: Date.now(), winStreak: 0, stayingIds: [] });
     }
     await batch.commit();
-    notify(stay ? `Winners stay on Court ${c.courtNumber} (${streak} in a row).` : `Court ${c.courtNumber} rotated.`);
+    // ponytail: restores the court as it was; anything done to that court in the
+    // 10s window (a swap, a manual add) is overwritten. Fine for a mis-tap fix.
+    const undoResult = async () => {
+      await undo.commit();
+      notify(`Result on Court ${c.courtNumber} undone.`);
+    };
+    notify(
+      stay ? `Winners stay on Court ${c.courtNumber} (${streak} in a row).` : `Court ${c.courtNumber} rotated.`,
+      10000, { label: "Undo", run: undoResult },
+    );
   }
 
   async function newSession(data) {
@@ -683,7 +715,7 @@ export default function App() {
             }}
           />
         )}
-        <Toast message={toast} />
+        <Toast toast={toast} onDismiss={dismissToast} />
       </main>
     </div>
   );

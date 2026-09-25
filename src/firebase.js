@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -19,5 +19,10 @@ export const firebaseConfigured = Boolean(
 );
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// Cache data on the device so the queue keeps working through venue Wi-Fi
+// dropouts; writes made offline sync when the connection returns. Multi-tab
+// because the admin app and the Live Board often run side by side.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});
 export const auth = getAuth(app);

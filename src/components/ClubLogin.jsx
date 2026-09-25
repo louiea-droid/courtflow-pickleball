@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
-import { LogIn, Search } from "lucide-react";
+import { LogIn, Moon, Search, Sun } from "lucide-react";
 import { db } from "../firebase";
+import { isDarkTheme, setDeviceTheme } from "../utils/theme";
 
 export default function ClubLogin({ onLogin, loading, error }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [directory, setDirectory] = useState([]);
   const [open, setOpen] = useState(false);
+  const [dark, setDark] = useState(isDarkTheme);
+  const toggleTheme = () => { setDeviceTheme(dark ? "light" : "dark"); setDark(!dark); };
   const wrapRef = useRef(null);
   const passwordRef = useRef(null);
 
@@ -107,6 +110,12 @@ export default function ClubLogin({ onLogin, loading, error }) {
           password to continue right where you left off.
         </p>
       </form>
+      <button
+        type="button" className="icon theme-toggle" onClick={toggleTheme}
+        aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} title={dark ? "Light mode" : "Dark mode"}
+      >
+        {dark ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
     </div>
   );
 }

@@ -12,6 +12,7 @@ const ICONS = {
   cost: Receipt,
   stats: Trophy,
   guide: BookOpen,
+  settings: Settings,
 };
 
 function Nav({ icon: Icon, label, active, onClick }) {
@@ -61,13 +62,6 @@ export default function Sidebar({
           <ModeSelect mode={mode} onChange={onChangeMode} />
 
           <div className="sidefoot">
-            <button
-              className={`outline dark ${tab === "settings" ? "active" : ""}`}
-              onClick={() => onSelectTab("settings")}
-              title="Settings"
-            >
-              <Settings /> <span>Settings</span>
-            </button>
             <button className="sidebar-endsession" onClick={onEndSession} title="End Session">
               <Flag /> <span>End Session</span>
             </button>

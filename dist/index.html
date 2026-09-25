@@ -11,8 +11,22 @@
     href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
     rel="stylesheet"
   />
-  <script type="module" crossorigin src="/assets/index-CkB4G7h2.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-H-v3cofU.css">
+  <style>
+    html[data-theme="dark"]{background:#0c1310}
+    @media (prefers-color-scheme: dark){html[data-theme="system"]{background:#0c1310}}
+  </style>
+  <!-- Apply the saved theme before first paint (see utils/theme.js). -->
+  <script>
+    try {
+      var t = JSON.parse(localStorage.getItem("courtflow-theme"));
+      if (t) {
+        document.documentElement.dataset.theme = t.theme;
+        for (var k in t.vars) document.documentElement.style.setProperty(k, t.vars[k]);
+      }
+    } catch (e) {}
+  </script>
+  <script type="module" crossorigin src="/assets/index-dVoweRt6.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CmCXQR8W.css">
 </head>
 <body>
   <div id="root"></div>

@@ -3,8 +3,9 @@ import { Pencil, Plus, LogOut, Trash2, Check, X, KeyRound, RefreshCw } from "luc
 import ChangePasswordDialog from "../components/ChangePasswordDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Select from "../components/Select";
-import { MODE_SELECT_OPTIONS } from "../data/constants";
+import { ACCENT_PRESETS, MODE_SELECT_OPTIONS, TEAM_PRESETS } from "../data/constants";
 import { money } from "../utils/format";
+import { readableOn } from "../utils/theme";
 
 const FALLBACK_DEFAULTS = { courts: 2, format: "Doubles", mode: "Balanced" };
 
@@ -19,6 +20,9 @@ const AFTER_GAME_OPTIONS = [
 const STREAK_OPTIONS = [2, 3, 4, 5].map((n) => ({ value: n, label: `${n} wins in a row` }));
 const ON_OFF = [{ value: "off", label: "Off" }, { value: "on", label: "On" }];
 const SHOW_HIDE = [{ value: "show", label: "Shown" }, { value: "hide", label: "Hidden" }];
+const THEME_OPTIONS = [
+  { value: "light", label: "Light" }, { value: "dark", label: "Dark" }, { value: "system", label: "Match device" },
+];
 const CLOCK_OPTIONS = [{ value: "12", label: "12-hour" }, { value: "24", label: "24-hour" }];
 const TIME_ZONES = [
   ["Asia/Manila", "Philippines"], ["Asia/Singapore", "Singapore / Malaysia"], ["Asia/Hong_Kong", "Hong Kong"],
@@ -40,6 +44,33 @@ function SettingsRow({ title, body, children }) {
         <p>{body}</p>
       </div>
       {children}
+    </div>
+  );
+}
+
+// Preset swatches plus a custom picker. The custom picker previews on the CSS
+// variable while dragging (React onChange fires every step) and saves once on
+// the native change event, so dragging doesn’t write to Firestore each frame.
+function ColorSwatches({ label, cssVar, presets, value, onChange }) {
+  const isCustom = !presets.some((p) => p.value === value);
+  return (
+    <div className="swatches" role="radiogroup" aria-label={label}>
+      {presets.map((p) => (
+        <button
+          key={p.value} type="button" role="radio" aria-checked={value === p.value} aria-label={p.label} title={p.label}
+          className="swatch" style={{ "--swatch": p.value, "--swatch-ink": readableOn(p.value) }} onClick={() => onChange(p.value)}
+        >
+          {value === p.value ? <Check size={14} strokeWidth={3} /> : null}
+        </button>
+      ))}
+      <label className={`swatch swatch-custom ${isCustom ? "active" : ""}`} style={isCustom ? { "--swatch": value, "--swatch-ink": readableOn(value) } : undefined} title="Custom color">
+        {isCustom ? <Check size={14} strokeWidth={3} /> : <Plus size={14} />}
+        <input
+          type="color" aria-label={`Custom ${label.toLowerCase()}`} key={value} defaultValue={value}
+          onChange={(e) => document.documentElement.style.setProperty(cssVar, e.target.value)}
+          ref={(el) => { if (el) el.onchange = (e) => onChange(e.target.value); }}
+        />
+      </label>
     </div>
   );
 }
@@ -264,6 +295,20 @@ export default function Settings({
       <div className="account-group">
         <div className="eyebrow">Display</div>
         <div className="panel account-panel">
+          <SettingsRow title="Theme" body="Match device follows each phone or TV’s own light or dark setting.">
+            <div className="account-select">
+              <Select value={display.theme} onChange={(theme) => onSetDisplay({ theme })} options={THEME_OPTIONS} />
+            </div>
+          </SettingsRow>
+          <SettingsRow title="Theme color" body="Buttons, highlights, and active tabs. Pick a preset or your own.">
+            <ColorSwatches label="Theme color" cssVar="--accent" presets={ACCENT_PRESETS} value={display.accent} onChange={(accent) => onSetDisplay({ accent })} />
+          </SettingsRow>
+          <SettingsRow title="Team 1 color" body="Team 1 on every court, the Live Board, and its win button.">
+            <ColorSwatches label="Team 1 color" cssVar="--team1" presets={TEAM_PRESETS} value={display.team1} onChange={(team1) => onSetDisplay({ team1 })} />
+          </SettingsRow>
+          <SettingsRow title="Team 2 color" body="Team 2 on every court, the Live Board, and its win button.">
+            <ColorSwatches label="Team 2 color" cssVar="--team2" presets={TEAM_PRESETS} value={display.team2} onChange={(team2) => onSetDisplay({ team2 })} />
+          </SettingsRow>
           <SettingsRow title="Time zone" body="Used for the clock, check-in times, and dates across the app and Live Board.">
             <div className="account-select">
               <Select value={display.timeZone} onChange={(timeZone) => onSetDisplay({ timeZone })} options={TIME_ZONES} />
