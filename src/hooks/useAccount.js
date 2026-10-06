@@ -9,7 +9,8 @@ import {
 } from "firebase/firestore";
 import { auth, db, firebaseConfigured } from "../firebase";
 import {
-  accountStatus, authMessage, defaultClubName, hasPasswordProvider, isAccountUser, resetMessage,
+  accountStatus, authMessage, defaultClubName, hasPasswordProvider, isAccountUser, isLegacyEmail, LEGACY_MESSAGE,
+  resetMessage, shouldEnsureAccount,
 } from "../utils/account";
 
 // Step 2 adds each event's own subcollections to this cascade.
@@ -48,6 +49,7 @@ export function useAccount() {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const creating = useRef(false); // sign-up writes the account itself; don't race it
+  const deleting = useRef(false); // the profile vanishing mid-delete is intended; don't re-create it
 
   useEffect(() => {
     if (!firebaseConfigured) { setUser(null); return; }
@@ -59,29 +61,41 @@ export function useAccount() {
     setFailed(false);
     if (!user) { setAccount(null); return; }
     return onSnapshot(doc(db, "accounts", user.uid), (s) => {
+      // Mid-delete, keep the page (and the delete dialog, which shows any error) as it is.
+      if (!s.exists() && deleting.current) return;
       setAccount(s.exists() ? s.data() : null);
       setLoaded(true);
       // Signed in but no profile yet (e.g. made in the console): create it.
-      if (!s.exists() && !creating.current) ensureAccount(user).catch(() => setFailed(true));
+      if (shouldEnsureAccount({ exists: s.exists(), creating: creating.current, deleting: deleting.current })) {
+        ensureAccount(user).catch(() => setFailed(true));
+      }
     }, () => setFailed(true));
   }, [user]);
 
   const status = accountStatus({ user, loaded, account, failed });
 
-  const signIn = (email, password) => run(async () => {
-    const { user: u } = await signInWithEmailAndPassword(auth, email.trim(), password);
-    await ensureAccount(u);
-  });
+  const signIn = (email, password) => {
+    if (isLegacyEmail(email)) return Promise.resolve(LEGACY_MESSAGE);
+    return run(async () => {
+      const { user: u } = await signInWithEmailAndPassword(auth, email.trim(), password);
+      await ensureAccount(u);
+    });
+  };
 
-  const signUp = (clubName, email, password) => run(async () => {
-    creating.current = true;
-    try {
-      const { user: u } = await createUserWithEmailAndPassword(auth, email.trim(), password);
-      await ensureAccount(u, clubName.trim());
-    } finally {
-      creating.current = false;
-    }
-  });
+  const signUp = (clubName, email, password) => {
+    if (isLegacyEmail(email)) return Promise.resolve(LEGACY_MESSAGE);
+    return run(async () => {
+      creating.current = true;
+      try {
+        const { user: u } = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        // The form unmounts once the user exists, so a failed profile write can't show an
+        // error there. Surface it as the page error instead of an endless "Loading…".
+        await ensureAccount(u, clubName.trim()).catch(() => setFailed(true));
+      } finally {
+        creating.current = false;
+      }
+    });
+  };
 
   const signInGoogle = () => run(async () => {
     const { user: u } = await signInWithPopup(auth, new GoogleAuthProvider());
@@ -125,13 +139,18 @@ export function useAccount() {
         : err.code === "auth/too-many-requests" || err.code === "auth/network-request-failed" || err.code === "auth/popup-blocked"
           ? authMessage(err) : "Password is incorrect.";
     }
+    deleting.current = true;
     return run(async () => {
-      const uid = auth.currentUser.uid;
-      for (const name of ACCOUNT_COLLECTIONS) await wipeCollection(collection(db, "accounts", uid, name));
-      const batch = writeBatch(db);
-      batch.delete(doc(db, "accounts", uid));
-      await batch.commit();
-      await deleteUser(auth.currentUser);
+      try {
+        const uid = auth.currentUser.uid;
+        for (const name of ACCOUNT_COLLECTIONS) await wipeCollection(collection(db, "accounts", uid, name));
+        const batch = writeBatch(db);
+        batch.delete(doc(db, "accounts", uid));
+        await batch.commit();
+        await deleteUser(auth.currentUser);
+      } finally {
+        deleting.current = false;
+      }
     });
   };
 

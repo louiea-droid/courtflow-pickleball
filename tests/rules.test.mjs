@@ -63,8 +63,11 @@ await assertFails(setDoc(doc(u2, "accounts/u1/roster/r3"), { name: "evil" }));
 await assertFails(getDoc(doc(anon, "accounts/u1")));
 await assertFails(getDoc(doc(anon, "accounts/u1/roster/r1")));
 await assertFails(setDoc(doc(anon, "accounts/u3"), { clubName: "anon" }));
-// A legacy club login is not an account owner.
+// A legacy club login is not an account owner, not even of an account under its own uid.
 await assertFails(getDoc(doc(club1, "accounts/u1")));
+await assertFails(setDoc(doc(club1, "accounts/c1"), { clubName: "sneaky", email: "club1@courtflow.local" }));
+await assertFails(getDoc(doc(club1, "accounts/c1")));
+await assertFails(setDoc(doc(club1, "accounts/c1/roster/r1"), { name: "sneaky" }));
 
 console.log("rules: all assertions passed");
 await env.cleanup();

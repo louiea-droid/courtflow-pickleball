@@ -5,6 +5,16 @@ export const LEGACY_DOMAIN = "@courtflow.local";
 export const isAccountUser = (user) =>
   Boolean(user?.email) && !user.email.toLowerCase().endsWith(LEGACY_DOMAIN);
 
+// A club login typed into the account form would sign the browser in as the club
+// (and write a stray accounts doc), so refuse it before calling Firebase.
+export const isLegacyEmail = (email) => email.trim().toLowerCase().endsWith(LEGACY_DOMAIN);
+export const LEGACY_MESSAGE = "That's a club login. Open the classic club app at /club to use it.";
+
+// The profile listener creates a missing profile, except mid sign-up (sign-up writes
+// it itself) and mid delete (the doc is meant to be gone; re-creating it would keep
+// the email after "permanently deleted").
+export const shouldEnsureAccount = ({ exists, creating, deleting }) => !exists && !creating && !deleting;
+
 // Google-only accounts have no password, so no password change or password confirm.
 export const hasPasswordProvider = (user) =>
   user.providerData.some((p) => p.providerId === "password");

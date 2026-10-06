@@ -102,6 +102,11 @@ export default function AccountLogin({ onSignIn, onSignUp, onGoogle, onReset }) 
           )}
           {mode !== "signin" && <button type="button" className="text" onClick={() => go("signin")}>Back to sign in</button>}
         </div>
+        {mode === "signin" && (
+          <p className="clublogin-hint">
+            Using a club name and password? <a href="/club">Open the classic club app</a>.
+          </p>
+        )}
       </form>
       <button
         type="button" className="icon theme-toggle" onClick={toggleTheme}

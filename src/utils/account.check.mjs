@@ -1,7 +1,8 @@
 // Self-check for account helpers. Run: node src/utils/account.check.mjs
 import assert from "node:assert";
 import {
-  accountStatus, authMessage, defaultClubName, hasPasswordProvider, isAccountUser, resetMessage,
+  accountStatus, authMessage, defaultClubName, hasPasswordProvider, isAccountUser, isLegacyEmail, LEGACY_MESSAGE,
+  resetMessage, shouldEnsureAccount,
 } from "./account.js";
 
 // Legacy club logins use fake @courtflow.local emails and are never accounts.
@@ -45,5 +46,17 @@ assert.equal(accountStatus({ user: {}, loaded: true, account: null }), "loading"
 assert.equal(accountStatus({ user: {}, loaded: true, account: { clubName: "A" } }), "in");
 assert.equal(accountStatus({ user: {}, loaded: false, account: null, failed: true }), "error");
 assert.equal(accountStatus({ user: null, failed: true }), "out");
+
+// Club logins can't be typed into the account form (it would sign the browser in as the club).
+assert.equal(isLegacyEmail("centro@courtflow.local"), true);
+assert.equal(isLegacyEmail("  Centro@CourtFlow.Local "), true);
+assert.equal(isLegacyEmail("host@gmail.com"), false);
+assert.match(LEGACY_MESSAGE, /\/club/);
+
+// The listener must not re-create a profile that is being deleted or signed up.
+assert.equal(shouldEnsureAccount({ exists: false, creating: false, deleting: false }), true);
+assert.equal(shouldEnsureAccount({ exists: false, creating: false, deleting: true }), false);
+assert.equal(shouldEnsureAccount({ exists: false, creating: true, deleting: false }), false);
+assert.equal(shouldEnsureAccount({ exists: true, creating: false, deleting: false }), false);
 
 console.log("account.check: ok");
