@@ -40,5 +40,14 @@ service cloud.firestore {
         allow create: if validRequest(sessionId);
       }
     }
+
+    // Accounts: everything under accounts/{uid} belongs to that signed-in user.
+    // Step 2 loosens this for events (public read) and join requests.
+    match /accounts/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      match /{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
   }
 }
