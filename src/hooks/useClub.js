@@ -7,6 +7,7 @@ import {
 import { auth, db } from "../firebase";
 import { seedSession } from "../data/constants";
 import { authEmail, loadStoredClub, saveStoredClub, slugifyClub } from "../utils/club";
+import { isAccountUser } from "../utils/account";
 
 async function createFreshSession(batch, id, clubName) {
   batch.set(doc(db, "sessions", id), { ...seedSession, location: clubName, createdAt: Date.now() });
@@ -30,7 +31,9 @@ export function useClub() {
     let latest = 0;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       const call = ++latest;
-      if (!user) {
+      // A real account (email/Google) is not a club. Treat it as signed out here
+      // so the club login shows instead of reading a club named after its email.
+      if (!user || isAccountUser(user)) {
         setClub(null);
         saveStoredClub(null);
         return;
