@@ -4,8 +4,10 @@ import { useAccount } from "./hooks/useAccount";
 import { useRoute } from "./hooks/useRoute";
 import { applyDisplayPrefs } from "./utils/format";
 import { applyTheme } from "./utils/theme";
-import { DEFAULT_DISPLAY } from "./data/constants";
+import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES } from "./data/constants";
 import AccountLogin from "./components/AccountLogin";
+import DeleteAccountDialog from "./components/DeleteAccountDialog";
+import Settings from "./views/Settings";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
 
@@ -14,6 +16,8 @@ export default function AccountApp() {
   const { route, navigate } = useRoute();
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const notify = (message, ms = 2200) => {
     clearTimeout(toastTimer.current);
@@ -23,6 +27,26 @@ export default function AccountApp() {
   const dismissToast = () => { clearTimeout(toastTimer.current); setToast(null); };
 
   const display = { ...DEFAULT_DISPLAY, ...acct.account?.display };
+  const rules = { ...DEFAULT_RULES, ...acct.account?.rules };
+  const costDefaults = { ...DEFAULT_COST, ...acct.account?.costDefaults };
+  const live = { ...DEFAULT_LIVE, ...acct.account?.live };
+  const save = async (patch) => { await acct.updateAccount(patch); notify("Saved."); };
+
+  // Success signs the user out (deleteUser). This shell stays mounted behind the
+  // sign-in screen, so close the dialog or the next sign-in opens on it.
+  const handleDelete = async (password) => {
+    setDeleting(true);
+    try {
+      const err = await acct.deleteAccount(password);
+      setDeleting(false);
+      if (!err) setShowDelete(false);
+      return err;
+    } catch {
+      setDeleting(false);
+      return "Couldn't delete the account. Please try again.";
+    }
+  };
+
   applyDisplayPrefs(display);
   // Not before the account loads: defaults would flash Light over the cached theme.
   if (acct.status === "in") applyTheme(display);
@@ -62,10 +86,31 @@ export default function AccountApp() {
         <button className="outline" onClick={acct.signOutUser}><LogOut size={14} /> Sign out</button>
       </header>
       <main className="acct-main">
-        {route === "settings"
-          ? <p>Settings arrive in the next task.</p>
-          : <Hub clubName={acct.account.clubName} navigate={navigate} />}
+        {route === "settings" ? (
+          <Settings
+            mode="account"
+            session={{ location: acct.account.clubName, defaults: acct.account.defaults }}
+            canChangePassword={acct.hasPassword}
+            onRenameClub={(clubName) => save({ clubName })}
+            onChangePassword={acct.changePassword}
+            onDeleteAccount={() => setShowDelete(true)}
+            onSetDefaults={(defaults) => save({ defaults })}
+            rules={rules} costDefaults={costDefaults} live={live} display={display}
+            onSetRules={(change) => save({ rules: { ...rules, ...change } })}
+            onSetCostDefaults={(change) => save({ costDefaults: { ...costDefaults, ...change } })}
+            onSetLive={(change) => save({ live: { ...live, ...change } })}
+            onSetDisplay={(change) => save({ display: { ...display, ...change } })}
+          />
+        ) : (
+          <Hub clubName={acct.account.clubName} navigate={navigate} />
+        )}
       </main>
+      {showDelete && (
+        <DeleteAccountDialog
+          variant="account" clubName={acct.account.clubName} needsPassword={acct.hasPassword} loading={deleting}
+          onCancel={() => setShowDelete(false)} onConfirm={handleDelete}
+        />
+      )}
       <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
