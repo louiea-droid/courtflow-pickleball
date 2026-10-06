@@ -1187,3 +1187,10 @@ form.confirm-modal .modalactions{margin-top:4px}
   .booking-add{flex-direction:column}
   .liveboard-join small{display:none}
 }
+
+/* ---------- Accounts: sign-in extras ---------- */
+.clublogin-google{width:100%;justify-content:center;gap:9px}
+.clublogin-divider{display:flex;align-items:center;gap:10px;color:var(--faint);font-size:11.5px}
+.clublogin-divider::before,.clublogin-divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.clublogin-switch{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 16px}
+.clublogin-info{margin:0;color:var(--accent-ink);font-weight:700;font-size:13px;line-height:1.45}
