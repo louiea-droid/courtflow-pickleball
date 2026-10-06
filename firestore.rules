@@ -1,8 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // A quick session lives at sessions/{uid}: whoever is signed in as that uid (an
+    // anonymous visitor, or a real account) owns it. Old club logins (fake emails)
+    // no longer own anything; those clubs are simply not reachable any more.
     function isClub(sessionId) {
-      return request.auth != null && request.auth.token.email == sessionId + '@courtflow.local';
+      return request.auth != null && request.auth.uid == sessionId;
     }
 
     // A player's request to join an open play. Players aren't signed in, so this

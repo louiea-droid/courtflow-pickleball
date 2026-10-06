@@ -4,14 +4,13 @@ import {
   reauthenticateWithCredential, reauthenticateWithPopup, sendPasswordResetEmail, signInWithEmailAndPassword,
   signInWithPopup, signOut, updatePassword,
 } from "firebase/auth";
-import {
-  collection, doc, getDoc, getDocs, limit, onSnapshot, query, setDoc, updateDoc, writeBatch,
-} from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { auth, db, firebaseConfigured } from "../firebase";
 import {
   accountStatus, authMessage, defaultClubName, hasPasswordProvider, isAccountUser, isLegacyEmail, LEGACY_MESSAGE,
   resetMessage, shouldEnsureAccount,
 } from "../utils/account";
+import { wipeCollection } from "../utils/wipe";
 
 // Step 2 adds each event's own subcollections to this cascade.
 const ACCOUNT_COLLECTIONS = ["roster", "events"];
@@ -21,17 +20,6 @@ async function ensureAccount(user, clubName) {
   const ref = doc(db, "accounts", user.uid);
   if ((await getDoc(ref)).exists()) return;
   await setDoc(ref, { clubName: clubName || defaultClubName(user), email: user.email, createdAt: Date.now() });
-}
-
-// Firestore batches cap at 500 writes, so delete in rounds.
-async function wipeCollection(colRef) {
-  for (;;) {
-    const snap = await getDocs(query(colRef, limit(400)));
-    if (snap.empty) return;
-    const batch = writeBatch(db);
-    snap.forEach((d) => batch.delete(d.ref));
-    await batch.commit();
-  }
 }
 
 const run = async (fn) => {

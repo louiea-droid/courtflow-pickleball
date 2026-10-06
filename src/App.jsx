@@ -12,24 +12,17 @@ import { useSessionData } from "./hooks/useSessionData";
 import { useClub } from "./hooks/useClub";
 import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
-import { useBookingRequests, useBookings } from "./hooks/useBookings";
-import { useBookingActions } from "./hooks/useBookingActions";
-import { nowIn } from "./utils/bookings";
 
-import ClubLogin from "./components/ClubLogin";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import Toast from "./components/Toast";
 import PlayerModal from "./components/PlayerModal";
 import SessionModal from "./components/SessionModal";
-import BookingModal from "./components/BookingModal";
 import ShareModal from "./components/ShareModal";
 import ConfirmDialog from "./components/ConfirmDialog";
-import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Dashboard from "./views/Dashboard";
 import Queue from "./views/Queue";
 import Players from "./views/Players";
-import Bookings from "./views/Bookings";
 import Cost from "./views/Cost";
 import Stats from "./views/Stats";
 import Guide from "./views/Guide";
@@ -37,25 +30,19 @@ import Settings from "./views/Settings";
 
 export default function App() {
   const {
-    club, loggingIn, loginError, login, switchClub, endSession, deleteAccount, changePassword,
+    club, error: clubError, endSession, eraseSession,
   } = useClub();
   const SESSION_ID = club?.id;
   const [tab, setTab] = useState("dashboard");
   const { session, players, courts, busy } = useSessionData(SESSION_ID);
   const costs = useCosts(SESSION_ID);
   const matchLog = useMatchLog(SESSION_ID);
-  const bookings = useBookings(SESSION_ID);
-  const bookingRequests = useBookingRequests(SESSION_ID);
-  const [bookingModal, setBookingModal] = useState(null); // null | "new" | a booking being edited
-  const [showShareBookings, setShowShareBookings] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [showSession, setShowSession] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showEndSession, setShowEndSession] = useState(false);
-  const [showSwitchClub, setShowSwitchClub] = useState(false);
-  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
-  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [showErase, setShowErase] = useState(false);
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -77,10 +64,10 @@ export default function App() {
   if (club && !busy) applyTheme(display);
 
   useEffect(() => {
-    const locked = showPlayer || Boolean(editingPlayer) || showSession || menuOpen || Boolean(bookingModal);
+    const locked = showPlayer || Boolean(editingPlayer) || showSession || menuOpen;
     document.body.style.overflow = locked ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [showPlayer, editingPlayer, showSession, menuOpen, bookingModal]);
+  }, [showPlayer, editingPlayer, showSession, menuOpen]);
 
   const selectTab = (t) => { setTab(t); setMenuOpen(false); };
 
@@ -103,13 +90,6 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), ms);
   };
   const dismissToast = () => { clearTimeout(toastTimer.current); setToast(null); };
-
-  const bookingActions = useBookingActions({
-    clubId: SESSION_ID, players, bookings, requests: bookingRequests, costs, notify,
-  });
-  const today = nowIn(display.timeZone).date;
-  const newRequests = bookingRequests.filter((r) => r.status === "pending").length;
-  const latestPayInfo = [...bookings].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]?.payInfo;
 
   async function addPlayer(data) {
     const id = crypto.randomUUID();
@@ -490,7 +470,7 @@ export default function App() {
       getDocs(collection(db, "sessions", SESSION_ID, "costs")),
     ]);
     const batch = writeBatch(db);
-    // Same archive-before-wipe as "Continue" on the login screen — otherwise
+    // Archive before the wipe, like End Session — otherwise
     // starting a new session from inside the app silently discards the
     // roster's game/win history instead of saving it to Stats → Past Sessions.
     const totalGames = players.reduce((n, p) => n + (p.games || 0), 0);
@@ -583,23 +563,23 @@ export default function App() {
     URL.revokeObjectURL(a.href);
   }
 
-  // Returns "" on success, or a message the dialog shows inline (it stays open).
-  async function handleDeleteAccount(password) {
-    setDeletingAccount(true);
+  async function handleErase() {
+    setShowErase(false);
     try {
-      const err = await deleteAccount(password);
-      // Success signs the account out itself (deleteUser), which flips
-      // `club` to null and unmounts this whole tree — nothing left to reset.
-      if (err) setDeletingAccount(false);
-      return err;
+      await eraseSession();
+      setTab("dashboard");
+      notify("Session erased. You're starting fresh.");
     } catch {
-      setDeletingAccount(false);
-      return "Couldn't delete the account — please try again.";
+      notify("Couldn't erase the session — please try again.", 4000);
     }
   }
 
   if (!club) {
-    return <ClubLogin onLogin={login} loading={loggingIn} error={loginError} />;
+    return clubError ? (
+      <div className="loading">{clubError}</div>
+    ) : (
+      <div className="loading"><span className="spinner" />Starting your session…</div>
+    );
   }
 
   if (busy) {
@@ -620,7 +600,6 @@ export default function App() {
         onChangeMode={changeMode}
         tab={tab}
         onSelectTab={selectTab}
-        badges={{ bookings: newRequests }}
         onEndSession={() => { setShowEndSession(true); setMenuOpen(false); }}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -659,13 +638,6 @@ export default function App() {
           {tab === "players" && (
             <Players players={players} onEdit={setEditingPlayer} onDelete={deletePlayer} />
           )}
-          {tab === "bookings" && (
-            <Bookings
-              bookings={bookings} requests={bookingRequests} players={players} now={nowIn(display.timeZone)}
-              actions={bookingActions} onNew={() => setBookingModal("new")} onEdit={setBookingModal}
-              onShare={() => setShowShareBookings(true)}
-            />
-          )}
           {tab === "cost" && (
             <Cost
               players={players} costs={costs} onAdd={addCostEntry} costDefaults={costDefaults}
@@ -676,13 +648,12 @@ export default function App() {
           {tab === "guide" && <Guide />}
           {tab === "settings" && (
             <Settings
+              mode="quick" canChangePassword={false}
               session={session}
               onRenameClub={(location) => updateSessionSettings({ location })}
               onNewSession={() => setShowSession(true)}
-              onSwitchClub={() => setShowSwitchClub(true)}
-              onDeleteAccount={() => setShowDeleteAccount(true)}
-              onChangePassword={changePassword}
-              onSetPasswordHint={(passwordHint) => updateSessionSettings({ passwordHint })}
+              onSwitchClub={() => { window.location.assign("/"); }}
+              onDeleteAccount={() => setShowErase(true)}
               onSetDefaults={(defaults) => updateSessionSettings({ defaults })}
               rules={rules} costDefaults={costDefaults} live={live} display={display}
               onSetLive={(change) => updateSessionSettings({ live: { ...live, ...change } })}
@@ -707,52 +678,29 @@ export default function App() {
             clubName={session.location} defaults={session.defaults}
           />
         )}
-        {bookingModal && (
-          <BookingModal
-            booking={bookingModal === "new" ? null : bookingModal} today={today} lastPayInfo={latestPayInfo}
-            close={() => setBookingModal(null)}
-            submit={async (data) => {
-              await bookingActions.save(bookingModal === "new" ? null : bookingModal.id, data);
-              setBookingModal(null);
-            }}
-          />
-        )}
-        {showShareBookings && (
-          <ShareModal
-            url={`${window.location.origin}/open-play?club=${SESSION_ID}`} close={() => setShowShareBookings(false)}
-            title="Share open play bookings" openLabel="Open booking page" qr
-            hint="Players scan the code or open the link to see your upcoming open play and ask to join. You confirm each request in Bookings."
-          />
-        )}
         {showShare && (
           <ShareModal url={`${window.location.origin}/live?club=${SESSION_ID}${live.key ? `&key=${live.key}` : ""}`} close={() => setShowShare(false)} />
         )}
-        {showSwitchClub && (
+        {showErase && (
           <ConfirmDialog
-            title="Switch Club?"
-            message={`This signs you out of ${session.location || club.name}. Nothing about this session changes — logging back in with the password picks up right where you left off.`}
-            confirmLabel="Switch Club"
-            onCancel={() => setShowSwitchClub(false)}
-            onConfirm={() => { setShowSwitchClub(false); switchClub(); }}
-          />
-        )}
-        {showDeleteAccount && (
-          <DeleteAccountDialog
-            clubName={session.location || club.name}
-            loading={deletingAccount}
-            onCancel={() => setShowDeleteAccount(false)}
-            onConfirm={handleDeleteAccount}
+            title="Erase this session?"
+            message="This permanently deletes every player, court, match, cost and past-session record in this quick session and starts a blank one. There is no undo."
+            confirmLabel="Erase everything"
+            onCancel={() => setShowErase(false)}
+            onConfirm={handleErase}
           />
         )}
         {showEndSession && (
           <ConfirmDialog
             title="End Session?"
-            message="This closes out today's play: stats are archived to Stats → Past Sessions, the match log and courts are cleared, and everyone will need to check in again next time. Signs you out."
+            message="This closes out today's play: stats are archived to Stats → Past Sessions, the match log and courts are cleared, and everyone will need to check in again next time."
             confirmLabel="End Session"
             onCancel={() => setShowEndSession(false)}
             onConfirm={() => {
               setShowEndSession(false);
-              endSession().catch(() => notify("Couldn't end the session — please try again.", 4000));
+              endSession()
+                .then(() => { setTab("dashboard"); notify("Session ended. Stats are saved to Past Sessions."); })
+                .catch(() => notify("Couldn't end the session — please try again.", 4000));
             }}
           />
         )}

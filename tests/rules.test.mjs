@@ -15,8 +15,12 @@ await env.withSecurityRulesDisabled(async (ctx) => {
 });
 
 const anon = env.unauthenticatedContext().firestore();
-const club1 = env.authenticatedContext("c1", { email: "club1@courtflow.local" }).firestore();
-const club2 = env.authenticatedContext("c2", { email: "club2@courtflow.local" }).firestore();
+// Quick sessions: sessions/{id} belongs to the signed-in user whose uid is {id}
+// (an anonymous visitor, or a real account). No email involved.
+const club1 = env.authenticatedContext("club1").firestore();
+const club2 = env.authenticatedContext("club2").firestore();
+// An old club login (fake @courtflow.local email, uid c1): its email no longer grants anything.
+const legacy = env.authenticatedContext("c1", { email: "club1@courtflow.local" }).firestore();
 const u1 = env.authenticatedContext("u1", { email: "one@example.com" }).firestore();
 const u2 = env.authenticatedContext("u2", { email: "two@example.com" }).firestore();
 
@@ -48,6 +52,17 @@ await assertSucceeds(updateDoc(req(club1, "r1"), { status: "approved" }));
 await assertSucceeds(setDoc(doc(club1, "sessions/club1/bookings/b3"), { title: "ok" }));
 await assertFails(getDocs(collection(club2, "sessions/club1/bookingRequests")));
 await assertFails(setDoc(doc(club2, "sessions/club1/bookings/b4"), { title: "no" }));
+// The old email rule is gone: a club login can't write a session just because its email names it.
+await assertFails(setDoc(doc(legacy, "sessions/club1/bookings/b5"), { title: "old" }));
+await assertFails(setDoc(doc(legacy, "sessions/club1"), { location: "old" }));
+// A session is writable at its own uid by anyone signed in, whole tree, and by nobody else.
+await assertSucceeds(setDoc(doc(club1, "sessions/club1"), { location: "Quick session" }));
+await assertSucceeds(setDoc(doc(club1, "sessions/club1/courts/court-1"), { courtNumber: 1 }));
+await assertSucceeds(setDoc(doc(u1, "sessions/u1"), { location: "Account quick session" }));
+await assertSucceeds(setDoc(doc(u1, "sessions/u1/players/p1"), { name: "P" }));
+await assertFails(setDoc(doc(u2, "sessions/u1/players/p2"), { name: "evil" }));
+await assertFails(setDoc(doc(anon, "sessions/club1"), { location: "evil" }));
+await assertSucceeds(getDoc(doc(anon, "sessions/u1")));
 
 // ---- Accounts (accounts/{uid}/**): owner only, nothing public ----
 await assertSucceeds(getDoc(doc(u1, "accounts/u1")));
@@ -64,10 +79,10 @@ await assertFails(getDoc(doc(anon, "accounts/u1")));
 await assertFails(getDoc(doc(anon, "accounts/u1/roster/r1")));
 await assertFails(setDoc(doc(anon, "accounts/u3"), { clubName: "anon" }));
 // A legacy club login is not an account owner, not even of an account under its own uid.
-await assertFails(getDoc(doc(club1, "accounts/u1")));
-await assertFails(setDoc(doc(club1, "accounts/c1"), { clubName: "sneaky", email: "club1@courtflow.local" }));
-await assertFails(getDoc(doc(club1, "accounts/c1")));
-await assertFails(setDoc(doc(club1, "accounts/c1/roster/r1"), { name: "sneaky" }));
+await assertFails(getDoc(doc(legacy, "accounts/u1")));
+await assertFails(setDoc(doc(legacy, "accounts/c1"), { clubName: "sneaky", email: "club1@courtflow.local" }));
+await assertFails(getDoc(doc(legacy, "accounts/c1")));
+await assertFails(setDoc(doc(legacy, "accounts/c1/roster/r1"), { name: "sneaky" }));
 
 console.log("rules: all assertions passed");
 await env.cleanup();

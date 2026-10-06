@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, Plus, LogOut, Trash2, Check, X, KeyRound, RefreshCw } from "lucide-react";
+import { Pencil, Plus, LogOut, Home, Trash2, Check, X, KeyRound, RefreshCw } from "lucide-react";
 import ChangePasswordDialog from "../components/ChangePasswordDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Select from "../components/Select";
@@ -82,6 +82,7 @@ export default function Settings({
   mode = "club", canChangePassword = true,
 }) {
   const isAccount = mode === "account";
+  const isQuick = mode === "quick"; // the classic session: no login, data lives on this device
   const [confirmNewLink, setConfirmNewLink] = useState(false);
   const defaults = { ...FALLBACK_DEFAULTS, ...session.defaults };
   const setDefault = (change) => onSetDefaults({ ...defaults, ...change });
@@ -154,7 +155,7 @@ export default function Settings({
           </SettingsRow>
 
           <SettingsRow
-            hidden={isAccount}
+            hidden={isAccount || isQuick}
             title="Password hint"
             body="Shown on the login screen once this club name is typed — a private note to jog your memory, never the password itself."
           >
@@ -339,8 +340,15 @@ export default function Settings({
             <button className="outline" onClick={onNewSession}><Plus size={14} /> Start New Session</button>
           </SettingsRow>
 
-          <SettingsRow title="Switch Club" body="Signs you out. Log back in with the password to pick up right where you left off.">
-            <button className="outline" onClick={onSwitchClub}><LogOut size={14} /> Switch Club</button>
+          <SettingsRow
+            title={isQuick ? "Home" : "Switch Club"}
+            body={isQuick
+              ? "Leave this session without ending it. Come back any time from the same device."
+              : "Signs you out. Log back in with the password to pick up right where you left off."}
+          >
+            <button className="outline" onClick={onSwitchClub}>
+              {isQuick ? <Home size={14} /> : <LogOut size={14} />} {isQuick ? "Back to home" : "Switch Club"}
+            </button>
           </SettingsRow>
         </div>
       </div>
@@ -349,12 +357,14 @@ export default function Settings({
         <div className="eyebrow">Danger Zone</div>
         <div className="panel account-panel account-danger">
           <SettingsRow
-            title="Delete Account"
-            body={isAccount
+            title={isQuick ? "Erase this session" : "Delete Account"}
+            body={isQuick
+              ? "Permanently deletes every player, court, match and cost in this quick session and starts a blank one. Cannot be undone."
+              : isAccount
               ? "Permanently erases your account, roster and open plays. Cannot be undone."
               : "Permanently erases this club and everything in it. Cannot be undone."}
           >
-            <button className="danger" onClick={onDeleteAccount}><Trash2 size={14} /> Delete Account</button>
+            <button className="danger" onClick={onDeleteAccount}><Trash2 size={14} /> {isQuick ? "Erase session" : "Delete Account"}</button>
           </SettingsRow>
         </div>
       </div>

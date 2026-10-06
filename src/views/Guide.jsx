@@ -8,8 +8,8 @@ import { SKILL_LEVELS } from "../utils/courtLevels";
 
 const FEATURES = [
   {
-    icon: LogIn, title: "Club Login",
-    body: "Your club name and password sign you into that club. A new name creates a fresh club; an existing one resumes exactly as you left it — no roster reset just from logging in. When the day's play is done, use End Session in the sidebar to archive today's stats and reset everyone's game count for next time — see it under Stats → Past Sessions.",
+    icon: LogIn, title: "Quick session",
+    body: "No login needed: open the app and your session is ready, saved on this device. It comes back exactly as you left it each time you return from the same browser; clearing the browser's site data starts a fresh one. When the day's play is done, use End Session in the sidebar to archive today's stats and reset everyone's game count for next time — see it under Stats → Past Sessions.",
   },
   {
     icon: LayoutDashboard, title: "Dashboard",

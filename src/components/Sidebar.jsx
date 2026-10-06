@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ListOrdered, Users, Trophy, Settings, CircleDot, X,
-  PanelLeftClose, PanelLeftOpen, Flag, Receipt, BookOpen, CalendarDays,
+  PanelLeftClose, PanelLeftOpen, Flag, Receipt, BookOpen,
 } from "lucide-react";
 import { NAV_ITEMS } from "../data/constants";
 import ModeSelect from "./ModeSelect";
@@ -9,24 +9,23 @@ const ICONS = {
   dashboard: LayoutDashboard,
   queue: ListOrdered,
   players: Users,
-  bookings: CalendarDays,
   cost: Receipt,
   stats: Trophy,
   guide: BookOpen,
   settings: Settings,
 };
 
-function Nav({ icon: Icon, label, active, onClick, badge }) {
+function Nav({ icon: Icon, label, active, onClick }) {
   return (
     <button onClick={onClick} className={`nav ${active ? "active" : ""}`} title={label}>
       <Icon />
-      <span>{label}{badge > 0 && <em className="nav-badge" aria-label={`${badge} new`}>{badge}</em>}</span>
+      <span>{label}</span>
     </button>
   );
 }
 
 export default function Sidebar({
-  session, courtCount, mode, onChangeMode, tab, onSelectTab, badges = {},
+  session, courtCount, mode, onChangeMode, tab, onSelectTab,
   onEndSession,
   open, onClose, collapsed, onToggleCollapse,
 }) {
@@ -49,7 +48,6 @@ export default function Sidebar({
               icon={ICONS[item.key]}
               label={item.label}
               active={tab === item.key}
-              badge={badges[item.key]}
               onClick={() => onSelectTab(item.key)}
             />
           ))}

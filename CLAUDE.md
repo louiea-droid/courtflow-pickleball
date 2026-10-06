@@ -32,7 +32,7 @@ Already built:
   `--on-team2` (white unless under 3:1; check: `node src/utils/theme.check.mjs`).
 - Undo a match result: `recordWin` snapshots what it changes; the toast offers Undo for 10s.
 
-- Open play bookings (`bookings` tab, `views/Bookings.jsx`, writes in `hooks/useBookingActions.js`, pure logic in
+- Open play bookings (NOT mounted in the quick session any more; step 2 moves it under accounts/events. Code kept: `views/Bookings.jsx`, writes in `hooks/useBookingActions.js`, pure logic in
   `utils/bookings.js`; check: `node src/utils/bookings.check.mjs`). Docs live in `sessions/{club}/bookings`; attendees are an
   array in joined order, the first `maxPlayers` are confirmed and the rest wait (derived, nothing stored). "Check in to the queue"
   adds the confirmed players to the roster/queue and logs a Cost entry (`bookingId`) carrying who already paid.
@@ -44,12 +44,16 @@ Already built:
   shown in the share modal and on the Live Board. Rules were tested in the emulator; deploy with `firebase deploy --only firestore:rules`.
 - Accounts (step 1 of `docs/superpowers/specs/2026-10-06-accounts-and-events-design.md`): real Firebase accounts
   (email + password or Google) with a profile at `accounts/{uid}` (owner-only in `firestore.rules`). `main.jsx` picks the page
-  with `routeOf` in `utils/route.js`: `/live`, `/open-play`, `/club` (the existing club app, unchanged), everything else is
-  `AccountApp` (sign-in, hub, settings). Club logins (`@courtflow.local` emails) are never accounts (`isAccountUser` in
-  `utils/account.js`, plus a guard in `useClub`). Account settings reuse `Settings.jsx` with `mode="account"`. Account
+  with `routeOf` in `utils/route.js`: `/live`, `/open-play`, `/club` (the quick session, below), everything else is
+  `AccountApp` (sign-in, hub, settings). Old club logins (`@courtflow.local` emails) are never accounts (`isAccountUser` in
+  `utils/account.js`) and own nothing in the rules. Account settings reuse `Settings.jsx` with `mode="account"`. Account
   delete wipes `roster` and `events` (step 2 adds each event's subcollections to the cascade in `useAccount.js`).
   Checks: `node src/utils/account.check.mjs`, `node src/utils/route.check.mjs`, `npm run test:rules` (emulator, needs Java).
   Steps 2-4 (events, roster + proceed to game, per-event public pages) each get their own plan.
+- Quick session at `/club`: the classic queue app with no login. `useClub` signs the visitor in anonymously (or reuses the real
+  account already signed in, never signing it out) and keeps the session at `sessions/{uid}`; rules: `isClub` = `auth.uid == sessionId`.
+  Data belongs to that browser (clearing site data starts fresh). Needs Anonymous sign-in turned on in the Firebase console.
+  Settings uses `mode="quick"` (no password rows; "Back to home"; "Erase this session"); End Session archives and stays in the app.
 
 Saved for later (owner's picks, in order of suggestion):
 - Export roster and match history to CSV (safety net before Delete Account).
