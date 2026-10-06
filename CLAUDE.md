@@ -42,7 +42,14 @@ Already built:
   (attendee id = request id) so the player's page can show confirmed / waitlist / paid. A player's request ids live in their
   localStorage. Phone numbers stay in the request doc, never on the public booking. QR codes use `qrcode` (`QrCode.jsx`),
   shown in the share modal and on the Live Board. Rules were tested in the emulator; deploy with `firebase deploy --only firestore:rules`.
-- Future accounts: replace club name + password with real accounts (own project, after the public landing page).
+- Accounts (step 1 of `docs/superpowers/specs/2026-10-06-accounts-and-events-design.md`): real Firebase accounts
+  (email + password or Google) with a profile at `accounts/{uid}` (owner-only in `firestore.rules`). `main.jsx` picks the page
+  with `routeOf` in `utils/route.js`: `/live`, `/open-play`, `/club` (the existing club app, unchanged), everything else is
+  `AccountApp` (sign-in, hub, settings). Club logins (`@courtflow.local` emails) are never accounts (`isAccountUser` in
+  `utils/account.js`, plus a guard in `useClub`). Account settings reuse `Settings.jsx` with `mode="account"`. Account
+  delete wipes `roster` and `events` (step 2 adds each event's subcollections to the cascade in `useAccount.js`).
+  Checks: `node src/utils/account.check.mjs`, `node src/utils/route.check.mjs`, `npm run test:rules` (emulator, needs Java).
+  Steps 2-4 (events, roster + proceed to game, per-event public pages) each get their own plan.
 
 Saved for later (owner's picks, in order of suggestion):
 - Export roster and match history to CSV (safety net before Delete Account).
