@@ -1194,3 +1194,36 @@ form.confirm-modal .modalactions{margin-top:4px}
 .clublogin-divider::before,.clublogin-divider::after{content:"";flex:1;height:1px;background:var(--line)}
 .clublogin-switch{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 16px}
 .clublogin-info{margin:0;color:var(--accent-ink);font-weight:700;font-size:13px;line-height:1.45}
+
+/* ---------- Accounts: shell and hub ---------- */
+.acct-shell{min-height:100vh}
+.acct-bar{
+  display:flex;align-items:center;gap:clamp(10px,3vw,24px);padding:10px clamp(16px,4vw,40px);
+  border-bottom:1px solid var(--line);background:var(--panel)
+}
+.acct-brand{display:flex;align-items:center;gap:9px;color:var(--ink);text-decoration:none;font:700 16px "Space Grotesk"}
+.acct-brand img{height:28px;width:auto}
+.acct-bar nav{display:flex;gap:4px;margin-right:auto}
+.acct-bar nav a{padding:8px 12px;border-radius:9px;color:var(--ink-2);text-decoration:none;font-weight:700;font-size:13.5px}
+.acct-bar nav a:hover{background:var(--soft)}
+.acct-bar nav a.active{background:var(--accent-soft);color:var(--accent-ink)}
+.acct-main{max-width:920px;margin:0 auto;padding:30px clamp(16px,4vw,40px) 72px}
+.acct-main>h1{font:700 30px "Space Grotesk";letter-spacing:-.6px;margin:0 0 4px}
+.acct-main>p{margin:0 0 22px;color:var(--muted)}
+.hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.hub-card{
+  display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:18px;text-align:left;
+  border:1px solid var(--line);border-radius:17px;background:var(--panel);color:var(--ink);text-decoration:none;
+  box-shadow:var(--shadow-sm);font:inherit;
+  transition:transform .15s var(--ease),box-shadow .18s ease,border-color .15s ease
+}
+.hub-card svg{color:var(--accent-2)}
+.hub-card b{font:700 17px "Space Grotesk"}
+.hub-card span{color:var(--muted);font-size:13px;line-height:1.45}
+.hub-card em{font-style:normal}
+a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--accent-line)}
+.hub-card:disabled{opacity:.6;cursor:not-allowed}
+@media(max-width:560px){
+  .acct-bar{flex-wrap:wrap}
+  .acct-bar nav{order:3;width:100%}
+}

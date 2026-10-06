@@ -1,6 +1,8 @@
 // Self-check for account helpers. Run: node src/utils/account.check.mjs
 import assert from "node:assert";
-import { authMessage, defaultClubName, hasPasswordProvider, isAccountUser, resetMessage } from "./account.js";
+import {
+  accountStatus, authMessage, defaultClubName, hasPasswordProvider, isAccountUser, resetMessage,
+} from "./account.js";
 
 // Legacy club logins use fake @courtflow.local emails and are never accounts.
 assert.equal(isAccountUser({ email: "host@gmail.com" }), true);
@@ -34,5 +36,14 @@ assert.match(authMessage(undefined), /try again/);
 assert.equal(resetMessage({ code: "auth/user-not-found" }), "");
 assert.match(resetMessage({ code: "auth/invalid-email" }), /email/);
 assert.match(resetMessage({ code: "auth/network-request-failed" }), /connection/);
+
+// Page state. A failed account read must surface, never spin on "Loading…" forever.
+assert.equal(accountStatus({ user: undefined }), "loading");
+assert.equal(accountStatus({ user: null }), "out");
+assert.equal(accountStatus({ user: {}, loaded: false, account: null }), "loading");
+assert.equal(accountStatus({ user: {}, loaded: true, account: null }), "loading"); // being created
+assert.equal(accountStatus({ user: {}, loaded: true, account: { clubName: "A" } }), "in");
+assert.equal(accountStatus({ user: {}, loaded: false, account: null, failed: true }), "error");
+assert.equal(accountStatus({ user: null, failed: true }), "out");
 
 console.log("account.check: ok");

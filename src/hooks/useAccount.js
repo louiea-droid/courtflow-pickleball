@@ -8,7 +8,9 @@ import {
   collection, doc, getDoc, getDocs, limit, onSnapshot, query, setDoc, updateDoc, writeBatch,
 } from "firebase/firestore";
 import { auth, db, firebaseConfigured } from "../firebase";
-import { authMessage, defaultClubName, hasPasswordProvider, isAccountUser, resetMessage } from "../utils/account";
+import {
+  accountStatus, authMessage, defaultClubName, hasPasswordProvider, isAccountUser, resetMessage,
+} from "../utils/account";
 
 // Step 2 adds each event's own subcollections to this cascade.
 const ACCOUNT_COLLECTIONS = ["roster", "events"];
@@ -44,6 +46,7 @@ export function useAccount() {
   const [user, setUser] = useState(undefined); // undefined = still checking who's signed in
   const [account, setAccount] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
   const creating = useRef(false); // sign-up writes the account itself; don't race it
 
   useEffect(() => {
@@ -53,16 +56,17 @@ export function useAccount() {
 
   useEffect(() => {
     setLoaded(false);
+    setFailed(false);
     if (!user) { setAccount(null); return; }
     return onSnapshot(doc(db, "accounts", user.uid), (s) => {
       setAccount(s.exists() ? s.data() : null);
       setLoaded(true);
       // Signed in but no profile yet (e.g. made in the console): create it.
-      if (!s.exists() && !creating.current) ensureAccount(user).catch(() => {});
-    });
+      if (!s.exists() && !creating.current) ensureAccount(user).catch(() => setFailed(true));
+    }, () => setFailed(true));
   }, [user]);
 
-  const status = user === undefined || (user && !(loaded && account)) ? "loading" : user ? "in" : "out";
+  const status = accountStatus({ user, loaded, account, failed });
 
   const signIn = (email, password) => run(async () => {
     const { user: u } = await signInWithEmailAndPassword(auth, email.trim(), password);

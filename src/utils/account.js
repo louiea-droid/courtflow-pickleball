@@ -9,7 +9,15 @@ export const isAccountUser = (user) =>
 export const hasPasswordProvider = (user) =>
   user.providerData.some((p) => p.providerId === "password");
 
-export const defaultClubName = (user) => user.displayName?.trim() || user.email.split("@")[0];
+// user: undefined while Auth is still checking. failed: the account doc couldn't be read.
+export function accountStatus({ user, loaded, account, failed }) {
+  if (user === undefined) return "loading";
+  if (!user) return "out";
+  if (failed) return "error";
+  return loaded && account ? "in" : "loading";
+}
+
+export const defaultClubName =(user) => user.displayName?.trim() || user.email.split("@")[0];
 
 const MESSAGES = {
   "auth/invalid-email": "That email address doesn't look right.",
