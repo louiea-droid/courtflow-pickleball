@@ -1,15 +1,43 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isClub(sessionId) {
+      return request.auth != null && request.auth.token.email == sessionId + '@courtflow.local';
+    }
+
+    // A player's request to join an open play. Players aren't signed in, so this
+    // is the one thing the public may create: a pending request with these fields
+    // only, for a booking that exists. Only the club can list, change or delete it.
+    function validRequest(sessionId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['bookingId', 'name', 'contact', 'method', 'ref', 'status', 'createdAt'])
+        && d.keys().hasAll(['bookingId', 'name', 'contact', 'method', 'status', 'createdAt'])
+        && d.bookingId is string
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        && d.contact is string && d.contact.size() > 0 && d.contact.size() <= 40
+        && d.method in ['cash', 'online']
+        && (!('ref' in d) || (d.ref is string && d.ref.size() <= 60))
+        && d.status == 'pending'
+        && d.createdAt is number
+        && exists(/databases/$(database)/documents/sessions/$(sessionId)/bookings/$(d.bookingId));
+    }
+
     match /sessions/{sessionId} {
       allow read: if true;
-      allow write: if request.auth != null
-        && request.auth.token.email == sessionId + '@courtflow.local';
+      allow write: if isClub(sessionId);
 
-      match /{subcollection=**} {
-        allow read: if true;
-        allow write: if request.auth != null
-          && request.auth.token.email == sessionId + '@courtflow.local';
+      // Everything under a club (players, courts, costs, bookings…) is public to
+      // read; booking requests hold phone numbers, so only the club lists them.
+      match /{coll}/{docId} {
+        allow read: if coll != 'bookingRequests' || isClub(sessionId);
+        allow write: if isClub(sessionId);
+      }
+
+      // The request id is a random UUID the player keeps, so a single get works
+      // as "my booking" without exposing anyone else's request.
+      match /bookingRequests/{requestId} {
+        allow get: if true;
+        allow create: if validRequest(sessionId);
       }
     }
   }

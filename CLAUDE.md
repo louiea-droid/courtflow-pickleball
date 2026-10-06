@@ -32,6 +32,18 @@ Already built:
   `--on-team2` (white unless under 3:1; check: `node src/utils/theme.check.mjs`).
 - Undo a match result: `recordWin` snapshots what it changes; the toast offers Undo for 10s.
 
+- Open play bookings (`bookings` tab, `views/Bookings.jsx`, writes in `hooks/useBookingActions.js`, pure logic in
+  `utils/bookings.js`; check: `node src/utils/bookings.check.mjs`). Docs live in `sessions/{club}/bookings`; attendees are an
+  array in joined order, the first `maxPlayers` are confirmed and the rest wait (derived, nothing stored). "Check in to the queue"
+  adds the confirmed players to the roster/queue and logs a Cost entry (`bookingId`) carrying who already paid.
+- Public page `/open-play?club=` (`OpenPlay.jsx`): lists upcoming events; a player sends a request to
+  `sessions/{club}/bookingRequests` (not signed in, so `firestore.rules` allows create-only with validated fields, and a single
+  `get` by the random request id; only the club can list/update). The host approves in Bookings, which adds the attendee
+  (attendee id = request id) so the player's page can show confirmed / waitlist / paid. A player's request ids live in their
+  localStorage. Phone numbers stay in the request doc, never on the public booking. QR codes use `qrcode` (`QrCode.jsx`),
+  shown in the share modal and on the Live Board. Rules were tested in the emulator; deploy with `firebase deploy --only firestore:rules`.
+- Future accounts: replace club name + password with real accounts (own project, after the public landing page).
+
 Saved for later (owner's picks, in order of suggestion):
 - Export roster and match history to CSV (safety net before Delete Account).
 - Past sessions list: view or delete archived stats from End Session / New Session.

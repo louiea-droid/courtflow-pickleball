@@ -191,7 +191,7 @@ export function useClub() {
       return "Password is incorrect.";
     }
     const { id } = club;
-    const subcollections = ["players", "courts", "history", "costs", "matchLog"];
+    const subcollections = ["players", "courts", "history", "costs", "matchLog", "bookings", "bookingRequests"];
     const snaps = await Promise.all(
       subcollections.map((name) => getDocs(collection(db, "sessions", id, name)))
     );

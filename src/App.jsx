@@ -12,6 +12,9 @@ import { useSessionData } from "./hooks/useSessionData";
 import { useClub } from "./hooks/useClub";
 import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
+import { useBookingRequests, useBookings } from "./hooks/useBookings";
+import { useBookingActions } from "./hooks/useBookingActions";
+import { nowIn } from "./utils/bookings";
 
 import ClubLogin from "./components/ClubLogin";
 import Sidebar from "./components/Sidebar";
@@ -19,12 +22,14 @@ import Topbar from "./components/Topbar";
 import Toast from "./components/Toast";
 import PlayerModal from "./components/PlayerModal";
 import SessionModal from "./components/SessionModal";
+import BookingModal from "./components/BookingModal";
 import ShareModal from "./components/ShareModal";
 import ConfirmDialog from "./components/ConfirmDialog";
 import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Dashboard from "./views/Dashboard";
 import Queue from "./views/Queue";
 import Players from "./views/Players";
+import Bookings from "./views/Bookings";
 import Cost from "./views/Cost";
 import Stats from "./views/Stats";
 import Guide from "./views/Guide";
@@ -39,6 +44,10 @@ export default function App() {
   const { session, players, courts, busy } = useSessionData(SESSION_ID);
   const costs = useCosts(SESSION_ID);
   const matchLog = useMatchLog(SESSION_ID);
+  const bookings = useBookings(SESSION_ID);
+  const bookingRequests = useBookingRequests(SESSION_ID);
+  const [bookingModal, setBookingModal] = useState(null); // null | "new" | a booking being edited
+  const [showShareBookings, setShowShareBookings] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [showSession, setShowSession] = useState(false);
@@ -68,10 +77,10 @@ export default function App() {
   if (club && !busy) applyTheme(display);
 
   useEffect(() => {
-    const locked = showPlayer || Boolean(editingPlayer) || showSession || menuOpen;
+    const locked = showPlayer || Boolean(editingPlayer) || showSession || menuOpen || Boolean(bookingModal);
     document.body.style.overflow = locked ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [showPlayer, editingPlayer, showSession, menuOpen]);
+  }, [showPlayer, editingPlayer, showSession, menuOpen, bookingModal]);
 
   const selectTab = (t) => { setTab(t); setMenuOpen(false); };
 
@@ -94,6 +103,13 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), ms);
   };
   const dismissToast = () => { clearTimeout(toastTimer.current); setToast(null); };
+
+  const bookingActions = useBookingActions({
+    clubId: SESSION_ID, players, bookings, requests: bookingRequests, costs, notify,
+  });
+  const today = nowIn(display.timeZone).date;
+  const newRequests = bookingRequests.filter((r) => r.status === "pending").length;
+  const latestPayInfo = [...bookings].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]?.payInfo;
 
   async function addPlayer(data) {
     const id = crypto.randomUUID();
@@ -604,6 +620,7 @@ export default function App() {
         onChangeMode={changeMode}
         tab={tab}
         onSelectTab={selectTab}
+        badges={{ bookings: newRequests }}
         onEndSession={() => { setShowEndSession(true); setMenuOpen(false); }}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -641,6 +658,13 @@ export default function App() {
           )}
           {tab === "players" && (
             <Players players={players} onEdit={setEditingPlayer} onDelete={deletePlayer} />
+          )}
+          {tab === "bookings" && (
+            <Bookings
+              bookings={bookings} requests={bookingRequests} players={players} now={nowIn(display.timeZone)}
+              actions={bookingActions} onNew={() => setBookingModal("new")} onEdit={setBookingModal}
+              onShare={() => setShowShareBookings(true)}
+            />
           )}
           {tab === "cost" && (
             <Cost
@@ -681,6 +705,23 @@ export default function App() {
           <SessionModal
             close={() => setShowSession(false)} submit={newSession}
             clubName={session.location} defaults={session.defaults}
+          />
+        )}
+        {bookingModal && (
+          <BookingModal
+            booking={bookingModal === "new" ? null : bookingModal} today={today} lastPayInfo={latestPayInfo}
+            close={() => setBookingModal(null)}
+            submit={async (data) => {
+              await bookingActions.save(bookingModal === "new" ? null : bookingModal.id, data);
+              setBookingModal(null);
+            }}
+          />
+        )}
+        {showShareBookings && (
+          <ShareModal
+            url={`${window.location.origin}/open-play?club=${SESSION_ID}`} close={() => setShowShareBookings(false)}
+            title="Share open play bookings" openLabel="Open booking page" qr
+            hint="Players scan the code or open the link to see your upcoming open play and ask to join. You confirm each request in Bookings."
           />
         )}
         {showShare && (

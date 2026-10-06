@@ -30,11 +30,13 @@ export const elapsed = (start) => {
 let prefsKey = "";
 let timeFmt, clockFmt, dateFmt;
 let zoneLabel = "PHT";
+let is12 = true;
 
 export function applyDisplayPrefs({ timeZone = "Asia/Manila", hour12 = true } = {}) {
   const key = `${timeZone}|${hour12}`;
   if (key === prefsKey) return;
   prefsKey = key;
+  is12 = hour12;
   const base = { timeZone, hour: "numeric", minute: "2-digit", hourCycle: hour12 ? "h12" : "h23" };
   timeFmt = new Intl.DateTimeFormat("en-US", base);
   clockFmt = new Intl.DateTimeFormat("en-US", { ...base, second: "2-digit" });
@@ -49,3 +51,15 @@ export const formatTime = (ms) => timeFmt.format(new Date(ms || Date.now()));
 export const formatClock = (date) => clockFmt.format(date);
 export const formatDate = (ms) => dateFmt.format(new Date(ms || Date.now()));
 export const timeZoneLabel = () => zoneLabel;
+
+// Bookings store a wall-clock "HH:MM" and a "YYYY-MM-DD" date in the club's own
+// zone, so these format the text directly instead of converting a timestamp.
+export function formatHM(hm) {
+  const [h, m] = hm.split(":").map(Number);
+  const mm = String(m).padStart(2, "0");
+  return is12 ? `${h % 12 || 12}:${mm} ${h < 12 ? "AM" : "PM"}` : `${String(h).padStart(2, "0")}:${mm}`;
+}
+export const formatDay = (ymd) => {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+};

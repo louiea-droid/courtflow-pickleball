@@ -7,6 +7,9 @@ import MatchLogRow from "./components/MatchLogRow";
 import PhClock from "./components/PhClock";
 import StarDisplay from "./components/StarDisplay";
 import ElapsedTimer from "./components/ElapsedTimer";
+import QrCode from "./components/QrCode";
+import { useBookings } from "./hooks/useBookings";
+import { hasEnded, nowIn } from "./utils/bookings";
 import { applyDisplayPrefs, money } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import { DEFAULT_LIVE } from "./data/constants";
@@ -95,6 +98,7 @@ export default function LiveBoard() {
   const { session, players, courts, busy } = useSessionData(clubId);
   const costs = useCosts(clubId);
   const matchLog = useMatchLog(clubId);
+  const bookings = useBookings(clubId);
 
   // Keep a wall TV or tablet from dimming or sleeping while the board is up.
   // The browser drops the lock whenever the tab is hidden, so re-request on return.
@@ -144,6 +148,8 @@ export default function LiveBoard() {
   const queue = players.filter((p) => p.checked && !playing.has(p.id))
     .sort((a, b) => a.games - b.games || a.checkedAt - b.checkedAt);
   const visibleCosts = costs.filter((c) => c.visibleOnLive);
+  const now = nowIn(session.display?.timeZone || "Asia/Manila");
+  const hasOpenPlay = bookings.some((b) => !hasEnded(b, now));
 
   const queueRows = queue.map((p, i) => (
     <div className="queue-row" key={p.id}>
@@ -170,7 +176,15 @@ export default function LiveBoard() {
             <p>{courts.length} {courts.length === 1 ? "court" : "courts"} · {session.format}</p>
           </div>
         </div>
-        <PhClock />
+        <div className="liveboard-right">
+          {hasOpenPlay && (
+            <div className="liveboard-join">
+              <QrCode value={`${window.location.origin}/open-play?club=${clubId}`} size={64} label="QR code to book open play" />
+              <div><b>Book open play</b><small>Scan to see the schedule and join</small></div>
+            </div>
+          )}
+          <PhClock />
+        </div>
       </header>
 
       {visibleCosts.length > 0 && (
