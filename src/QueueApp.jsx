@@ -7,7 +7,7 @@ import { applyDisplayPrefs, splitCost, winPct } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import { matchCount } from "./utils/stats";
 import { matchesCourtLevel } from "./utils/courtLevels";
-import { selectForCourt, splitTeams } from "./utils/rotationModes";
+import { selectForCourt, selectToJoin, splitTeams } from "./utils/rotationModes";
 import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES } from "./data/constants";
 import { useSessionData } from "./hooks/useSessionData";
 import { useCosts } from "./hooks/useCosts";
@@ -373,7 +373,8 @@ export default function QueueApp({
           }
         } else {
           // Topping up a partially-filled court: just match the court's level.
-          const { taken, remaining } = selectForCourt({ pool, court: c, mode: null, need: openSlots });
+          const seated = [...teamA, ...teamB].map((id) => players.find((p) => p.id === id)).filter(Boolean);
+          const { taken, remaining } = selectToJoin({ pool, court: c, seated, mode, need: openSlots });
           pool = remaining;
           taken.forEach((p) => {
             if (need === 2) { if (!teamA.length) teamA.push(p.id); else teamB.push(p.id); }
@@ -444,7 +445,10 @@ export default function QueueApp({
     const stay = rules.winnersStay && winners.length > 0 && streak < rules.maxWinStreak;
     if (stay) {
       const challengers = autoRotateOn
-        ? selectForCourt({ pool: queue, court: c, mode: null, need: need / 2 }).taken.map((p) => p.id)
+        ? selectToJoin({
+          pool: queue, court: c, mode, need: need / 2,
+          seated: winners.map((id) => players.find((p) => p.id === id)).filter(Boolean),
+        }).taken.map((p) => p.id)
         : [];
       batch.update(courtRef, {
         [side === "A" ? "teamA" : "teamB"]: winners,

@@ -1,11 +1,17 @@
 import { matchesCourtLevel, skillLevelLabel, pickForLevel } from "./courtLevels.js";
 
-// Groups by a shared key (skill tier, last result, ...), anchored on whoever's
-// at the front of the queue. Only commits if a full group is actually
-// available — otherwise the court waits rather than mixing groups.
+// Groups by a shared key (skill tier, last result, ...), anchored on the first
+// player in the queue whose group is big enough to fill the court. Players
+// whose group is still short keep their place and wait, so one lone player at
+// the front can't hold up a court while a full group sits behind them. Only
+// commits if a full group is actually available — otherwise the court waits
+// rather than mixing groups.
 function clusterPick(pool, keyFn, need) {
-  if (!pool.length) return { taken: [], remaining: pool };
-  const targetKey = keyFn(pool[0]);
+  const sizes = new Map();
+  for (const p of pool) sizes.set(keyFn(p), (sizes.get(keyFn(p)) || 0) + 1);
+  const anchor = pool.find((p) => sizes.get(keyFn(p)) >= need);
+  if (!anchor) return { taken: [], remaining: pool };
+  const targetKey = keyFn(anchor);
   const taken = [];
   const remaining = [];
   for (const p of pool) {
@@ -98,6 +104,17 @@ export function selectForCourt({ pool, court, mode, need }) {
     return enforceLockedPairs(result.taken, result.remaining, mode);
   }
   return result;
+}
+
+// Picks who joins a court that already has players: the challengers when winners stay on, or
+// whoever tops up an open seat. Skill Separated keeps them to the seated players' level (an
+// explicit court level still wins); every other mode takes the next in the queue.
+export function selectToJoin({ pool, court, seated, mode, need }) {
+  const levelRestricted = Boolean(court?.level && court.level !== "Any Level");
+  if (!levelRestricted && mode === "Skill Separated" && seated.length) {
+    return pickForLevel(pool, skillLevelLabel(seated[0].skill), need);
+  }
+  return selectForCourt({ pool, court, mode: null, need });
 }
 
 function sharedPartnerCount(a, b) {

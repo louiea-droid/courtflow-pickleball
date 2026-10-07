@@ -1,6 +1,6 @@
 export const MODE_DESCRIPTIONS = {
   "Balanced": "Rotates turns fairly and evens out each match by star rating: the strongest player teams with the weakest, so similar levels face each other. Avoids repeat partners when it can.",
-  "Skill Separated": "Keeps similar skill levels together on open courts, even if a court has to wait.",
+  "Skill Separated": "Keeps each match to one skill level. A court takes the first level in the queue that has enough players waiting; anyone whose level is short keeps their place. Winners who stay on are challenged by their own level.",
   "Skill Courts": "Runs separate queues for named skill groups on courts you've set a level for.",
   "Winners / Losers": "Winners play winners and losers play losers.",
   "Mixed Doubles": "Forms each team with one male and one female player.",
