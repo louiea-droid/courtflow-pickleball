@@ -2,42 +2,44 @@ import { useEffect, useMemo, useState } from "react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { CalendarDays, Check, Clock, Wallet } from "lucide-react";
 import { db, firebaseConfigured } from "./firebase";
-import { useBookings } from "./hooks/useBookings";
+import { useEvents } from "./hooks/useEvents";
 import { applyDisplayPrefs, formatDay, formatHM, money } from "./utils/format";
 import { applyTheme } from "./utils/theme";
-import { byStart, endHM, hasEnded, myStatus, nowIn, splitAttendees } from "./utils/bookings";
-import { DEFAULT_DISPLAY, seedSession } from "./data/constants";
+import { byStart, endHM, hasEndedIn, myStatus, splitAttendees } from "./utils/bookings";
+import { DEFAULT_DISPLAY } from "./data/constants";
 
-// The player's own requests live on their device: the request id is the only
-// key to read it back (rules allow a single get, never a list).
-const storeKey = (clubId) => `cf-openplay-${clubId}`;
-function loadMine(clubId) {
-  try { return JSON.parse(localStorage.getItem(storeKey(clubId))) || []; } catch { return []; }
+// The player's own requests live on their device: the request id is the only key to
+// read it back (rules allow a single get, never a list).
+const storeKey = (hostId) => `cf-openplay-${hostId}`;
+function loadMine(hostId) {
+  try { return JSON.parse(localStorage.getItem(storeKey(hostId))) || []; } catch { return []; }
 }
+const requestRef = (hostId, m) => doc(db, "accounts", hostId, "events", m.eventId, "requests", m.rid);
 
-function useMyRequests(clubId, mine) {
+function useMyRequests(hostId, mine) {
   const [status, setStatus] = useState({});
-  const ids = mine.map((m) => m.rid).join(",");
+  const key = mine.map((m) => `${m.eventId}/${m.rid}`).join(",");
   useEffect(() => {
-    if (!firebaseConfigured || !ids) return;
-    const unsubs = ids.split(",").map((rid) => onSnapshot(
-      doc(db, "sessions", clubId, "bookingRequests", rid),
-      (s) => setStatus((cur) => ({ ...cur, [rid]: s.exists() ? s.data().status : "gone" })),
+    if (!firebaseConfigured || !key) return;
+    const unsubs = mine.map((m) => onSnapshot(
+      requestRef(hostId, m),
+      (s) => setStatus((cur) => ({ ...cur, [m.rid]: s.exists() ? s.data().status : "gone" })),
       () => {},
     ));
     return () => unsubs.forEach((u) => u());
-  }, [clubId, ids]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hostId, key]);
   return status;
 }
 
-function JoinForm({ booking, onSent, onCancel, clubId }) {
+function JoinForm({ event, hostId, onSent, onCancel }) {
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [method, setMethod] = useState("cash");
   const [ref, setRef] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const paid = booking.fee > 0;
+  const paid = event.fee > 0;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -46,13 +48,13 @@ function JoinForm({ booking, onSent, onCancel, clubId }) {
     setError("");
     const rid = crypto.randomUUID();
     try {
-      await setDoc(doc(db, "sessions", clubId, "bookingRequests", rid), {
-        bookingId: booking.id, name: name.trim(), contact: contact.trim(),
+      await setDoc(doc(db, "accounts", hostId, "events", event.id, "requests", rid), {
+        name: name.trim(), contact: contact.trim(),
         method: paid ? method : "cash",
         ...(paid && method === "online" && ref.trim() ? { ref: ref.trim() } : {}),
         status: "pending", createdAt: Date.now(),
       });
-      onSent({ rid, bookingId: booking.id });
+      onSent({ rid, eventId: event.id });
     } catch {
       setError("Couldn't send your request. Check your connection and try again.");
       setBusy(false);
@@ -71,18 +73,18 @@ function JoinForm({ booking, onSent, onCancel, clubId }) {
       </label>
       {paid && (
         <fieldset className="op-pay">
-          <legend>How will you pay {money(booking.fee)}?</legend>
+          <legend>How will you pay {money(event.fee)}?</legend>
           <label className="check">
-            <input type="radio" name={`pay-${booking.id}`} checked={method === "cash"} onChange={() => setMethod("cash")} />
+            <input type="radio" name={`pay-${event.id}`} checked={method === "cash"} onChange={() => setMethod("cash")} />
             Cash at the venue
           </label>
           <label className="check">
-            <input type="radio" name={`pay-${booking.id}`} checked={method === "online"} onChange={() => setMethod("online")} />
+            <input type="radio" name={`pay-${event.id}`} checked={method === "online"} onChange={() => setMethod("online")} />
             Online in advance
           </label>
           {method === "online" && (
             <>
-              {booking.payInfo && <p className="op-payinfo">{booking.payInfo}</p>}
+              {event.payInfo && <p className="op-payinfo">{event.payInfo}</p>}
               <label>
                 Payment reference number
                 <input value={ref} onChange={(e) => setRef(e.target.value)} maxLength={60} placeholder="From your receipt" />
@@ -103,37 +105,37 @@ function JoinForm({ booking, onSent, onCancel, clubId }) {
   );
 }
 
-function EventCard({ b, clubId, mine, onSent }) {
+function EventCard({ e, hostId, mine, onSent }) {
   const [joining, setJoining] = useState(false);
-  const { confirmed, waitlist } = splitAttendees(b);
-  const left = Math.max(0, b.maxPlayers - confirmed.length);
-  const asked = mine.some((m) => m.bookingId === b.id);
-  const [wd, rest] = formatDay(b.date).split(", ");
+  const { confirmed, waitlist } = splitAttendees(e);
+  const left = Math.max(0, e.maxPlayers - confirmed.length);
+  const asked = mine.some((m) => m.eventId === e.id);
+  const [wd, rest] = formatDay(e.date).split(", ");
 
   return (
     <article className="op-card">
       <div className="op-card-top">
         <span className="date-tile" aria-hidden="true"><small>{wd}</small><b>{rest.split(" ")[1]}</b><small>{rest.split(" ")[0]}</small></span>
         <div className="op-card-title">
-          <h3>{b.title}</h3>
-          <p><CalendarDays size={13} /> {formatDay(b.date)}</p>
-          <p><Clock size={13} /> {formatHM(b.startTime)} – {formatHM(endHM(b))}</p>
+          <h3>{e.title}</h3>
+          <p><CalendarDays size={13} /> {formatDay(e.date)}</p>
+          <p><Clock size={13} /> {formatHM(e.startTime)} – {formatHM(endHM(e))}</p>
         </div>
       </div>
 
       <div className="op-facts">
-        <span className="pill">{b.fee > 0 ? money(b.fee) : "Free"}</span>
-        {b.level && b.level !== "Any Level" && <span className="pill off">{b.level}</span>}
+        <span className="pill">{e.fee > 0 ? money(e.fee) : "Free"}</span>
+        {e.level && e.level !== "Any Level" && <span className="pill off">{e.level}</span>}
         <span className={`pill ${left ? "off" : ""}`}>
-          {left ? `${left} of ${b.maxPlayers} spots left` : waitlist.length ? `Full · ${waitlist.length} waiting` : "Full"}
+          {left ? `${left} of ${e.maxPlayers} spots left` : waitlist.length ? `Full · ${waitlist.length} waiting` : "Full"}
         </span>
       </div>
-      <div className="bar" aria-hidden="true"><i style={{ width: `${Math.min(100, (confirmed.length / b.maxPlayers) * 100)}%` }} /></div>
+      <div className="bar" aria-hidden="true"><i style={{ width: `${Math.min(100, (confirmed.length / e.maxPlayers) * 100)}%` }} /></div>
 
-      {b.notes && <p className="op-notes">{b.notes}</p>}
+      {e.notes && <p className="op-notes">{e.notes}</p>}
 
       {joining ? (
-        <JoinForm booking={b} clubId={clubId} onCancel={() => setJoining(false)} onSent={(m) => { setJoining(false); onSent(m); }} />
+        <JoinForm event={e} hostId={hostId} onCancel={() => setJoining(false)} onSent={(m) => { setJoining(false); onSent(m); }} />
       ) : asked ? (
         <p className="op-asked"><Check size={14} /> You've asked to join. See your status above.</p>
       ) : (
@@ -148,11 +150,11 @@ function EventCard({ b, clubId, mine, onSent }) {
 const STATUS_TONE = { confirmed: "ok", waitlist: "warn", pending: "info", declined: "bad", gone: "bad" };
 const PAID_LABEL = { paid: "Payment received", refunded: "Refunded", unpaid: "Payment not yet received" };
 
-function MyBookings({ mine, bookings, status }) {
+function MyBookings({ mine, events, status }) {
   const rows = mine.map((m) => {
-    const booking = bookings.find((b) => b.id === m.bookingId);
-    return { ...m, booking, st: myStatus(booking, m.rid, status[m.rid]) };
-  }).filter((r) => status[r.rid] !== undefined || r.booking);
+    const event = events.find((e) => e.id === m.eventId);
+    return { ...m, event, st: myStatus(event, m.rid, status[m.rid]) };
+  }).filter((r) => status[r.rid] !== undefined || r.event);
   if (!rows.length) return null;
   return (
     <section className="op-mine" aria-label="Your bookings">
@@ -160,12 +162,12 @@ function MyBookings({ mine, bookings, status }) {
       {rows.map((r) => (
         <div className={`op-status ${STATUS_TONE[r.st.key]}`} key={r.rid}>
           <div>
-            <b>{r.booking?.title || "Open play"}</b>
-            {r.booking && <small>{formatDay(r.booking.date)} · {formatHM(r.booking.startTime)}</small>}
+            <b>{r.event?.title || "Open play"}</b>
+            {r.event && <small>{formatDay(r.event.date)} · {formatHM(r.event.startTime)}</small>}
           </div>
           <div className="op-status-end">
             <span>{r.st.label}</span>
-            {r.st.paid && r.booking?.fee > 0 && <small>{PAID_LABEL[r.st.paid]}</small>}
+            {r.st.paid && r.event?.fee > 0 && <small>{PAID_LABEL[r.st.paid]}</small>}
           </div>
         </div>
       ))}
@@ -174,41 +176,33 @@ function MyBookings({ mine, bookings, status }) {
 }
 
 export default function OpenPlay() {
-  const clubId = new URLSearchParams(window.location.search).get("club");
-  const [session, setSession] = useState(null);
-  const bookings = useBookings(clubId);
-  const [mine, setMine] = useState(() => (clubId ? loadMine(clubId) : []));
-  const status = useMyRequests(clubId, mine);
+  const hostId = new URLSearchParams(window.location.search).get("host");
+  const { events, ready } = useEvents(hostId);
+  const [mine, setMine] = useState(() => (hostId ? loadMine(hostId) : []));
+  const status = useMyRequests(hostId, mine);
 
+  const hostName = events.find((e) => e.hostName)?.hostName || "";
   useEffect(() => {
-    if (!firebaseConfigured || !clubId) return;
-    return onSnapshot(doc(db, "sessions", clubId), (s) => setSession(s.exists() ? s.data() : false));
-  }, [clubId]);
+    document.title = hostName ? `${hostName} — Open play` : "Open play";
+  }, [hostName]);
 
-  useEffect(() => {
-    document.title = session?.location ? `${session.location} — Open play` : "Open play";
-  }, [session]);
-
-  const display = { ...DEFAULT_DISPLAY, ...(session || seedSession).display };
-  applyDisplayPrefs(display);
-  // Not before the club loads: defaults would flash Light over the cached theme.
-  if (session) applyTheme(display);
-  const now = nowIn(display.timeZone);
+  // The host's private account (theme, zone) isn't readable here, so the page uses the
+  // defaults; each event carries its own zone for deciding upcoming vs past.
+  applyDisplayPrefs(DEFAULT_DISPLAY);
+  applyTheme(DEFAULT_DISPLAY);
   const upcoming = useMemo(
-    () => bookings.filter((b) => !hasEnded(b, now)).sort(byStart),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bookings, now.date, now.hm],
+    () => events.filter((e) => !hasEndedIn(e, DEFAULT_DISPLAY.timeZone)).sort(byStart),
+    [events],
   );
 
   if (!firebaseConfigured) return <div className="loading">Open play is unavailable — Firebase isn't configured.</div>;
-  if (!clubId) return <div className="loading">No club specified. Ask the club for their open play link.</div>;
-  if (session === null) return <div className="loading"><span className="spinner" />Loading open play…</div>;
-  if (session === false) return <div className="loading">We couldn't find that club. Check the link with the host.</div>;
+  if (!hostId) return <div className="loading">No host specified. Ask the host for their open play link.</div>;
+  if (!ready) return <div className="loading"><span className="spinner" />Loading open play…</div>;
 
   const sent = (m) => {
     const next = [...mine, m];
     setMine(next);
-    try { localStorage.setItem(storeKey(clubId), JSON.stringify(next)); } catch { /* private mode: status just won't persist */ }
+    try { localStorage.setItem(storeKey(hostId), JSON.stringify(next)); } catch { /* private mode: status just won't persist */ }
   };
 
   return (
@@ -216,16 +210,18 @@ export default function OpenPlay() {
       <header className="op-header">
         <img className="op-logo" src="/images/courtflow logo.png" alt="" />
         <div>
-          <p>{session.location}</p>
+          {hostName && <p>{hostName}</p>}
           <h1>Open play</h1>
         </div>
       </header>
 
-      <MyBookings mine={mine} bookings={bookings} status={status} />
+      <MyBookings mine={mine} events={events} status={status} />
 
       <section aria-label="Upcoming open play">
         <h2>Upcoming</h2>
-        {upcoming.map((b) => <EventCard key={b.id} b={b} clubId={clubId} mine={mine.filter((m) => status[m.rid] !== "declined")} onSent={sent} />)}
+        {upcoming.map((e) => (
+          <EventCard key={e.id} e={e} hostId={hostId} mine={mine.filter((m) => status[m.rid] !== "declined")} onSent={sent} />
+        ))}
         {!upcoming.length && (
           <div className="empty op-empty"><Wallet size={18} /> No open play scheduled right now. Check back soon.</div>
         )}
