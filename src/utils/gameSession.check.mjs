@@ -23,14 +23,15 @@ assert.equal(buildGameSession({}, {}).location, "Open play");
 
 // A game starts from the account's session defaults; bad values fall back.
 assert.deepEqual(
-  gameStartFields({ defaults: { courts: 3, format: "Singles", mode: "Skill Courts" } }, 5),
-  { status: "live", startedAt: 5, courts: 3, format: "Singles", mode: "Skill Courts", autoRotate: true },
+  gameStartFields({ defaults: { courts: 3, format: "Singles", mode: "Skill Separated" } }, 5),
+  { status: "live", startedAt: 5, courts: 3, format: "Singles", mode: "Skill Separated", autoRotate: true },
 );
 assert.deepEqual(
   gameStartFields({}, 5),
   { status: "live", startedAt: 5, courts: 2, format: "Doubles", mode: "Balanced", autoRotate: true },
 );
 assert.equal(gameStartFields({ defaults: { courts: "0" } }, 1).courts, 2);
+assert.equal(gameStartFields({ defaults: { mode: "Skill Courts" } }, 1).mode, "Balanced"); // a removed mode in saved defaults
 assert.deepEqual(courtDocs(2, 9), [
   { id: "court-1", data: { courtNumber: 1, start: 9, teamA: [], teamB: [] } },
   { id: "court-2", data: { courtNumber: 2, start: 9, teamA: [], teamB: [] } },

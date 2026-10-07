@@ -1,6 +1,6 @@
 // Pure rules for running a game on an event. No Firestore here (that is useGameActions),
 // so everything below is covered by gameSession.check.mjs.
-import { seedSession } from "../data/constants.js";
+import { normalizeMode, seedSession } from "../data/constants.js";
 import { splitAttendees } from "./bookings.js";
 import { matchCount } from "./stats.js";
 
@@ -26,7 +26,7 @@ export function gameStartFields(account = {}, now) {
     startedAt: now,
     courts: Math.max(1, Math.round(Number(d.courts)) || seedSession.courts),
     format: d.format || seedSession.format,
-    mode: d.mode || seedSession.mode,
+    mode: normalizeMode(d.mode) || seedSession.mode,
     autoRotate: true,
   };
 }

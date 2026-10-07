@@ -1,6 +1,9 @@
 // Self-check for Balanced team splitting. Run: node src/utils/rotationModes.check.mjs
 import assert from "node:assert";
-import { selectForCourt, selectToJoin, splitTeams } from "./rotationModes.js";
+import {
+  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, selectToJoin, shouldWinnersStay, splitTeams, validLock,
+} from "./rotationModes.js";
+import { normalizeMode } from "../data/constants.js";
 
 const p = (id, skill, extra = {}) => ({ id, skill, ...extra });
 const stars = (team, group) => team.reduce((s, id) => s + (group.find((x) => x.id === id).skill || 0), 0);
@@ -92,5 +95,79 @@ assert.equal(ids(selectToJoin({ pool: [mx("m1", "M"), mx("f1", "F"), mx("f2", "F
 assert.equal(ids(selectToJoin({ pool: [mx("m1", "M"), mx("m2", "M")], court, seated: [p("w1", 3), p("w2", 3)], mode: "Mixed Doubles", need: 2 })), "m1,m2");
 // The rest are unchanged: another mode takes the front of the queue.
 assert.equal(ids(selectToJoin({ pool, court, seated: [mx("w1", "M"), mx("w2", "F")], mode: "Balanced", need: 2 })), "m1,m2");
+
+// ---- Mixed Doubles: teams are always one man and one woman
+const x = (id, gender, extra = {}) => p(id, 3, { gender, ...extra });
+assert.equal(validLock(x("a", "M"), x("b", "F"), "Mixed Doubles"), true);
+assert.equal(validLock(x("a", "M"), x("b", "M"), "Mixed Doubles"), false);
+assert.equal(validLock(x("a", "F"), x("b", "F"), "Mixed Doubles"), false);
+assert.equal(validLock(x("a", "M"), p("b", 3), "Mixed Doubles"), false); // no gender set
+assert.equal(validLock(x("a", "M"), x("b", "M"), "Balanced"), true); // only Mixed Doubles cares
+
+// A same-gender lock saved earlier is ignored in Mixed Doubles: the picks and the teams stay M + F.
+pool = [x("m1", "M", { lockedWithId: "m2" }), x("m2", "M", { lockedWithId: "m1" }), x("f1", "F"), x("f2", "F")];
+pick = selectForCourt({ pool, court, mode: "Mixed Doubles", need: 4 });
+assert.deepEqual(splitTeams(pick.taken, "Mixed Doubles"), [["m1", "f1"], ["m2", "f2"]]);
+// A valid man-woman lock is still honored.
+pool = [x("m1", "M", { lockedWithId: "f2" }), x("f1", "F"), x("m2", "M"), x("f2", "F", { lockedWithId: "m1" })];
+pick = selectForCourt({ pool, court, mode: "Mixed Doubles", need: 4 });
+assert.deepEqual(splitTeams(pick.taken, "Mixed Doubles").map((t) => t.slice().sort().join("+")), ["f2+m1", "f1+m2"]);
+
+// The warning shown when a lock is refused.
+assert.equal(lockProblem(x("a", "M"), x("b", "F"), "Mixed Doubles"), null);
+assert.equal(lockProblem(x("a", "M"), x("b", "M"), "Balanced"), null);
+assert.match(lockProblem({ ...x("a", "M"), name: "Al" }, { ...x("b", "M"), name: "Bo" }, "Mixed Doubles"), /one man and one woman.*Al and Bo/);
+assert.match(lockProblem({ ...p("a", 3), name: "Al" }, x("b", "F"), "Mixed Doubles"), /Al has no gender set/);
+assert.match(lockProblem(x("a", "M"), { ...p("b", 3), name: "Bo" }, "Mixed Doubles"), /Bo has no gender set/);
+assert.equal(hasGender(x("a", "F")), true);
+assert.equal(hasGender(p("a", 3)), false);
+
+// Which saved locks break the rule (so the host can be told).
+const lockPlayers = [
+  x("a", "M", { lockedWithId: "b" }), x("b", "M", { lockedWithId: "a" }), // two men
+  x("c", "M", { lockedWithId: "d" }), x("d", "F", { lockedWithId: "c" }), // fine
+  p("e", 3, { lockedWithId: "f" }), x("f", "F", { lockedWithId: "e" }),   // no gender
+];
+assert.deepEqual(mixedLockProblems(lockPlayers).map((q) => q.join("-")), ["a-b", "e-f"]);
+
+// Manual moves: can this player join this team?
+assert.equal(mixedTeamAccepts(x("w", "F"), [x("m", "M")]).ok, true);
+assert.equal(mixedTeamAccepts(x("w", "F"), []).ok, true);
+assert.match(mixedTeamAccepts(x("m2", "M"), [x("m", "M")]).reason, /two men/);
+assert.match(mixedTeamAccepts(x("w2", "F"), [x("w", "F")]).reason, /two women/);
+assert.match(mixedTeamAccepts(p("n", 3), []).reason, /no gender/);
+// Which side of a court takes a called player.
+assert.equal(mixedSideFor(x("m", "M"), [], []), "A");
+assert.equal(mixedSideFor(x("m", "M"), [x("a", "M")], []), "B");
+assert.equal(mixedSideFor(x("m", "M"), [x("a", "M"), x("b", "F")], [x("c", "F")]), "B");
+assert.equal(mixedSideFor(x("m", "M"), [x("a", "M"), x("b", "F")], [x("c", "M")]), null);
+assert.equal(mixedSideFor(p("n", 3), [], []), null);
+
+// Topping up a half-filled court brings the missing genders (men first, then women).
+assert.equal(ids(selectToJoin({ pool: [x("m1", "M"), x("f1", "F")], court, seated: [x("a", "M"), x("b", "F"), x("c", "M")], mode: "Mixed Doubles", need: 1 })), "f1");
+assert.equal(ids(selectToJoin({ pool: [x("m1", "M"), x("m2", "M"), x("f1", "F"), x("f2", "F")], court, seated: [x("a", "M")], mode: "Mixed Doubles", need: 3 })), "m1,f1,f2");
+
+// ---- Winners / Losers: winners stay on, challengers are recent winners first
+pool = [p("l1", 3, { lastResult: "loss" }), p("w1", 3, { lastResult: "win" }), p("l2", 3, { lastResult: "loss" }), p("w2", 3, { lastResult: "win" })];
+assert.equal(ids(selectToJoin({ pool, court, seated: [p("s1", 3), p("s2", 3)], mode: "Winners / Losers", need: 2 })), "w1,w2");
+assert.equal(ids(selectToJoin({ pool: pool.slice(0, 3), court, seated: [p("s1", 3), p("s2", 3)], mode: "Winners / Losers", need: 2 })), "w1,l1");
+assert.equal(ids(selectToJoin({ pool: pool.slice(0, 1), court, seated: [p("s1", 3), p("s2", 3)], mode: "Winners / Losers", need: 2 })), "");
+// The win limit: winners stay until they have won that many in a row, in this mode even if the club setting is off.
+const rules = { winnersStay: false, maxWinStreak: 2 };
+assert.equal(shouldWinnersStay({ rules, mode: "Winners / Losers", streak: 1, winners: ["a", "b"] }), true);
+assert.equal(shouldWinnersStay({ rules, mode: "Winners / Losers", streak: 2, winners: ["a", "b"] }), false); // second win: they rest
+assert.equal(shouldWinnersStay({ rules: { ...rules, maxWinStreak: 3 }, mode: "Winners / Losers", streak: 2, winners: ["a", "b"] }), true);
+assert.equal(shouldWinnersStay({ rules, mode: "Balanced", streak: 1, winners: ["a", "b"] }), false); // other modes follow the club setting
+assert.equal(shouldWinnersStay({ rules: { winnersStay: true, maxWinStreak: 2 }, mode: "Balanced", streak: 1, winners: ["a", "b"] }), true);
+assert.equal(shouldWinnersStay({ rules, mode: "Winners / Losers", streak: 1, winners: [] }), false);
+
+// ---- Custom: nothing is picked automatically
+pool = [p("a", 3), p("b", 3), p("c", 3), p("d", 3)];
+assert.equal(ids(selectForCourt({ pool, court, mode: "Custom", need: 4 })), "");
+assert.equal(ids(selectToJoin({ pool, court, seated: [p("s", 3)], mode: "Custom", need: 1 })), "");
+// Skill Courts is gone: saved sessions move to Balanced.
+assert.equal(normalizeMode("Skill Courts"), "Balanced");
+assert.equal(normalizeMode("Mixed Doubles"), "Mixed Doubles");
+assert.equal(normalizeMode(undefined), undefined);
 
 console.log("rotationModes checks passed");

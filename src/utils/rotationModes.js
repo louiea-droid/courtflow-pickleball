@@ -44,6 +44,66 @@ function partnerId(p) {
   return p?.lockedWithId || null;
 }
 
+export const hasGender = (p) => p?.gender === "M" || p?.gender === "F";
+
+// Mixed Doubles teams are always one man and one woman, so a lock only counts there when it
+// pairs a man with a woman. Every other mode honors any lock.
+export function validLock(a, b, mode) {
+  if (mode !== "Mixed Doubles") return true;
+  return hasGender(a) && hasGender(b) && a.gender !== b.gender;
+}
+
+const nameOf = (p) => p?.name || "This player";
+
+// Why a lock between a and b is refused (shown to the host), or null when it is fine.
+export function lockProblem(a, b, mode) {
+  if (validLock(a, b, mode)) return null;
+  if (!hasGender(a)) return `${nameOf(a)} has no gender set. Set it first to lock in Mixed Doubles.`;
+  if (!hasGender(b)) return `${nameOf(b)} has no gender set. Set it first to lock in Mixed Doubles.`;
+  return `Mixed Doubles pairs one man and one woman, so ${nameOf(a)} and ${nameOf(b)} can't be locked together.`;
+}
+
+// Saved locks that break the Mixed Doubles rule, as sorted [idA, idB] pairs, so the host can be told.
+export function mixedLockProblems(players) {
+  const byId = new Map(players.map((p) => [p.id, p]));
+  const seen = new Set();
+  const out = [];
+  for (const p of players) {
+    const partner = byId.get(partnerId(p));
+    if (!partner) continue;
+    const pair = [p.id, partner.id].sort();
+    const key = pair.join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!validLock(p, partner, "Mixed Doubles")) out.push(pair);
+  }
+  return out;
+}
+
+// Manual moves in Mixed Doubles: may this player join a team already holding `teamPlayers`?
+export function mixedTeamAccepts(player, teamPlayers) {
+  if (!hasGender(player)) return { ok: false, reason: `${nameOf(player)} has no gender set. Set it first to play Mixed Doubles.` };
+  if (teamPlayers.some((x) => x.gender === player.gender)) {
+    return { ok: false, reason: `That would put two ${player.gender === "M" ? "men" : "women"} on one team. Mixed Doubles teams are one man and one woman.` };
+  }
+  return { ok: true };
+}
+
+// Which side ("A" / "B") of a court takes this player in Mixed Doubles, or null if neither can.
+export function mixedSideFor(player, teamA, teamB) {
+  if (!hasGender(player)) return null;
+  for (const [side, team] of [["A", teamA], ["B", teamB]]) {
+    if (team.length < 2 && mixedTeamAccepts(player, team).ok) return side;
+  }
+  return null;
+}
+
+// Whether winners stay on the court after this result: the club's "winners stay" setting, or
+// always in Winners / Losers, until they have won `maxWinStreak` in a row (then they rest).
+export function shouldWinnersStay({ rules, mode, streak, winners }) {
+  return winners.length > 0 && (Boolean(rules.winnersStay) || mode === "Winners / Losers") && streak < rules.maxWinStreak;
+}
+
 // If a picked player's locked partner is still sitting in what's left over
 // (checked in, not already playing), pulls the partner in too — bumping out
 // whichever other picked player isn't itself completing a lock. This is what
@@ -63,6 +123,7 @@ function enforceLockedPairs(taken, remaining, mode) {
     const poolIdx = pool.findIndex((x) => x.id === pid);
     if (poolIdx === -1) continue; // partner not available this round
     const incoming = pool[poolIdx];
+    if (!validLock(p, incoming, mode)) continue; // Mixed Doubles ignores a same-gender lock
     let bumpIdx = -1;
     for (let i = working.length - 1; i >= 0; i--) {
       if (working[i].id === p.id) continue;
@@ -83,6 +144,8 @@ function enforceLockedPairs(taken, remaining, mode) {
 // Picks the next `need` players for a court, respecting an explicit
 // court-level restriction first, then falling back to the session's mode.
 export function selectForCourt({ pool, court, mode, need }) {
+  // Custom: the host builds every match, so nothing is picked automatically.
+  if (mode === "Custom") return { taken: [], remaining: pool };
   const levelRestricted = Boolean(court?.level && court.level !== "Any Level");
   let result;
   if (levelRestricted) {
@@ -108,16 +171,19 @@ export function selectForCourt({ pool, court, mode, need }) {
 
 // Picks who joins a court that already has players: the challengers when winners stay on, or
 // whoever tops up an open seat. An explicit court level still wins. Otherwise:
+// - Custom: nobody (the host adds players).
 // - Skill Separated keeps them to the seated players' level.
-// - Mixed Doubles, when a team of two is seated, brings the other team: one of each gender
-//   so both teams stay one M + one F (a same-gender duo gets the other gender back).
+// - Mixed Doubles brings the missing genders so every team ends up one man and one woman
+//   (men first, then women; the caller seats each on the side that needs them).
+// - Winners / Losers takes recent winners first, then the next in the queue.
 // - Every other mode takes the next in the queue.
 export function selectToJoin({ pool, court, seated, mode, need }) {
+  if (mode === "Custom") return { taken: [], remaining: pool };
   const levelRestricted = Boolean(court?.level && court.level !== "Any Level");
   if (!levelRestricted && mode === "Skill Separated" && seated.length) {
     return pickForLevel(pool, skillLevelLabel(seated[0].skill), need);
   }
-  if (!levelRestricted && mode === "Mixed Doubles" && seated.length === 2 && need === 2) {
+  if (!levelRestricted && mode === "Mixed Doubles" && seated.length > 0 && seated.length + need === 4) {
     const count = (g) => seated.filter((x) => x.gender === g).length;
     const needM = Math.max(0, 2 - count("M"));
     const needF = Math.max(0, 2 - count("F"));
@@ -129,6 +195,13 @@ export function selectToJoin({ pool, court, seated, mode, need }) {
       const takenIds = new Set(taken.map((x) => x.id));
       return { taken, remaining: pool.filter((x) => !takenIds.has(x.id)) };
     }
+  }
+  if (!levelRestricted && mode === "Winners / Losers") {
+    if (pool.length < need) return { taken: [], remaining: pool };
+    const ordered = [...pool.filter((x) => x.lastResult === "win"), ...pool.filter((x) => x.lastResult !== "win")];
+    const taken = ordered.slice(0, need);
+    const takenIds = new Set(taken.map((x) => x.id));
+    return { taken, remaining: pool.filter((x) => !takenIds.has(x.id)) };
   }
   return selectForCourt({ pool, court, mode: null, need });
 }
@@ -162,12 +235,17 @@ export function splitTeams(taken, mode, avoidRepeats = false) {
     const [a, b, c, d] = taken;
     const options = [[[a, b], [c, d]], [[a, c], [b, d]], [[a, d], [b, c]]];
     const keepsLocksTogether = ([teamA, teamB]) => {
-      const splitsA = teamA.some((x) => partnerId(x) && teamB.some((y) => y.id === partnerId(x)));
-      const splitsB = teamB.some((x) => partnerId(x) && teamA.some((y) => y.id === partnerId(x)));
-      return !splitsA && !splitsB;
+      const splits = (from, to) => from.some((x) => partnerId(x) && to.some((y) => y.id === partnerId(x) && validLock(x, y, mode)));
+      return !splits(teamA, teamB) && !splits(teamB, teamA);
     };
+    const mixedTeams = (team) => hasGender(team[0]) && hasGender(team[1]) && team[0].gender !== team[1].gender;
     const valid = options.filter(keepsLocksTogether);
-    const candidates = valid.length ? valid : options;
+    let candidates = valid.length ? valid : options;
+    // Mixed Doubles: every team is one man and one woman whenever the group allows it.
+    if (mode === "Mixed Doubles") {
+      const mixed = candidates.filter(([teamA, teamB]) => mixedTeams(teamA) && mixedTeams(teamB));
+      if (mixed.length) candidates = mixed;
+    }
     const balanced = mode === "Balanced";
     if (balanced || (avoidRepeats && mode !== "Mixed Doubles")) {
       const stars = balanced ? balanceStars(taken) : null;

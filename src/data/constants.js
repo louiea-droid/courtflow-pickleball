@@ -1,13 +1,16 @@
 export const MODE_DESCRIPTIONS = {
   "Balanced": "Rotates turns fairly and evens out each match by star rating: the strongest player teams with the weakest, so similar levels face each other. Avoids repeat partners when it can.",
   "Skill Separated": "Keeps each match to one skill level. A court takes the first level in the queue that has enough players waiting; anyone whose level is short keeps their place. Winners who stay on are challenged by their own level.",
-  "Skill Courts": "Runs separate queues for named skill groups on courts you've set a level for.",
+  "Custom": "You build every match yourself: nothing is picked automatically. Add players to a court from the Queue or a court card; results still update stats and the queue, and the court empties.",
   "Winners / Losers": "Winners play winners and losers play losers.",
   "Mixed Doubles": "Forms each team with one male and one female player.",
   "King/Queen of the Court": "Winners move up courts and losers move down (coming soon).",
   "Club Wars": "Two named groups compete; every match is Group A versus Group B (coming soon).",
   "Tournament": "Fixed doubles teams with a schedule and optional pools/playoffs (coming soon).",
 };
+
+// Skill Courts was removed; sessions and defaults that still name it move to Balanced.
+export const normalizeMode = (mode) => (mode === "Skill Courts" ? "Balanced" : mode);
 
 export const COMING_SOON_MODES = ["King/Queen of the Court", "Club Wars", "Tournament"];
 
