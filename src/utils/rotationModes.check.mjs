@@ -93,4 +93,4 @@ assert.equal(ids(selectToJoin({ pool: [mx("m1", "M"), mx("m2", "M")], court, sea
 // The rest are unchanged: another mode takes the front of the queue.
 assert.equal(ids(selectToJoin({ pool, court, seated: [mx("w1", "M"), mx("w2", "F")], mode: "Balanced", need: 2 })), "m1,m2");
 
-console.lomx("rotationModes checks passed");
+console.log("rotationModes checks passed");
