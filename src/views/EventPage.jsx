@@ -3,7 +3,8 @@ import { ArrowLeft, Pencil, Play, Share2, Trash2, X } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import DateTile from "../components/DateTile";
 import { bookingTotals, endHM, splitAttendees } from "../utils/bookings";
-import { formatDay, formatHM, money } from "../utils/format";
+import { formatDay, formatHM, formatTime, money } from "../utils/format";
+import { gameSummary } from "../utils/gameSession";
 
 function PayControls({ a, onPaid, onMethod, onRef }) {
   return (
@@ -48,7 +49,9 @@ function AttendeeRow({ a, contact, note, eventId, actions }) {
   );
 }
 
-export default function EventPage({ event, requests, actions, ready, onEdit, onShare, navigate }) {
+export default function EventPage({
+  event, requests, actions, ready, gamePlayers, onEdit, onShare, onPickPlayers, onOpenGame, onReopen, navigate,
+}) {
   const [name, setName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const back = (e) => { e.preventDefault(); navigate("/host"); };
@@ -67,6 +70,14 @@ export default function EventPage({ event, requests, actions, ready, onEdit, onS
   const pending = requests.filter((r) => r.status === "pending");
   const contactOf = (a) => requests.find((r) => r.seatId === a.id)?.contact;
   const full = confirmed.length >= event.maxPlayers;
+  const summary = gameSummary(gamePlayers);
+  const gameLine = event.status === "live" ? (
+    <p className="booking-money"><b>Game in progress</b> · {summary.checkedIn} checked in of {summary.players}</p>
+  ) : event.status === "ended" ? (
+    <p className="booking-money">
+      <b>Game ended</b> · {summary.players} players, {summary.matches} matches{event.endedAt ? ` · ${formatTime(event.endedAt)}` : ""}
+    </p>
+  ) : null;
 
   return (
     <>
@@ -84,6 +95,7 @@ export default function EventPage({ event, requests, actions, ready, onEdit, onS
       </div>
 
       <div className="panel">
+        {gameLine}
         {event.fee > 0 && (
           <p className="booking-money">
             <b>{money(totals.collected)}</b> collected of {money(totals.expected)} expected
@@ -132,7 +144,16 @@ export default function EventPage({ event, requests, actions, ready, onEdit, onS
         {event.notes && <p className="booking-notes">{event.notes}</p>}
 
         <div className="cost-actions">
-          <button className="pill toggle" disabled title="Coming in the next update"><Play size={12} /> Proceed to game (coming soon)</button>
+          {event.status === "ended" ? (
+            <button className="pill toggle" onClick={onReopen}><Play size={12} /> Reopen game</button>
+          ) : event.status === "live" ? (
+            <>
+              <button className="pill toggle" onClick={onOpenGame}><Play size={12} /> Back to game</button>
+              {!event.walkIn && <button className="pill toggle off" onClick={onPickPlayers}>Add players to game</button>}
+            </>
+          ) : (
+            <button className="pill toggle" onClick={onPickPlayers}><Play size={12} /> Proceed to game</button>
+          )}
           <button className="pill toggle off" onClick={() => onEdit(event)}><Pencil size={12} /> Edit</button>
           <button className="pill toggle off" onClick={onShare}><Share2 size={12} /> Share booking page</button>
           <button className="tiny danger" onClick={() => setConfirmDelete(true)}><Trash2 size={12} /> Delete</button>

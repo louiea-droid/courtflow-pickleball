@@ -1,7 +1,7 @@
-import { CalendarPlus, ChevronRight, Share2 } from "lucide-react";
+import { CalendarPlus, ChevronRight, Play, Share2 } from "lucide-react";
 import DateTile from "../components/DateTile";
 import PanelHead from "../components/PanelHead";
-import { bookingTotals, byStart, endHM, hasEndedIn, splitAttendees } from "../utils/bookings";
+import { bookingTotals, byStart, endHM, isOver, splitAttendees } from "../utils/bookings";
 import { formatHM, money } from "../utils/format";
 
 function EventRow({ e, pending, navigate }) {
@@ -21,11 +21,18 @@ function EventRow({ e, pending, navigate }) {
       </div>
       <div className="history-entry-badges">
         {pending > 0 && <span className="badge-open">{pending} new</span>}
-        <span className={`pill ${confirmed.length >= e.maxPlayers ? "" : "off"}`}>{confirmed.length}/{e.maxPlayers} joined</span>
-        {e.fee > 0 && (
-          <span className={`pill settle-badge ${totals.seats && totals.paidCount === totals.seats ? "" : "off"}`}>
-            {totals.paidCount}/{totals.seats} paid
-          </span>
+        {e.status === "live" && <span className="badge-open">Live</span>}
+        {e.walkIn ? (
+          <span className="pill off">Walk-in</span>
+        ) : (
+          <>
+            <span className={`pill ${confirmed.length >= e.maxPlayers ? "" : "off"}`}>{confirmed.length}/{e.maxPlayers} joined</span>
+            {e.fee > 0 && (
+              <span className={`pill settle-badge ${totals.seats && totals.paidCount === totals.seats ? "" : "off"}`}>
+                {totals.paidCount}/{totals.seats} paid
+              </span>
+            )}
+          </>
         )}
       </div>
       <ChevronRight size={15} />
@@ -33,9 +40,9 @@ function EventRow({ e, pending, navigate }) {
   );
 }
 
-export default function Host({ events, requestsByEvent, fallbackZone, onNew, onShare, navigate }) {
-  const upcoming = events.filter((e) => !hasEndedIn(e, fallbackZone)).sort(byStart);
-  const past = events.filter((e) => hasEndedIn(e, fallbackZone)).sort((a, b) => byStart(b, a));
+export default function Host({ events, requestsByEvent, fallbackZone, onNew, onPlayNow, onShare, navigate }) {
+  const upcoming = events.filter((e) => !isOver(e, fallbackZone)).sort(byStart);
+  const past = events.filter((e) => isOver(e, fallbackZone)).sort((a, b) => byStart(b, a));
   const pendingOf = (e) => (requestsByEvent[e.id] || []).filter((r) => r.status === "pending").length;
   const row = (e) => <EventRow key={e.id} e={e} pending={pendingOf(e)} navigate={navigate} />;
 
@@ -46,6 +53,7 @@ export default function Host({ events, requestsByEvent, fallbackZone, onNew, onS
       <div className="panel">
         <PanelHead title="Upcoming" sub="Open an event to manage players, payments and join requests." />
         <div className="booking-toolbar">
+          <button className="outline" onClick={onPlayNow}><Play size={15} /> Play now</button>
           <button className="primary" onClick={onNew}><CalendarPlus size={15} /> New open play</button>
           <button className="outline" onClick={onShare}><Share2 size={15} /> Share booking page</button>
         </div>

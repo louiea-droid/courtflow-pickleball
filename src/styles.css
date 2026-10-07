@@ -1233,3 +1233,14 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .event-head h1{margin:0 0 4px;font:700 28px "Space Grotesk";letter-spacing:-.5px}
 .event-head p{margin:0;color:var(--muted);font-size:13.5px}
 .event-head .date-tile{width:56px;height:62px}
+.pick-help{margin:0 0 10px;color:var(--muted);font-size:13px}
+.pick-tools{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.pick-list{display:flex;flex-direction:column;max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
+.pick-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.pick-row:last-child{border-bottom:0}
+.pick-row:hover{background:var(--hover)}
+.pick-row.in{opacity:.55;cursor:default}
+.pick-row input{width:18px;height:18px;accent-color:var(--accent);flex-shrink:0}
+.pick-row b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.pick-tags{display:flex;gap:6px;flex-shrink:0}
+.pick-head{padding:8px 12px;border-bottom:1px solid var(--line);font:700 12px "Space Grotesk";color:var(--muted)}

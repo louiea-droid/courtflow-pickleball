@@ -16,19 +16,24 @@ import BookingModal from "./components/BookingModal";
 import ShareModal from "./components/ShareModal";
 import { useEvents, useEventRequests } from "./hooks/useEvents";
 import { useEventActions } from "./hooks/useEventActions";
-import { hasEndedIn } from "./utils/bookings";
+import { isOver } from "./utils/bookings";
+import { useEventPlayers } from "./hooks/useEventPlayers";
+import { useGameActions } from "./hooks/useGameActions";
+import GamePickModal from "./components/GamePickModal";
 
 export default function AccountApp() {
   const acct = useAccount();
   const { route, eventId, navigate } = useRoute();
   const [eventModal, setEventModal] = useState(null); // null | "new" | an event being edited
   const [showShare, setShowShare] = useState(false);
+  const [gamePick, setGamePick] = useState(false);
   const uid = acct.user?.uid;
   const { events, ready: eventsReady } = useEvents(uid);
   const fallbackZone = { ...DEFAULT_DISPLAY, ...acct.account?.display }.timeZone;
   // Listen for requests only on events still on the calendar (and the one open on screen).
-  const watched = events.filter((e) => !hasEndedIn(e, fallbackZone) || e.id === eventId).map((e) => e.id);
+  const watched = events.filter((e) => !isOver(e, fallbackZone) || e.id === eventId).map((e) => e.id);
   const requestsByEvent = useEventRequests(uid, watched);
+  const gamePlayers = useEventPlayers(uid, route === "event" ? eventId : null);
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [showDelete, setShowDelete] = useState(false);
@@ -49,7 +54,18 @@ export default function AccountApp() {
   const actions = useEventActions({
     uid, events, hostName: acct.account?.clubName || "", timeZone: display.timeZone, notify,
   });
-  const latestPayInfo = [...events].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]?.payInfo;
+  const latestPayInfo = [...events].filter((e) => !e.walkIn).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]?.payInfo;
+  const gameActions = useGameActions({
+    uid, account: acct.account, hostName: acct.account?.clubName || "", timeZone: display.timeZone, notify,
+  });
+  const openEvent = events.find((e) => e.id === eventId);
+  const playNow = async () => {
+    try {
+      navigate(`/event/${await gameActions.playNow()}/game`);
+    } catch {
+      notify("Couldn't start a game. Check your connection and try again.", 4000);
+    }
+  };
   const todayYmd = new Intl.DateTimeFormat("en-CA", { timeZone: display.timeZone }).format(new Date());
 
   // Success signs the user out (deleteUser). This shell stays mounted behind the
@@ -125,12 +141,14 @@ export default function AccountApp() {
         ) : route === "host" ? (
           <Host
             events={events} requestsByEvent={requestsByEvent} fallbackZone={display.timeZone}
-            onNew={() => setEventModal("new")} onShare={() => setShowShare(true)} navigate={navigate}
+            onNew={() => setEventModal("new")} onPlayNow={playNow} onShare={() => setShowShare(true)} navigate={navigate}
           />
         ) : route === "event" ? (
           <EventPage
             event={events.find((e) => e.id === eventId)} requests={requestsByEvent[eventId] || []}
-            actions={actions} ready={eventsReady} onEdit={setEventModal} onShare={() => setShowShare(true)} navigate={navigate}
+            actions={actions} ready={eventsReady} gamePlayers={gamePlayers}
+            onPickPlayers={() => setGamePick(true)} onOpenGame={() => navigate(`/event/${eventId}/game`)}
+            onReopen={() => gameActions.reopenGame(eventId)} onEdit={setEventModal} onShare={() => setShowShare(true)} navigate={navigate}
           />
         ) : (
           <Hub clubName={acct.account.clubName} navigate={navigate} />
@@ -158,6 +176,16 @@ export default function AccountApp() {
           url={`${window.location.origin}/open-play?host=${uid}`} close={() => setShowShare(false)}
           title="Share your booking page" openLabel="Open booking page" qr
           hint="Players scan the code or open the link to see your upcoming open play and ask to join. You confirm each request on its event page."
+        />
+      )}
+      {gamePick && openEvent && (
+        <GamePickModal
+          event={openEvent} players={gamePlayers} close={() => setGamePick(false)}
+          submit={async (ids) => {
+            await gameActions.startGame(openEvent, ids, gamePlayers);
+            setGamePick(false);
+            navigate(`/event/${openEvent.id}/game`);
+          }}
         />
       )}
       <Toast toast={toast} onDismiss={dismissToast} />
