@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { Suspense, lazy, useRef, useState } from "react";
 import { LogOut } from "lucide-react";
 import { useAccount } from "./hooks/useAccount";
 import { useRoute } from "./hooks/useRoute";
@@ -20,6 +20,9 @@ import { isOver } from "./utils/bookings";
 import { useEventPlayers } from "./hooks/useEventPlayers";
 import { useGameActions } from "./hooks/useGameActions";
 import GamePickModal from "./components/GamePickModal";
+
+// The queue app only loads when a game opens.
+const Game = lazy(() => import("./Game"));
 
 export default function AccountApp() {
   const acct = useAccount();
@@ -103,6 +106,17 @@ export default function AccountApp() {
       <AccountLogin
         onSignIn={acct.signIn} onSignUp={acct.signUp} onGoogle={acct.signInGoogle} onReset={acct.resetPassword}
       />
+    );
+  }
+
+  if (route === "game") {
+    return (
+      <Suspense fallback={<div className="loading"><span className="spinner" />Loading…</div>}>
+        <Game
+          uid={uid} account={acct.account} event={events.find((e) => e.id === eventId)} ready={eventsReady}
+          navigate={navigate} endGame={gameActions.endGame}
+        />
+      </Suspense>
     );
   }
 

@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ListOrdered, Users, Trophy, Settings, CircleDot, X,
-  PanelLeftClose, PanelLeftOpen, Flag, Receipt, BookOpen,
+  PanelLeftClose, PanelLeftOpen, Flag, Receipt, BookOpen, ArrowLeft,
 } from "lucide-react";
 import { NAV_ITEMS } from "../data/constants";
 import ModeSelect from "./ModeSelect";
@@ -26,7 +26,7 @@ function Nav({ icon: Icon, label, active, onClick }) {
 
 export default function Sidebar({
   session, courtCount, mode, onChangeMode, tab, onSelectTab,
-  onEndSession,
+  onEndSession, endLabel = "End Session", hiddenTabs = [], backLink = null,
   open, onClose, collapsed, onToggleCollapse,
 }) {
   return (
@@ -42,7 +42,7 @@ export default function Sidebar({
         </div>
 
         <nav>
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter((item) => !hiddenTabs.includes(item.key)).map((item) => (
             <Nav
               key={item.key}
               icon={ICONS[item.key]}
@@ -62,8 +62,13 @@ export default function Sidebar({
           <ModeSelect mode={mode} onChange={onChangeMode} />
 
           <div className="sidefoot">
-            <button className="sidebar-endsession" onClick={onEndSession} title="End Session">
-              <Flag /> <span>End Session</span>
+            {backLink && (
+              <button className="sidebar-endsession" onClick={backLink.onClick} title={backLink.label}>
+                <ArrowLeft /> <span>{backLink.label}</span>
+              </button>
+            )}
+            <button className="sidebar-endsession" onClick={onEndSession} title={endLabel}>
+              <Flag /> <span>{endLabel}</span>
             </button>
             <button
               className="outline dark sidebar-collapse-btn"

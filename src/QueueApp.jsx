@@ -30,11 +30,17 @@ import Settings from "./views/Settings";
 // The queue app on one session. `base` is the Firestore path of the document that holds it
 // (utils/paths.js): the quick session at /club today. Every read and write goes through
 // `at` (a document) and `col` (a collection) so the same code runs on any base.
-export default function QueueApp({ base, onEndSession, onErase }) {
+// kind "event" is a game on an event: the session is derived from the event doc plus the account
+// settings, there is no Settings tab, and End game keeps all data.
+export default function QueueApp({
+  base, kind = "quick", deriveSession, eyebrow, backLabel, onBack, onEndSession, onErase,
+}) {
   const at = (...rest) => doc(db, ...base, ...rest);
   const col = (name) => collection(db, ...base, name);
   const [tab, setTab] = useState("dashboard");
-  const { session, players, courts, busy } = useSessionData(base);
+  const { session: rawSession, players, courts, busy } = useSessionData(base);
+  const session = deriveSession ? deriveSession(rawSession) : rawSession;
+  const noun = kind === "event" ? "game" : "session";
   const costs = useCosts(base);
   const matchLog = useMatchLog(base);
   const [showPlayer, setShowPlayer] = useState(false);
@@ -593,6 +599,9 @@ export default function QueueApp({ base, onEndSession, onErase }) {
         tab={tab}
         onSelectTab={selectTab}
         onEndSession={() => { setShowEndSession(true); setMenuOpen(false); }}
+        endLabel={kind === "event" ? "End game" : "End Session"}
+        hiddenTabs={kind === "event" ? ["settings"] : []}
+        backLink={kind === "event" ? { label: backLabel, onClick: onBack } : null}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         collapsed={collapsed}
@@ -605,6 +614,8 @@ export default function QueueApp({ base, onEndSession, onErase }) {
           onOpenMenu={() => setMenuOpen(true)}
           onShare={() => setShowShare(true)}
           onAddPlayer={() => setShowPlayer(true)}
+          eyebrow={eyebrow}
+          showShare={kind === "quick"}
         />
 
         {!firebaseConfigured && (
@@ -636,9 +647,9 @@ export default function QueueApp({ base, onEndSession, onErase }) {
               onTogglePaid={toggleCostPaid} onToggleLive={toggleCostLive} onDelete={deleteCostEntry}
             />
           )}
-          {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={base[1]} />}
+          {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={kind === "quick" ? base[1] : null} />}
           {tab === "guide" && <Guide />}
-          {tab === "settings" && (
+          {tab === "settings" && kind === "quick" && (
             <Settings
               mode="quick" canChangePassword={false}
               session={session}
@@ -670,7 +681,7 @@ export default function QueueApp({ base, onEndSession, onErase }) {
             clubName={session.location} defaults={session.defaults}
           />
         )}
-        {showShare && (
+        {showShare && kind === "quick" && (
           <ShareModal url={`${window.location.origin}/live?club=${base[1]}${live.key ? `&key=${live.key}` : ""}`} close={() => setShowShare(false)} />
         )}
         {showErase && (
@@ -684,15 +695,19 @@ export default function QueueApp({ base, onEndSession, onErase }) {
         )}
         {showEndSession && (
           <ConfirmDialog
-            title="End Session?"
-            message="This closes out today's play: stats are archived to Stats → Past Sessions, the match log and courts are cleared, and everyone will need to check in again next time."
-            confirmLabel="End Session"
+            title={kind === "event" ? "End game?" : "End Session?"}
+            message={kind === "event"
+              ? "This closes the game. Players, matches and costs stay saved on the event, and you can reopen it from the event page."
+              : "This closes out today's play: stats are archived to Stats → Past Sessions, the match log and courts are cleared, and everyone will need to check in again next time."}
+            confirmLabel={kind === "event" ? "End game" : "End Session"}
             onCancel={() => setShowEndSession(false)}
             onConfirm={() => {
               setShowEndSession(false);
-              onEndSession()
-                .then(() => { setTab("dashboard"); notify("Session ended. Stats are saved to Past Sessions."); })
-                .catch(() => notify("Couldn't end the session — please try again.", 4000));
+              Promise.resolve(onEndSession())
+                .then(() => {
+                  if (kind === "quick") { setTab("dashboard"); notify("Session ended. Stats are saved to Past Sessions."); }
+                })
+                .catch(() => notify(`Couldn't end the ${noun} — please try again.`, 4000));
             }}
           />
         )}
