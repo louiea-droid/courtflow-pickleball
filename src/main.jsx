@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import "./styles.css";
 import { routeOf } from "./utils/route";
+import ErrorBoundary from "./ErrorBoundary";
 
 const App = lazy(() => import("./Club"));
 const LiveBoard = lazy(() => import("./LiveBoard"));
@@ -14,8 +15,10 @@ const Page = pages[routeOf(window.location.pathname)] || AccountApp;
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <Suspense fallback={<div className="loading"><span className="spinner" />Loading…</div>}>
-      <Page />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<div className="loading"><span className="spinner" />Loading…</div>}>
+        <Page />
+      </Suspense>
+    </ErrorBoundary>
   </React.StrictMode>
 );
