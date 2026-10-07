@@ -101,7 +101,7 @@ export function useClub() {
   async function eraseSession() {
     if (!club) return;
     const { id } = club;
-    for (const name of SUBCOLLECTIONS) await wipeCollection(collection(db, "sessions", id, name));
+    for (const name of SUBCOLLECTIONS) await wipeCollection(db, collection(db, "sessions", id, name));
     const batch = writeBatch(db);
     createFreshSession(batch, id);
     await batch.commit();

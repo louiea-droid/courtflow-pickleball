@@ -1,9 +1,8 @@
 import { getDocs, limit, query, writeBatch } from "firebase/firestore";
-import { db } from "../firebase";
 
-// Deletes every document in a collection. Firestore batches cap at 500 writes,
-// so go in rounds until it's empty.
-export async function wipeCollection(colRef) {
+// Deletes every document in a collection. Firestore batches cap at 500 writes, so
+// go in rounds until it's empty. The db is passed in so this also runs in tests.
+export async function wipeCollection(db, colRef) {
   for (;;) {
     const snap = await getDocs(query(colRef, limit(400)));
     if (snap.empty) return;

@@ -4,16 +4,13 @@ import {
   reauthenticateWithCredential, reauthenticateWithPopup, sendPasswordResetEmail, signInWithEmailAndPassword,
   signInWithPopup, signOut, updatePassword,
 } from "firebase/auth";
-import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db, firebaseConfigured } from "../firebase";
 import {
   accountStatus, authMessage, defaultClubName, hasPasswordProvider, isAccountUser, isLegacyEmail, LEGACY_MESSAGE,
   resetMessage, shouldEnsureAccount,
 } from "../utils/account";
-import { wipeCollection } from "../utils/wipe";
-
-// Step 2 adds each event's own subcollections to this cascade.
-const ACCOUNT_COLLECTIONS = ["roster", "events"];
+import { deleteAccountData } from "../utils/accountData";
 
 // Creates accounts/{uid} once. Safe to call again: it never overwrites settings.
 async function ensureAccount(user, clubName) {
@@ -130,11 +127,7 @@ export function useAccount() {
     deleting.current = true;
     return run(async () => {
       try {
-        const uid = auth.currentUser.uid;
-        for (const name of ACCOUNT_COLLECTIONS) await wipeCollection(collection(db, "accounts", uid, name));
-        const batch = writeBatch(db);
-        batch.delete(doc(db, "accounts", uid));
-        await batch.commit();
+        await deleteAccountData(db, auth.currentUser.uid);
         await deleteUser(auth.currentUser);
       } finally {
         deleting.current = false;
