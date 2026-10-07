@@ -54,7 +54,7 @@ const both = playersToAdd(event, ["c", "b"], [], 100);
 assert.deepEqual(both.map((p) => p.id), ["b", "c"]); // joined order, not tick order
 assert.ok(both[0].createdAt < both[1].createdAt);
 
-// Review Focus 2: the booking cost entry covers who is in the game and keeps what the host toggled.
+// Review Focus 2: booking payment status follows the event attendee record.
 const c1 = bookingCostEntry(event, new Set(["a", "b"]), null, 50);
 assert.equal(c1.total, 300);
 assert.equal(c1.perPerson, 150);
@@ -67,13 +67,13 @@ assert.equal(c1.label, "Saturday");
 assert.equal(c1.createdAt, 50);
 assert.equal(c1.visibleOnLive, false);
 const c2 = bookingCostEntry(event, new Set(["a", "b", "c"]), { paid: { a: false, b: true }, visibleOnLive: true, createdAt: 10 }, 99);
-assert.deepEqual(c2.paid, { a: false, b: true, c: false }); // host's toggles kept; refunded c is not paid
+assert.deepEqual(c2.paid, { a: true, b: false, c: false }); // attendee statuses override the cached booking map
 assert.equal(c2.visibleOnLive, true);
 assert.equal(c2.createdAt, 10);
 assert.equal(c2.total, 450);
 assert.equal(bookingCostEntry({ ...event, fee: 0 }, new Set(["a"]), null, 1), null);
 assert.equal(bookingCostEntry(event, new Set(), null, 1), null);
-// Someone already charged stays on the entry (and keeps their paid flag) even if they left the game.
+// Someone already charged stays on the entry even if they left the game.
 const c3 = bookingCostEntry(event, new Set(["b"]), { paid: { a: true, b: false }, playerIds: ["a", "b"], createdAt: 10 }, 99);
 assert.deepEqual(c3.playerIds, ["a", "b"]);
 assert.deepEqual(c3.paid, { a: true, b: false });

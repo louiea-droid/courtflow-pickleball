@@ -13,6 +13,9 @@ export const splitCost = (total, count, roundTo = 0) => {
 
 export const winPct = (p) => Math.round((p.wins / (p.games || 1)) * 100);
 
+export const rankPlayers = (players) =>
+  [...players].sort((a, b) => winPct(b) - winPct(a) || b.wins - a.wins);
+
 export const waitMinutes = (p) =>
   Math.max(0, Math.round((Date.now() - (p.checkedAt || Date.now())) / 60000));
 

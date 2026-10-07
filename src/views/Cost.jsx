@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, MonitorPlay, Save, Trash2 } from "lucide-react";
 import PanelHead from "../components/PanelHead";
 import PersonBadge from "../components/PersonBadge";
+import { splitAttendees } from "../utils/bookings";
 import { formatDate, money, splitCost } from "../utils/format";
 
 function CostEntry({ entry, players, onTogglePaid, onToggleLive, onDelete }) {
@@ -59,37 +60,120 @@ function CostEntry({ entry, players, onTogglePaid, onToggleLive, onDelete }) {
   );
 }
 
-export default function Cost({ players, costs, costDefaults, onAdd, onTogglePaid, onToggleLive, onDelete }) {
+function OpenPlayFeeRow({ attendee, fee, onSetPaid, due = true }) {
+  const paid = attendee.paid === "paid";
+  const refunded = attendee.paid === "refunded";
+  return (
+    <div className="open-play-fee-row">
+      <PersonBadge name={attendee.name} />
+      <b>{due ? money(fee) : "Not due"}</b>
+      <button
+        type="button"
+        className={`pill toggle ${paid ? "" : "off"}`}
+        aria-label={`Mark ${attendee.name} ${paid ? "unpaid" : "paid"}`}
+        onClick={() => onSetPaid(attendee.id, paid ? "unpaid" : "paid")}
+      >
+        {paid ? "Mark unpaid" : refunded ? "Mark unpaid" : "Mark paid"}
+      </button>
+    </div>
+  );
+}
+
+function OpenPlayFees({ attendees, fee, maxPlayers, onSetPaid }) {
+  const { confirmed } = splitAttendees({ attendees, maxPlayers });
+  const confirmedIds = new Set(confirmed.map((a) => a.id));
+  const unpaid = attendees.filter((a) => confirmedIds.has(a.id) && a.paid !== "paid" && a.paid !== "refunded");
+  const waitlist = attendees.filter((a) => !confirmedIds.has(a.id) && a.paid !== "paid" && a.paid !== "refunded");
+  const paid = attendees.filter((a) => a.paid === "paid");
+  const refunded = attendees.filter((a) => a.paid === "refunded");
+  return (
+    <div className="panel open-play-fees">
+      <PanelHead title="Open Play fees" sub={`${money(fee)} per player, using this event's set fee.`} />
+      <div className="open-play-fee-summary">
+        <div><span>STILL OWED</span><b>{money(unpaid.length * fee)}</b><small>{unpaid.length} unpaid</small></div>
+        <div><span>COLLECTED</span><b>{money(paid.length * fee)}</b><small>{paid.length} paid</small></div>
+      </div>
+      <div className="booking-block">
+        <h4>Unpaid <span className="count-badge">{unpaid.length}</span></h4>
+        {unpaid.map((a) => <OpenPlayFeeRow key={a.id} attendee={a} fee={fee} onSetPaid={onSetPaid} />)}
+        {!unpaid.length && <div className="empty">Everyone has paid.</div>}
+      </div>
+      {paid.length > 0 && (
+        <div className="booking-block">
+          <h4>Paid (including waitlist) <span className="count-badge">{paid.length}</span></h4>
+          {paid.map((a) => <OpenPlayFeeRow key={a.id} attendee={a} fee={fee} onSetPaid={onSetPaid} />)}
+        </div>
+      )}
+      {waitlist.length > 0 && (
+        <div className="booking-block">
+          <h4>Waitlist · not yet due <span className="count-badge">{waitlist.length}</span></h4>
+          {waitlist.map((a) => <OpenPlayFeeRow key={a.id} attendee={a} fee={fee} onSetPaid={onSetPaid} due={false} />)}
+        </div>
+      )}
+      {refunded.length > 0 && (
+        <div className="booking-block">
+          <h4>Refunded <span className="count-badge">{refunded.length}</span></h4>
+          {refunded.map((a) => <OpenPlayFeeRow key={a.id} attendee={a} fee={fee} onSetPaid={onSetPaid} />)}
+        </div>
+      )}
+      {!attendees.length && <div className="empty">Add players to this Open Play to track their fees.</div>}
+    </div>
+  );
+}
+
+export default function Cost({
+  players, costs, costDefaults, onAdd, onTogglePaid, onToggleLive, onDelete,
+  isOpenPlay, attendees = [], eventFee = 0, maxPlayers, onSetAttendeePaid,
+}) {
   const defaultRate = costDefaults.rate ? String(costDefaults.rate) : "";
   const [label, setLabel] = useState("");
   const [rate, setRate] = useState(defaultRate);
   const [hours, setHours] = useState("");
   const [courtCount, setCourtCount] = useState("1");
   const [selected, setSelected] = useState(() => players.filter((p) => p.checked).map((p) => p.id));
+  const previousSelectable = useRef(new Set());
 
   const rateNum = parseFloat(rate) || 0;
   const hoursNum = parseFloat(hours) || 0;
   const courtsNum = parseFloat(courtCount) || 0;
+  const tracksOpenPlayFee = isOpenPlay && eventFee > 0;
+  const selectablePlayers = players;
+  const selectableKey = selectablePlayers.map((p) => p.id).join("\u0000");
+  useEffect(() => {
+    const selectableIds = new Set(selectablePlayers.map((p) => p.id));
+    const newlySelectable = selectablePlayers
+      .filter((p) => !previousSelectable.current.has(p.id) && p.checked)
+      .map((p) => p.id);
+    setSelected((current) => [...new Set([
+      ...current.filter((id) => selectableIds.has(id)),
+      ...newlySelectable,
+    ])]);
+    previousSelectable.current = selectableIds;
+  }, [selectableKey]);
+
   const total = rateNum * hoursNum * courtsNum;
-  const perPerson = splitCost(total, selected.length, costDefaults.roundTo);
+  const perPerson = splitCost(total, selected.length, isOpenPlay ? 0 : costDefaults.roundTo);
   const canSave = rateNum > 0 && hoursNum > 0 && courtsNum > 0 && selected.length > 0;
 
-  const allSelected = players.length > 0 && selected.length === players.length;
+  const allSelected = selectablePlayers.length > 0 && selected.length === selectablePlayers.length;
 
   const toggleSelected = (id) => {
     setSelected((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
   };
 
   const toggleSelectAll = () => {
-    setSelected(allSelected ? [] : players.map((p) => p.id));
+    setSelected(allSelected ? [] : selectablePlayers.map((p) => p.id));
   };
 
   const submit = (e) => {
     e.preventDefault();
     if (!canSave) return;
-    onAdd({ label: label.trim(), rate: rateNum, hours: hoursNum, courts: courtsNum, playerIds: selected });
+    onAdd({
+      label: label.trim(), rate: rateNum, hours: hoursNum, courts: courtsNum,
+      playerIds: selected, perPerson,
+    });
     setLabel(""); setRate(defaultRate); setHours(""); setCourtCount("1");
-    setSelected(players.filter((p) => p.checked).map((p) => p.id));
+    setSelected(selectablePlayers.filter((p) => p.checked).map((p) => p.id));
   };
 
   return (
@@ -119,14 +203,14 @@ export default function Cost({ players, costs, costDefaults, onAdd, onTogglePaid
 
           <div className="cost-select-head">
             <label>Splitting between</label>
-            {players.length > 0 && (
+            {selectablePlayers.length > 0 && (
               <button type="button" className="text" onClick={toggleSelectAll}>
                 {allSelected ? "Clear all" : "Select all"}
               </button>
             )}
           </div>
           <div className="player-select">
-            {players.map((p) => (
+            {selectablePlayers.map((p) => (
               <button
                 type="button"
                 key={p.id}
@@ -137,12 +221,16 @@ export default function Cost({ players, costs, costDefaults, onAdd, onTogglePaid
                 {selected.includes(p.id) && <Check size={14} />}
               </button>
             ))}
-            {!players.length && <span className="section-hint">Add players first, then come back here.</span>}
+            {!selectablePlayers.length && <span className="section-hint">Add players first, then come back here.</span>}
           </div>
 
           <div className="cards cost-preview">
             <div className="stat"><span>TOTAL</span><b>{money(total)}</b><small>rate × hours × courts</small></div>
-            <div className="stat"><span>PER PLAYER</span><b>{money(perPerson)}</b><small>{selected.length || 0} splitting{costDefaults.roundTo ? `, rounded up to ₱${costDefaults.roundTo}` : ""}</small></div>
+            <div className="stat">
+              <span>PER PLAYER</span>
+              <b>{money(perPerson)}</b>
+              <small>{`${selected.length || 0} splitting${!isOpenPlay && costDefaults.roundTo ? `, rounded up to ₱${costDefaults.roundTo}` : ""}`}</small>
+            </div>
           </div>
 
           <div className="modalactions">
@@ -151,15 +239,19 @@ export default function Cost({ players, costs, costDefaults, onAdd, onTogglePaid
         </form>
       </div>
 
+      {tracksOpenPlayFee && (
+        <OpenPlayFees attendees={attendees} fee={eventFee} maxPlayers={maxPlayers} onSetPaid={onSetAttendeePaid} />
+      )}
+
       <div className="panel history-panel">
         <PanelHead title="Rental History" sub="Everyone's split, and who still owes." />
-        {costs.map((entry) => (
+        {costs.filter((entry) => !isOpenPlay || !entry.bookingId).map((entry) => (
           <CostEntry
             key={entry.id} entry={entry} players={players}
             onTogglePaid={onTogglePaid} onToggleLive={onToggleLive} onDelete={onDelete}
           />
         ))}
-        {!costs.length && <div className="empty">No court rentals logged yet.</div>}
+        {!costs.some((entry) => !isOpenPlay || !entry.bookingId) && <div className="empty">No court rentals logged yet.</div>}
       </div>
     </>
   );

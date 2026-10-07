@@ -64,9 +64,9 @@ export function playersToAdd(event, pickedIds, players, now) {
 }
 
 // The one cost entry for the booking fee, covering the attendees now in the game. `existing`
-// is the entry already saved (if any), so a later "Add to game" keeps the paid toggles the
-// host set on the Cost tab and its Live Board visibility. Anyone already charged stays on it,
-// even if they have since left the game, so money they handed over is never dropped.
+// is the entry already saved (if any), so a later "Add to game" keeps its Live Board visibility.
+// Payment status comes from the event attendee record, which is the source of truth.
+// Anyone already charged stays on it, even if they have since left the game.
 export function bookingCostEntry(event, inGameIds, existing, now) {
   const fee = event.fee || 0;
   const charged = new Set(existing?.playerIds || []);
@@ -77,7 +77,7 @@ export function bookingCostEntry(event, inGameIds, existing, now) {
   return {
     label: event.title, rate: total / hours, hours, courts: 1, total, perPerson: fee,
     playerIds: members.map((a) => a.id), bookingId: event.id,
-    paid: Object.fromEntries(members.map((a) => [a.id, existing?.paid?.[a.id] ?? a.paid === "paid"])),
+    paid: Object.fromEntries(members.map((a) => [a.id, a.paid === "paid"])),
     visibleOnLive: existing?.visibleOnLive ?? false,
     createdAt: existing?.createdAt ?? now,
   };

@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, updateDoc, writeBatch } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
 import { addAttendee, attendeeFromRequest, splitAttendees } from "../utils/bookings";
 import { deleteEventData } from "../utils/accountData";
@@ -54,8 +54,23 @@ export function useEventActions({ uid, events, hostName, timeZone, notify }) {
     return setAttendees(eventId, e.attendees.map((a) => (a.id === attendeeId ? { ...a, ...change } : a)));
   };
 
-  const setPaid = (eventId, attendeeId, paid) =>
-    patch(eventId, attendeeId, { paid, ...(paid === "paid" ? { paidAt: Date.now() } : {}) });
+  const setPaid = async (eventId, attendeeId, paid) => {
+    const e = find(eventId);
+    if (!e) return;
+    const attendees = e.attendees.map((a) => {
+      if (a.id !== attendeeId) return a;
+      const next = { ...a, paid };
+      if (paid === "paid") next.paidAt = Date.now();
+      else delete next.paidAt;
+      return next;
+    });
+    const bookingRef = doc(db, "accounts", uid, "events", eventId, "costs", `booking-${eventId}`);
+    const booking = await getDoc(bookingRef);
+    const batch = writeBatch(db);
+    batch.update(eventRef(eventId), { attendees });
+    if (booking.exists()) batch.update(bookingRef, { [`paid.${attendeeId}`]: paid === "paid" });
+    await batch.commit();
+  };
 
   const kick = async (eventId, attendeeId) => {
     const e = find(eventId);

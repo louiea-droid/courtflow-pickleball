@@ -38,6 +38,7 @@ import Settings from "./views/Settings";
 // settings, there is no Settings tab, and End game keeps all data.
 export default function QueueApp({
   base, kind = "quick", deriveSession, eyebrow, backLabel, onBack, onHome, onEndSession, onErase,
+  onSetAttendeePaid,
 }) {
   const at = (...rest) => doc(db, ...base, ...rest);
   const col = (name) => collection(db, ...base, name);
@@ -45,6 +46,7 @@ export default function QueueApp({
   const { session: rawSession, players, courts, busy } = useSessionData(base);
   const session = deriveSession ? deriveSession(rawSession) : rawSession;
   const noun = kind === "event" ? "game" : "session";
+  const isEventGame = kind === "event";
   const costs = useCosts(base);
   const matchLog = useMatchLog(base);
   const [showPlayer, setShowPlayer] = useState(false);
@@ -576,11 +578,12 @@ export default function QueueApp({
     notify("Session updated.");
   }
 
-  async function addCostEntry({ label, rate, hours, courts: courtCount, playerIds }) {
+  async function addCostEntry({ label, rate, hours, courts: courtCount, playerIds, perPerson }) {
     const total = Math.round(rate * hours * courtCount * 100) / 100;
-    const perPerson = splitCost(total, playerIds.length, costDefaults.roundTo);
     await addDoc(col("costs"), {
-      label: label || "Court", rate, hours, courts: courtCount, total, perPerson, playerIds,
+      label: label || "Court", rate, hours, courts: courtCount, total,
+      perPerson: perPerson ?? splitCost(total, playerIds.length, costDefaults.roundTo),
+      playerIds,
       paid: Object.fromEntries(playerIds.map((id) => [id, false])),
       visibleOnLive: false,
       createdAt: Date.now(),
@@ -699,6 +702,11 @@ export default function QueueApp({
             <Cost
               players={players} costs={costs} onAdd={addCostEntry} costDefaults={costDefaults}
               onTogglePaid={toggleCostPaid} onToggleLive={toggleCostLive} onDelete={deleteCostEntry}
+              isOpenPlay={isEventGame}
+              attendees={isEventGame ? session.attendees || [] : []}
+              eventFee={isEventGame ? session.fee || 0 : 0}
+              maxPlayers={isEventGame ? session.maxPlayers : undefined}
+              onSetAttendeePaid={isEventGame ? onSetAttendeePaid : undefined}
             />
           )}
           {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={kind === "quick" ? base[1] : null} format={session.format} />}

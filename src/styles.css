@@ -219,12 +219,18 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .view{animation:fadeSlideUp .35s var(--ease) both}
 
 /* ---------- Dashboard ---------- */
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px 13px;transition:box-shadow .2s ease,transform .2s ease}
 .stat:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
 .stat span,.stat small{display:block;font-size:10px;color:var(--faint);letter-spacing:.09em;font-weight:800}
 .stat b{font:700 24px "Space Grotesk";display:block;margin:2px 0}
 .stat small{letter-spacing:0;font-size:11px;font-weight:500}
+.stat-leader-list{display:grid;gap:3px;margin-top:5px}
+.stat .stat-leader-row{display:flex;align-items:center;gap:6px;min-width:0}
+.stat .leaderboard-rank{flex:0 0 13px;font:700 11px "Space Grotesk";margin:0;color:var(--accent)}
+.stat .leaderboard-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-size:11px;font-weight:600;letter-spacing:0}
+.stat .leaderboard-win-pct{flex-shrink:0;margin-left:auto;color:var(--muted);font-size:10px;font-weight:600}
+.stat .leaderboard-empty{font-size:11px;letter-spacing:0;font-weight:500}
 
 .heading,.panelhead{display:flex;justify-content:space-between;gap:13px;align-items:flex-start}
 .panelhead>div:first-child{min-width:0}
@@ -537,6 +543,17 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 /* ---------- Cost splitting ---------- */
 .cost-form{margin-bottom:20px}
 .cost-calc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.open-play-fees{margin-bottom:20px}
+.open-play-fee-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 18px}
+.open-play-fee-summary>div{display:grid;gap:3px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.open-play-fee-summary span{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
+.open-play-fee-summary b{font:700 20px "Space Grotesk";color:var(--ink)}
+.open-play-fee-summary small{font-size:11px;color:var(--muted)}
+.open-play-fee-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line-soft)}
+.open-play-fee-row:last-child{border-bottom:0}
+.open-play-fees .booking-block{margin-bottom:16px}
+.open-play-fees .booking-block:last-child{margin-bottom:0}
+.open-play-fees .pill{min-height:44px}
 .cost-select-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:-4px}
 .cost-select-head label{margin:0}
 .cost-select-head .text{padding:2px}
@@ -869,6 +886,8 @@ form.confirm-modal .modalactions{margin-top:4px}
   main{padding:24px}
   .courts,.lower{grid-template-columns:1fr}
   .playergrid{grid-template-columns:repeat(2,1fr)}
+  .cards{grid-template-columns:repeat(4,1fr)}
+  .stat-leaderboard{grid-column:1/-1}
 }
 
 @media(max-width:760px){
@@ -1214,6 +1233,8 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 @media(max-width:560px){
   .acct-bar{flex-wrap:wrap}
   .acct-bar nav{order:3;width:100%}
+  .open-play-fee-row{grid-template-columns:minmax(0,1fr) auto}
+  .open-play-fee-row>.pill{grid-column:1/-1;width:100%}
 }
 .account-group[hidden]{display:none}
 .event-row{text-decoration:none;color:inherit}

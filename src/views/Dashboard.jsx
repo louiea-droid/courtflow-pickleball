@@ -7,7 +7,7 @@ import StarDisplay from "../components/StarDisplay";
 import CourtLevelSelect from "../components/CourtLevelSelect";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ElapsedTimer from "../components/ElapsedTimer";
-import { waitMinutes } from "../utils/format";
+import { rankPlayers, waitMinutes, winPct } from "../utils/format";
 import { matchesCourtLevel } from "../utils/courtLevels";
 import { CircleAlert } from "lucide-react";
 import { hasGender, selectForCourt, splitTeams } from "../utils/rotationModes";
@@ -348,6 +348,7 @@ export default function Dashboard({
   const mixed = mode === "Mixed Doubles";
   const noGender = mixed ? players.filter((p) => p.checked && !hasGender(p)) : [];
   const hasOpenCourt = courts.some((c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0);
+  const topPlayers = rankPlayers(players).slice(0, 3);
 
   // Reserve consecutive, non-overlapping, level-matched slices of the queue:
   // first for any open courts (shown inline via "Start Next Match"), then one
@@ -390,6 +391,18 @@ export default function Dashboard({
         <Stat n={players.filter((p) => p.checked).length} l="CHECKED IN" s="checked in" />
         <Stat n={queue.length} l="WAITING" s="in queue" />
         <Stat n={courts.length} l="COURTS" s="active courts" />
+        <div className="stat stat-leaderboard">
+          <span>TOP PLAYERS</span>
+          <div className="stat-leader-list">
+            {topPlayers.length ? topPlayers.map((p, i) => (
+              <div className="stat-leader-row" key={p.id}>
+                <b className="leaderboard-rank">{i + 1}</b>
+                <span className="leaderboard-name">{p.name}</span>
+                <small className="leaderboard-win-pct">{winPct(p)}%</small>
+              </div>
+            )) : <small className="leaderboard-empty">No players yet</small>}
+          </div>
+        </div>
       </div>
 
       <div className="heading">

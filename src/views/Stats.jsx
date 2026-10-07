@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Download, ChevronDown } from "lucide-react";
 import PanelHead from "../components/PanelHead";
 import PersonBadge from "../components/PersonBadge";
-import { winPct, formatDate } from "../utils/format";
+import { winPct, formatDate, rankPlayers } from "../utils/format";
 import { useSessionHistory } from "../hooks/useSessionHistory";
 import { matchCount } from "../utils/stats";
 
 function PastSession({ entry }) {
   const [open, setOpen] = useState(false);
-  const ranked = [...entry.players].sort((a, b) => winPct(b) - winPct(a) || b.wins - a.wins);
+  const ranked = rankPlayers(entry.players);
   const top = ranked[0];
 
   return (
@@ -47,7 +47,7 @@ export default function Stats({ players, exportCsv, sessionId, format }) {
   const avg = players.length
     ? (players.reduce((n, p) => n + p.games, 0) / players.length).toFixed(1)
     : 0;
-  const ranked = [...players].sort((a, b) => winPct(b) - winPct(a) || b.wins - a.wins);
+  const ranked = rankPlayers(players);
   const history = useSessionHistory(sessionId);
 
   return (

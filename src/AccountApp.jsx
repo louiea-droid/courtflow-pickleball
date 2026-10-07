@@ -129,7 +129,7 @@ export default function AccountApp() {
       <Suspense fallback={<div className="loading"><span className="spinner" />Loading…</div>}>
         <Game
           uid={uid} account={acct.account} event={events.find((e) => e.id === eventId)} ready={eventsReady}
-          navigate={navigate} endGame={endGame}
+          navigate={navigate} endGame={endGame} onSetAttendeePaid={actions.setPaid}
         />
       </Suspense>
     );
