@@ -7,8 +7,11 @@ import { applyDisplayPrefs, splitCost, winPct } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import { matchCount } from "./utils/stats";
 import { matchesCourtLevel } from "./utils/courtLevels";
-import { selectForCourt, selectToJoin, splitTeams } from "./utils/rotationModes";
-import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES } from "./data/constants";
+import {
+  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, selectToJoin,
+  shouldWinnersStay, splitTeams,
+} from "./utils/rotationModes";
+import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES, normalizeMode } from "./data/constants";
 import { useSessionData } from "./hooks/useSessionData";
 import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
@@ -59,8 +62,13 @@ export default function QueueApp({
     localStorage.setItem("cf-sidebar-collapsed", collapsed ? "1" : "0");
   }, [collapsed]);
 
-  const autoRotateOn = session.autoRotate !== false;
-  const mode = session.mode || session.rotation || "Balanced";
+  const mode = normalizeMode(session.mode || session.rotation) || "Balanced";
+  const mixed = mode === "Mixed Doubles";
+  // Mixed Doubles teams are one man and one woman. Singles has no teams, so no pairing rule.
+  const mixedTeams = mixed && session.format !== "Singles";
+  // Custom: the host builds every match, so nothing rotates by itself.
+  const autoRotateOn = session.autoRotate !== false && mode !== "Custom";
+  const playersOf = (ids) => (ids || []).map((x) => players.find((q) => q.id === x)).filter(Boolean);
   const rules = { ...DEFAULT_RULES, ...session.rules };
   const costDefaults = { ...DEFAULT_COST, ...session.costDefaults };
   const live = { ...DEFAULT_LIVE, ...session.live };
@@ -110,6 +118,10 @@ export default function QueueApp({
   async function updatePlayerInfo(id, data) {
     const { lockedWithId, ...fields } = data;
     const current = players.find((p) => p.id === id);
+    if (lockedWithId) {
+      const problem = mixed && lockProblem({ ...current, ...fields }, players.find((p) => p.id === lockedWithId), mode);
+      if (problem) return notify(problem, 4500);
+    }
     const batch = writeBatch(db);
     batch.update(at("players", id), fields);
     if (lockedWithId !== undefined && (lockedWithId || null) !== (current?.lockedWithId || null)) {
@@ -163,12 +175,22 @@ export default function QueueApp({
   async function callPlayer(id) {
     const need = session.format === "Singles" ? 2 : 4;
     const p = players.find((x) => x.id === id);
+    if (mixedTeams && !hasGender(p)) {
+      return notify(`${p?.name || "This player"} has no gender set. Set it first to play Mixed Doubles.`, 4500);
+    }
+    const sideOn = (x) => (mixedTeams ? mixedSideFor(p, playersOf(x.teamA), playersOf(x.teamB)) : null);
     const c = courts.find((x) => (x.teamA?.length || 0) + (x.teamB?.length || 0) < need
-      && matchesCourtLevel(p?.skill, x.level));
-    if (!c) return notify("No open court matches this player's level.");
+      && matchesCourtLevel(p?.skill, x.level) && (!mixedTeams || sideOn(x)));
+    if (!c) {
+      return notify(mixedTeams
+        ? "No open court has a team that needs this player's gender."
+        : "No open court matches this player's level.");
+    }
     const wasEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
     const a = [...(c.teamA || [])], b = [...(c.teamB || [])];
-    if (need === 2) { if (!a.length) a.push(id); else b.push(id); }
+    const side = sideOn(c);
+    if (side) (side === "A" ? a : b).push(id);
+    else if (need === 2) { if (!a.length) a.push(id); else b.push(id); }
     else if (a.length < 2) a.push(id);
     else b.push(id);
     await updateDoc(at("courts", c.id), {
@@ -191,6 +213,10 @@ export default function QueueApp({
     const player = players.find((p) => p.id === id);
     const key = team === "A" ? "teamA" : "teamB";
     const destTeamIds = new Set(c[key] || []);
+    if (mixedTeams) {
+      const fit = mixedTeamAccepts(player, playersOf(c[key]));
+      if (!fit.ok) return notify(fit.reason, 4500);
+    }
     // A locked pair must land on the same team — block if the partner isn't
     // already seated on this specific side (whether they're unseated or, worse,
     // seated on the opposing team, which would split the lock).
@@ -226,6 +252,10 @@ export default function QueueApp({
     if (newPlayer?.lockedWithId && !destTeamIds.has(newPlayer.lockedWithId)) {
       return notify(`${newPlayer.name} is locked in with ${nameOf(newPlayer.lockedWithId)} — can't add them without their partner on this team.`, 4000);
     }
+    if (mixedTeams) {
+      const fit = mixedTeamAccepts(newPlayer, playersOf((inTeamA ? c.teamA : c.teamB).filter((x) => x !== oldId)));
+      if (!fit.ok) return notify(fit.reason, 4500);
+    }
     const teamA = inTeamA ? c.teamA.map((x) => (x === oldId ? newId : x)) : c.teamA;
     const teamB = !inTeamA ? c.teamB.map((x) => (x === oldId ? newId : x)) : c.teamB;
     const batch = writeBatch(db);
@@ -240,6 +270,10 @@ export default function QueueApp({
   async function setPlayerLock(id, newPartnerId) {
     const current = players.find((p) => p.id === id);
     if (!current) return;
+    if (newPartnerId) {
+      const problem = mixed && lockProblem(current, players.find((p) => p.id === newPartnerId), mode);
+      if (problem) return notify(problem, 4500);
+    }
     const batch = writeBatch(db);
     applyLockChange(batch, current, newPartnerId || null);
     await batch.commit();
@@ -258,6 +292,16 @@ export default function QueueApp({
 
   async function changeMode(newMode) {
     await updateDoc(at(), { mode: newMode });
+    if (newMode === "Mixed Doubles") {
+      const badLocks = mixedLockProblems(players).length;
+      const noGender = players.filter((p) => p.checked && !hasGender(p)).length;
+      const notes = [
+        badLocks && `${badLocks} saved lock${badLocks === 1 ? "" : "s"} pair the same gender and will be ignored`,
+        noGender && `${noGender} checked-in player${noGender === 1 ? " has" : "s have"} no gender set and won't be picked`,
+      ].filter(Boolean);
+      return notify(notes.length ? `Mode set to Mixed Doubles. ${notes.join("; ")}.` : "Mode set to Mixed Doubles.", notes.length ? 7000 : 2200);
+    }
+    if (newMode === "Custom") return notify("Custom: nothing is picked automatically. Add players to courts yourself.", 5000);
     notify(`Mode set to ${newMode}.`);
   }
 
@@ -377,7 +421,9 @@ export default function QueueApp({
           const { taken, remaining } = selectToJoin({ pool, court: c, seated, mode, need: openSlots });
           pool = remaining;
           taken.forEach((p) => {
-            if (need === 2) { if (!teamA.length) teamA.push(p.id); else teamB.push(p.id); }
+            const side = mixedTeams ? mixedSideFor(p, playersOf(teamA), playersOf(teamB)) : null;
+            if (side) (side === "A" ? teamA : teamB).push(p.id);
+            else if (need === 2) { if (!teamA.length) teamA.push(p.id); else teamB.push(p.id); }
             else if (teamA.length < 2) teamA.push(p.id);
             else teamB.push(p.id);
             filledAny = true;
@@ -442,7 +488,8 @@ export default function QueueApp({
     const sameTeam = (c.stayingIds || []).length === winners.length
       && winners.every((id) => c.stayingIds.includes(id));
     const streak = sameTeam ? (c.winStreak || 0) + 1 : 1;
-    const stay = rules.winnersStay && winners.length > 0 && streak < rules.maxWinStreak;
+    const stay = shouldWinnersStay({ rules, mode, streak, winners });
+    const capped = winners.length > 0 && !stay && streak >= rules.maxWinStreak && (rules.winnersStay || mode === "Winners / Losers");
     if (stay) {
       const challengers = autoRotateOn
         ? selectToJoin({
@@ -470,7 +517,9 @@ export default function QueueApp({
       notify(`Result on Court ${c.courtNumber} undone.`);
     };
     notify(
-      stay ? `Winners stay on Court ${c.courtNumber} (${streak} in a row).` : `Court ${c.courtNumber} rotated.`,
+      stay ? `Winners stay on Court ${c.courtNumber} (${streak} in a row).`
+        : capped ? `Court ${c.courtNumber}: ${streak} wins in a row, so the winners rest at the back of the queue.`
+          : `Court ${c.courtNumber} rotated.`,
       10000, { label: "Undo", run: undoResult },
     );
   }
@@ -640,11 +689,11 @@ export default function QueueApp({
               goQueue={() => setTab("queue")} />
           )}
           {tab === "queue" && (
-            <Queue queue={queue} notCheckedIn={notCheckedIn} players={players}
+            <Queue queue={queue} notCheckedIn={notCheckedIn} players={players} mixed={mixed}
               onCall={callPlayer} onCheckOut={checkOutPlayer} onCheckIn={checkInPlayer} onSetLock={setPlayerLock} />
           )}
           {tab === "players" && (
-            <Players players={players} onEdit={setEditingPlayer} onDelete={deletePlayer} />
+            <Players players={players} mixed={mixed} onEdit={setEditingPlayer} onDelete={deletePlayer} />
           )}
           {tab === "cost" && (
             <Cost
@@ -675,6 +724,7 @@ export default function QueueApp({
           <PlayerModal
             player={editingPlayer}
             players={players}
+            mode={mode}
             close={() => { setShowPlayer(false); setEditingPlayer(null); }}
             submit={editingPlayer ? (data) => updatePlayerInfo(editingPlayer.id, data) : addPlayer}
           />

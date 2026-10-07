@@ -3,7 +3,7 @@ import { Pencil, Plus, Trash2, Check, X, KeyRound, RefreshCw } from "lucide-reac
 import ChangePasswordDialog from "../components/ChangePasswordDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Select from "../components/Select";
-import { ACCENT_PRESETS, MODE_SELECT_OPTIONS, TEAM_PRESETS } from "../data/constants";
+import { ACCENT_PRESETS, MODE_SELECT_OPTIONS, TEAM_PRESETS, normalizeMode } from "../data/constants";
 import { money } from "../utils/format";
 import { readableOn } from "../utils/theme";
 
@@ -199,7 +199,7 @@ export default function Settings({
           </SettingsRow>
           <SettingsRow title="Mode" body="How the queue picks players when a new session starts. You can still switch it from the sidebar.">
             <div className="account-select">
-              <Select value={defaults.mode} onChange={(mode) => setDefault({ mode })} options={MODE_SELECT_OPTIONS} />
+              <Select value={normalizeMode(defaults.mode)} onChange={(mode) => setDefault({ mode })} options={MODE_SELECT_OPTIONS} />
             </div>
           </SettingsRow>
         </div>
@@ -222,13 +222,14 @@ export default function Settings({
               />
             </div>
           </SettingsRow>
-          {rules.winnersStay && (
-            <SettingsRow title="Winners come off after" body="Caps how long one team can hold a court so everyone gets games.">
-              <div className="account-select">
-                <Select value={rules.maxWinStreak} onChange={(maxWinStreak) => onSetRules({ maxWinStreak })} options={STREAK_OPTIONS} />
-              </div>
-            </SettingsRow>
-          )}
+          <SettingsRow
+            title="Wins in a row before resting"
+            body="A winning team holds its court until it has won this many in a row, then goes to the back of the queue. Winners / Losers mode always uses this; other modes use it when winners stay on."
+          >
+            <div className="account-select">
+              <Select value={rules.maxWinStreak} onChange={(maxWinStreak) => onSetRules({ maxWinStreak })} options={STREAK_OPTIONS} />
+            </div>
+          </SettingsRow>
           <SettingsRow
             title="Avoid repeat partners"
             body="Pairs each foursome so nobody teams up with a recent partner. Balanced mode always does this; Mixed Doubles keeps its own pairing."

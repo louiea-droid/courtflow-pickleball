@@ -9,7 +9,9 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import ElapsedTimer from "../components/ElapsedTimer";
 import { waitMinutes } from "../utils/format";
 import { matchesCourtLevel } from "../utils/courtLevels";
-import { selectForCourt, splitTeams } from "../utils/rotationModes";
+import { CircleAlert } from "lucide-react";
+import { hasGender, selectForCourt, splitTeams } from "../utils/rotationModes";
+import { normalizeMode } from "../data/constants";
 
 // Closes an open swap menu when clicking/tapping outside the given
 // container, or pressing Escape — mirrors the same pattern used by the
@@ -107,7 +109,15 @@ function Team({ label, color, ids, openSlots, players, queue, swapOpenId, onSwap
   );
 }
 
-function CourtEmpty({ need, upNext, queueLength, onStartNext }) {
+function CourtEmpty({ need, upNext, queueLength, onStartNext, manual }) {
+  if (manual) {
+    return (
+      <div className="court-empty">
+        <div className="court-empty-icon"><Play size={16} /></div>
+        <p>Custom mode: build this match yourself. Use Call on the Queue tab to put players on this court.</p>
+      </div>
+    );
+  }
   const ready = upNext.length >= need;
   let message = "Court is open. Ready to start the next match.";
   if (!ready) {
@@ -161,7 +171,7 @@ function CourtTitle({ court, onRename }) {
   return <b className="court-name" title="Click to rename" onClick={startEdit}>{displayName}</b>;
 }
 
-function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, onStartNext, onSetLevel, onRemoveCourt, canRemove, onRenameCourt, alertAfterMin }) {
+function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, onStartNext, onSetLevel, onRemoveCourt, canRemove, onRenameCourt, alertAfterMin, manual }) {
   const [swapOpen, setSwapOpen] = useState(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const teamsRef = useRef(null);
@@ -195,7 +205,7 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, 
         />
       )}
       {isEmpty ? (
-        <CourtEmpty need={need} upNext={upNext} queueLength={queue.length} onStartNext={() => onStartNext(c.id)} />
+        <CourtEmpty need={need} upNext={upNext} queueLength={queue.length} manual={manual} onStartNext={() => onStartNext(c.id)} />
       ) : (
         <>
           <div className="teams" ref={teamsRef}>
@@ -333,7 +343,10 @@ export default function Dashboard({
   onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue, rules,
 }) {
   const need = session.format === "Singles" ? 2 : 4;
-  const mode = session.mode || session.rotation || "Balanced";
+  const mode = normalizeMode(session.mode || session.rotation) || "Balanced";
+  const manual = mode === "Custom";
+  const mixed = mode === "Mixed Doubles";
+  const noGender = mixed ? players.filter((p) => p.checked && !hasGender(p)) : [];
   const hasOpenCourt = courts.some((c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0);
 
   // Reserve consecutive, non-overlapping, level-matched slices of the queue:
@@ -363,6 +376,15 @@ export default function Dashboard({
 
   return (
     <>
+      {noGender.length > 0 && (
+        <div className="warning gender-banner" role="alert">
+          <CircleAlert size={16} />
+          <span>
+            {noGender.length === 1 ? "1 player has" : `${noGender.length} players have`} no gender set and won't be picked in Mixed Doubles
+            ({noGender.map((p) => p.name).join(", ")}). Set it from the Players tab.
+          </span>
+        </div>
+      )}
       <div className="cards">
         <Stat n={players.length} l="PLAYERS" s="total players" />
         <Stat n={players.filter((p) => p.checked).length} l="CHECKED IN" s="checked in" />
@@ -371,19 +393,23 @@ export default function Dashboard({
       </div>
 
       <div className="heading">
-        <div><h2>Live Courts</h2><p>Record a winner to rotate the completed players.</p></div>
+        <div><h2>Live Courts</h2><p>{manual ? "Custom mode: record a winner to clear the court, then build the next match yourself." : "Record a winner to rotate the completed players."}</p></div>
         <div className="heading-actions">
           <button className="outline" onClick={onAddCourt} disabled={courts.length >= 8}>
             <Plus size={14} /> Add Court
           </button>
-          <button className="outline" onClick={onAutoFill}><Zap size={14} /> Auto-fill</button>
-          <button
-            className={`pill toggle ${autoRotateOn ? "" : "off"}`}
-            onClick={onToggleAutoRotate}
-            title="Toggle automatic queue rotation on court wins"
-          >
-            {autoRotateOn ? "●" : "○"} Auto<span className="label-full">-rotation</span> {autoRotateOn ? "ON" : "OFF"}
-          </button>
+          {!manual && (
+            <>
+              <button className="outline" onClick={onAutoFill}><Zap size={14} /> Auto-fill</button>
+              <button
+                className={`pill toggle ${autoRotateOn ? "" : "off"}`}
+                onClick={onToggleAutoRotate}
+                title="Toggle automatic queue rotation on court wins"
+              >
+                {autoRotateOn ? "●" : "○"} Auto<span className="label-full">-rotation</span> {autoRotateOn ? "ON" : "OFF"}
+              </button>
+            </>
+          )}
         </div>
       </div>
       <div className="courts">
@@ -391,11 +417,11 @@ export default function Dashboard({
           <Court key={c.id} c={c} players={players} queue={queue} need={need} upNext={upNext}
             win={recordWin} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={onStartNext} onSetLevel={onSetCourtLevel}
             onRemoveCourt={onRemoveCourt} canRemove={courts.length > 1} onRenameCourt={onRenameCourt}
-            alertAfterMin={rules.gameAlertMinutes} />
+            alertAfterMin={rules.gameAlertMinutes} manual={manual} />
         ))}
       </div>
 
-      {upcomingPreviews.length > 0 && (
+      {upcomingPreviews.length > 0 && !manual && (
         <>
           <div className="heading">
             <div><h2>Up Next</h2><p>Preview of who rotates onto each court next.</p></div>
@@ -415,7 +441,7 @@ export default function Dashboard({
           {queue.slice(0, 4).map((p, i) => (
             <div className="next" key={p.id}>
               <strong>{i + 1}</strong>
-              <PersonBadge name={p.name}>
+              <PersonBadge name={p.name} warn={mixed && !hasGender(p) ? "Set gender to play Mixed Doubles" : null}>
                 <div className="next-meta">
                   <StarDisplay value={p.skill} />
                   <span className="queue-stat games">{p.games} <small>games</small></span>

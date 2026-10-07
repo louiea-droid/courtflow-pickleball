@@ -2,6 +2,7 @@ import { useState } from "react";
 import Modal from "./Modal";
 import Select from "./Select";
 import StarRating from "./StarRating";
+import { hasGender, lockProblem } from "../utils/rotationModes";
 
 const GENDER_OPTIONS = [
   { value: "", label: "Not specified" },
@@ -9,7 +10,7 @@ const GENDER_OPTIONS = [
   { value: "F" },
 ];
 
-export default function PlayerModal({ close, submit, player, players = [] }) {
+export default function PlayerModal({ close, submit, player, players = [], mode }) {
   const isEdit = Boolean(player);
   const [name, setName] = useState(player?.name || "");
   const [skill, setSkill] = useState(player?.skill || 0);
@@ -18,6 +19,9 @@ export default function PlayerModal({ close, submit, player, players = [] }) {
   const [lockedWithId, setLockedWithId] = useState(player?.lockedWithId || "");
   const [submitting, setSubmitting] = useState(false);
 
+  // Mixed Doubles only locks a man with a woman: others are listed but can't be picked.
+  const mixed = mode === "Mixed Doubles";
+  const me = { name: name.trim() || player?.name, gender };
   const lockOptions = [
     { value: "", label: "No one (unlocked)" },
     ...players
@@ -27,8 +31,13 @@ export default function PlayerModal({ close, submit, player, players = [] }) {
         label: p.lockedWithId && p.lockedWithId !== player?.id
           ? `${p.name} (locked with ${players.find((x) => x.id === p.lockedWithId)?.name || "someone"})`
           : p.name,
+        ...(mixed && lockProblem(me, p, mode)
+          ? { disabled: true, tag: hasGender(me) && hasGender(p) ? "Same gender" : "No gender" }
+          : {}),
       })),
   ];
+  const partner = players.find((p) => p.id === lockedWithId);
+  const lockWarning = mixed && partner ? lockProblem(me, partner, mode) : null;
 
   return (
     <Modal title={isEdit ? "Edit Player" : "Add Player"} label={isEdit ? "PLAYER INFO" : "CHECK-IN"} close={close}>
@@ -37,10 +46,14 @@ export default function PlayerModal({ close, submit, player, players = [] }) {
           e.preventDefault();
           if (submitting || !name.trim()) return;
           setSubmitting(true);
-          await submit({
-            name: name.trim(), skill: +skill, gender, checked,
-            ...(isEdit ? { lockedWithId: lockedWithId || null } : {}),
-          });
+          try {
+            await submit({
+              name: name.trim(), skill: +skill, gender, checked,
+              ...(isEdit ? { lockedWithId: lockedWithId || null } : {}),
+            });
+          } finally {
+            setSubmitting(false);
+          }
         }}
       >
         <label>
@@ -73,9 +86,11 @@ export default function PlayerModal({ close, submit, player, players = [] }) {
             <Select value={lockedWithId} onChange={setLockedWithId} options={lockOptions} />
           </label>
         )}
+        {isEdit && mixed && !lockWarning && <p className="modal-note">Mixed Doubles: lock a man with a woman only.</p>}
+        {lockWarning && <p className="modal-note warn" role="alert">{lockWarning}</p>}
         <div className="modalactions">
           <button type="button" className="outline" onClick={close}>Cancel</button>
-          <button className="primary" disabled={submitting}>
+          <button className="primary" disabled={submitting || Boolean(lockWarning)}>
             {isEdit ? "Save Changes" : "Add Player"}
           </button>
         </div>

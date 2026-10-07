@@ -219,12 +219,12 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .view{animation:fadeSlideUp .35s var(--ease) both}
 
 /* ---------- Dashboard ---------- */
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:27px}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px;transition:box-shadow .2s ease,transform .2s ease}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px 13px;transition:box-shadow .2s ease,transform .2s ease}
 .stat:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
 .stat span,.stat small{display:block;font-size:10px;color:var(--faint);letter-spacing:.09em;font-weight:800}
-.stat b{font:700 28px "Space Grotesk";display:block;margin:3px 0}
-.stat small{letter-spacing:0;font-size:12px;font-weight:500}
+.stat b{font:700 24px "Space Grotesk";display:block;margin:2px 0}
+.stat small{letter-spacing:0;font-size:11px;font-weight:500}
 
 .heading,.panelhead{display:flex;justify-content:space-between;gap:13px;align-items:flex-start}
 .panelhead>div:first-child{min-width:0}
@@ -1236,3 +1236,9 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .pick-row b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:14px}
 .pick-tags{display:flex;gap:6px;flex-shrink:0}
 .pick-head{padding:8px 12px;border-bottom:1px solid var(--line);font:700 12px "Space Grotesk";color:var(--muted)}
+.gender-warn{display:inline-flex;vertical-align:-2px;margin-left:5px;color:var(--warn)}
+.lock-chip.bad{color:var(--warn-ink)}
+.playercard em.locked.bad{background:var(--warn-soft);color:var(--warn-ink)}
+.modal-note.warn{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn-ink)}
+.gender-banner{display:flex;align-items:flex-start;gap:8px;margin-bottom:12px}
+.gender-banner svg{flex-shrink:0;margin-top:2px;color:var(--warn)}

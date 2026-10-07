@@ -3,11 +3,17 @@ import { Link2 } from "lucide-react";
 import PersonBadge from "../components/PersonBadge";
 import StarDisplay from "../components/StarDisplay";
 import { waitMinutes, formatTime } from "../utils/format";
+import { hasGender, validLock } from "../utils/rotationModes";
 
-export default function Queue({ queue, notCheckedIn, players, onCall, onCheckOut, onCheckIn, onSetLock }) {
+const NO_GENDER = "Set gender to play Mixed Doubles";
+
+export default function Queue({ queue, notCheckedIn, players, mixed, onCall, onCheckOut, onCheckIn, onSetLock }) {
   const [pendingLockId, setPendingLockId] = useState(null);
   const nameOf = (id) => players?.find((p) => p.id === id)?.name || "player";
   const pendingName = pendingLockId ? nameOf(pendingLockId) : null;
+  const warnOf = (p) => (mixed && !hasGender(p) ? NO_GENDER : null);
+  // A saved lock the Mixed Doubles rule ignores (two men, two women, or no gender set).
+  const badLock = (p) => mixed && p.lockedWithId && !validLock(p, players?.find((q) => q.id === p.lockedWithId), "Mixed Doubles");
 
   const handleLockClick = (p) => {
     if (p.lockedWithId) {
@@ -29,7 +35,7 @@ export default function Queue({ queue, notCheckedIn, players, onCall, onCheckOut
     <>
       {pendingLockId && (
         <div className="section-hint lock-hint">
-          Choose who to lock in with <b>{pendingName}</b>.{" "}
+          Choose who to lock in with <b>{pendingName}</b>.{mixed && " Mixed Doubles: pick the opposite gender."}{" "}
           <button className="linklike" onClick={() => setPendingLockId(null)}>Cancel</button>
         </div>
       )}
@@ -40,9 +46,11 @@ export default function Queue({ queue, notCheckedIn, players, onCall, onCheckOut
         {queue.map((p, i) => (
           <div className="row" key={p.id} style={{ animationDelay: `${Math.min(i, 10) * 30}ms` }}>
             <span>{i + 1}</span>
-            <PersonBadge name={p.name}>
+            <PersonBadge name={p.name} warn={warnOf(p)}>
               {p.lockedWithId && (
-                <small className="lock-chip"><Link2 size={11} /> <span>{nameOf(p.lockedWithId)}</span></small>
+                <small className={`lock-chip${badLock(p) ? " bad" : ""}`} title={badLock(p) ? "Ignored in Mixed Doubles: lock a man with a woman" : undefined}>
+                  <Link2 size={11} /> <span>{nameOf(p.lockedWithId)}{badLock(p) ? " (ignored)" : ""}</span>
+                </small>
               )}
               <span className="row-meta">
                 <StarDisplay value={p.skill} />
@@ -79,7 +87,7 @@ export default function Queue({ queue, notCheckedIn, players, onCall, onCheckOut
       <div className="panel checkin-list">
         {notCheckedIn.map((p, i) => (
           <div className="checkin-item" key={p.id} style={{ animationDelay: `${Math.min(i, 10) * 30}ms` }}>
-            <PersonBadge name={p.name} skill={p.skill} />
+            <PersonBadge name={p.name} skill={p.skill} warn={warnOf(p)} />
             <button className="tiny accent" onClick={() => onCheckIn(p.id)}>Check In</button>
           </div>
         ))}

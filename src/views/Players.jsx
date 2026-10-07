@@ -1,14 +1,16 @@
 import { Pencil, Trash2, Link2 } from "lucide-react";
 import PersonBadge from "../components/PersonBadge";
 import { winPct } from "../utils/format";
+import { hasGender, validLock } from "../utils/rotationModes";
 
-export default function Players({ players, onEdit, onDelete }) {
+export default function Players({ players, mixed, onEdit, onDelete }) {
   const handleDelete = (p) => {
     if (window.confirm(`Remove ${p.name} from the roster? This cannot be undone.`)) {
       onDelete(p.id);
     }
   };
   const nameOf = (id) => players.find((p) => p.id === id)?.name;
+  const badLock = (p) => mixed && p.lockedWithId && !validLock(p, players.find((q) => q.id === p.lockedWithId), "Mixed Doubles");
 
   return (
     <>
@@ -17,7 +19,7 @@ export default function Players({ players, onEdit, onDelete }) {
           {players.map((p, i) => (
             <div className="playercard" key={p.id} style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}>
               <div className="playercard-head">
-                <PersonBadge name={p.name} skill={p.skill} size="lg" />
+                <PersonBadge name={p.name} skill={p.skill} size="lg" warn={mixed && !hasGender(p) ? "Set gender to play Mixed Doubles" : null} />
                 <div className="playercard-actions">
                   <button className="icon" title="Edit player" onClick={() => onEdit(p)}><Pencil size={14} /></button>
                   <button className="icon danger" title="Remove player" onClick={() => handleDelete(p)}><Trash2 size={14} /></button>
@@ -31,7 +33,9 @@ export default function Players({ players, onEdit, onDelete }) {
               <div className="playercard-badges">
                 <em className="status">{p.checked ? "Checked in" : "Checked out"}</em>
                 {p.lockedWithId && (
-                  <em className="locked"><Link2 size={11} /> Locked with {nameOf(p.lockedWithId) || "player"}</em>
+                  <em className={`locked${badLock(p) ? " bad" : ""}`}>
+                    <Link2 size={11} /> Locked with {nameOf(p.lockedWithId) || "player"}{badLock(p) ? " (ignored in Mixed Doubles)" : ""}
+                  </em>
                 )}
               </div>
             </div>

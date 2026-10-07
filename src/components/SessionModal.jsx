@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Modal from "./Modal";
 import Select from "./Select";
-import { MODE_SELECT_OPTIONS } from "../data/constants";
+import { MODE_SELECT_OPTIONS, normalizeMode } from "../data/constants";
 
 // `session` = edit that session. For a new one, `clubName` and the club's
 // saved `defaults` (Settings → Session defaults) pre-fill the form.
@@ -10,7 +10,7 @@ export default function SessionModal({ close, submit, session, clubName, default
   const [location, setLocation] = useState(session?.location || clubName || "Centro Pickle Club");
   const [courts, setCourts] = useState(session?.courts || defaults?.courts || 2);
   const [format, setFormat] = useState(session?.format || defaults?.format || "Doubles");
-  const [mode, setMode] = useState(session?.mode || session?.rotation || defaults?.mode || "Balanced");
+  const [mode, setMode] = useState(normalizeMode(session?.mode || session?.rotation || defaults?.mode) || "Balanced");
 
   return (
     <Modal title={isEdit ? "Edit Club" : "New Open Play"} label="SESSION SETUP" close={close}>
