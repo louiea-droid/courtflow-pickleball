@@ -28,7 +28,7 @@ The queue app already does everything; it is only tied to the path `sessions/{id
 
 ## Data
 
-No new collections and **no rules changes**: `accounts/{uid}/events/**` is already public to read and owner-only to write, and the subcollections inherit that. The rules test gains cases that pin it (owner can write `players`, `courts`, `matchLog`, `costs` under an event; a stranger can read but not write; a stranger cannot read `roster`).
+No new collections and **no rules changes**. Firestore rules do not cascade into subcollections, so `players`, `courts`, `matchLog` and `costs` under an event are owner-only (the `accounts/{uid}/{document=**}` rule); only the event document and `requests` have public rules. That is deliberately kept for 3a: nothing public needs the game data until the Live Board in step 4, which will open read access. The rules test pins it (the owner can write all four; a stranger can neither read nor write them).
 
 Event document additions (all optional, so existing events are valid):
 
@@ -91,5 +91,5 @@ Event page additions: a game line when `live` ("Game in progress, N checked in")
 
 - **Regressions in the quick session.** The `App.jsx` refactor touches every write. Mitigation: mechanical helper replacement only, a browser pass on `/club` before and after, and no logic edits in the same task.
 - **Event doc and session doc share field names.** `courts` is a number on the doc and also a subcollection name; this already holds for the session doc, so reading code is unchanged.
-- **Player names become publicly readable** for anyone who knows the host uid and event id (the subcollections inherit public read, as the parent spec intends for the Live Board). The roster stays private. Accepted; step 4 builds the Live Board on this.
+- **Player names stay private in 3a** (see Data). Step 4 decides what the Live Board may read and opens exactly that.
 - **Reopen after End game** leaves old games and new games in one set of stats. Accepted; the host can still delete the event.

@@ -1,8 +1,9 @@
 import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
 import { wipeCollection } from "./wipe.js";
 
-// Subcollections under each event. Step 3 adds players, courts, matchLog and costs.
-export const EVENT_SUBCOLLECTIONS = ["requests"];
+// Subcollections under each event: join requests, and the game's players, courts, matchLog
+// and costs. Listed here so deleting an event or an account never orphans any of them.
+export const EVENT_SUBCOLLECTIONS = ["requests", "players", "courts", "matchLog", "costs"];
 
 // Erases everything an account owns: each event's subcollections first (they would
 // otherwise be orphaned when the event doc goes), then events, roster, and the

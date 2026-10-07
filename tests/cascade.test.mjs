@@ -23,11 +23,15 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   for (const e of ["e1", "e2"]) {
     await setDoc(doc(db, `accounts/u1/events/${e}`), { title: e, attendees: [] });
     for (let i = 0; i < 3; i++) await setDoc(doc(db, `accounts/u1/events/${e}/requests/r${i}`), { name: "Dee", contact: "0917" });
+    for (const sub of ["players", "courts", "matchLog", "costs"]) {
+      await setDoc(doc(db, `accounts/u1/events/${e}/${sub}/x`), { n: 1 });
+    }
   }
   // Another account must be untouched.
   await setDoc(doc(db, "accounts/u2"), { clubName: "Two" });
   await setDoc(doc(db, "accounts/u2/events/e9"), { title: "other" });
   await setDoc(doc(db, "accounts/u2/events/e9/requests/r0"), { name: "Keep", contact: "0918" });
+  await setDoc(doc(db, "accounts/u2/events/e9/players/x"), { name: "Keep" });
 });
 
 assert.equal(await count("accounts/u1/events/e1/requests"), 3);
@@ -38,10 +42,17 @@ assert.equal(await count("accounts/u1/roster"), 0);
 assert.equal(await count("accounts/u1/events"), 0);
 assert.equal(await count("accounts/u1/events/e1/requests"), 0);
 assert.equal(await count("accounts/u1/events/e2/requests"), 0);
+// Review Focus 4: the game's data goes too, with no orphans holding names or who paid.
+for (const e of ["e1", "e2"]) {
+  for (const sub of ["players", "courts", "matchLog", "costs"]) {
+    assert.equal(await count(`accounts/u1/events/${e}/${sub}`), 0, `${e}/${sub} left behind`);
+  }
+}
 await env.withSecurityRulesDisabled(async (ctx) => {
   assert.equal((await getDocs(collection(ctx.firestore(), "accounts"))).docs.map((d) => d.id).join(), "u2");
 });
 assert.equal(await count("accounts/u2/events/e9/requests"), 1);
+assert.equal(await count("accounts/u2/events/e9/players"), 1);
 
 console.log("cascade: ok");
 await env.cleanup();

@@ -97,6 +97,22 @@ await assertSucceeds(getDocs(reqCol(u1)));
 await assertSucceeds(updateDoc(doc(reqCol(u1), "r1"), { status: "approved" }));
 await assertSucceeds(deleteDoc(doc(reqCol(u1), "r2")));
 
+// Game data under an event (step 3a): the host writes it. Rules do not cascade into
+// subcollections, so it is owner-only for now; step 4 opens read for the Live Board.
+const g = (db, path) => doc(db, "accounts/u1/events/e1", path);
+await assertSucceeds(setDoc(g(u1, "players/p1"), { name: "P", checked: false }));
+await assertSucceeds(setDoc(g(u1, "courts/court-1"), { courtNumber: 1 }));
+await assertSucceeds(setDoc(g(u1, "matchLog/m1"), { court: "Court 1" }));
+await assertSucceeds(setDoc(g(u1, "costs/booking-e1"), { label: "Saturday" }));
+await assertSucceeds(getDocs(collection(u1, "accounts/u1/events/e1/players")));
+await assertFails(getDoc(g(anon, "players/p1")));
+await assertFails(getDocs(collection(anon, "accounts/u1/events/e1/courts")));
+await assertFails(getDoc(g(u2, "costs/booking-e1")));
+await assertFails(setDoc(g(anon, "players/p2"), { name: "evil" }));
+await assertFails(updateDoc(g(u2, "players/p1"), { name: "evil" }));
+await assertFails(setDoc(g(legacy, "costs/x"), { label: "evil" }));
+await assertFails(deleteDoc(g(anon, "courts/court-1")));
+
 // ---- Accounts (accounts/{uid}/**): owner only, nothing public ----
 await assertSucceeds(getDoc(doc(u1, "accounts/u1")));
 await assertSucceeds(setDoc(doc(u1, "accounts/u1"), { clubName: "One", createdAt: 1 }));
