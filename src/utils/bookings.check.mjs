@@ -1,6 +1,6 @@
 // Self-check for booking seats, totals and player-facing status. Run: node src/utils/bookings.check.mjs
 import assert from "node:assert";
-import { addAttendee, bookingTotals, endHM, hasEnded, hasEndedIn, myStatus, splitAttendees } from "./bookings.js";
+import { addAttendee, bookingTotals, endHM, attendeeFromRequest, hasEnded, hasEndedIn, myStatus, splitAttendees } from "./bookings.js";
 
 const a = (id, joinedAt, paid = "unpaid", extra = {}) => ({ id, name: id, joinedAt, paid, ...extra });
 const b = { date: "2026-10-11", startTime: "18:00", durationMins: 120, maxPlayers: 2, fee: 150, attendees: [] };
@@ -47,5 +47,14 @@ assert.equal(hasEndedIn({ ...old, timeZone: "Asia/Manila" }, "UTC"), true);
 assert.equal(hasEndedIn({ ...future, timeZone: "Asia/Manila" }, "UTC"), false);
 assert.equal(hasEndedIn(old, "Asia/Manila"), true); // no zone on the event: use the fallback
 assert.equal(hasEndedIn({ ...future, timeZone: undefined }, "UTC"), false);
+
+// Final review: the public attendee carries the seat id, never the secret request id or the phone number.
+const reqDoc = { id: "secret-rid", seatId: "seat-9", name: "Dee", contact: "0917 555 0100", method: "online", ref: "GC1", createdAt: 1234 };
+const seat = attendeeFromRequest(reqDoc);
+assert.equal(seat.id, "seat-9");
+assert.equal(seat.joinedAt, 1234);
+assert.equal(seat.ref, "GC1");
+assert.ok(!JSON.stringify(seat).includes("secret-rid"));
+assert.ok(!JSON.stringify(seat).includes("0917"));
 
 console.log("bookings.check: ok");

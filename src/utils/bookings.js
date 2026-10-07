@@ -77,3 +77,11 @@ export function myStatus(booking, requestId, requestStatus) {
 // Upcoming vs past in the event's own time zone (stored when it was created), so a
 // visitor in another zone sees the same answer. Events with no zone use the fallback.
 export const hasEndedIn = (event, fallbackZone) => hasEnded(event, nowIn(event.timeZone || fallbackZone));
+
+// The attendee a host's approval adds to the public event doc. Its id is the request's
+// public seatId, never the request id (that is the secret key to the private request
+// doc, which holds the phone number), and no contact detail is copied.
+export const attendeeFromRequest = (request) => ({
+  id: request.seatId, name: request.name, method: request.method, paid: "unpaid", joinedAt: request.createdAt,
+  ...(request.ref ? { ref: request.ref } : {}),
+});

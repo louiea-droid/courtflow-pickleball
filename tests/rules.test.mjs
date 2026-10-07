@@ -48,8 +48,8 @@ await assertFails(setDoc(doc(anon, "sessions/club1/bookingRequests/old1"), oldRe
 // ---- Events (accounts/{uid}/events/**): public read, owner writes, private requests ----
 const ev = (db, ...rest) => doc(db, "accounts/u1/events", ...rest);
 const reqCol = (db) => collection(db, "accounts/u1/events/e1/requests");
-const goodReq = { name: "Dee", contact: "0917 555 0100", method: "online", ref: "GC1", status: "pending", createdAt: Date.now() };
-const cashReq = { name: "Dee", contact: "0917", method: "cash", status: "pending", createdAt: Date.now() };
+const goodReq = { name: "Dee", contact: "0917 555 0100", method: "online", ref: "GC1", seatId: "seat-1", status: "pending", createdAt: Date.now() };
+const cashReq = { name: "Dee", contact: "0917", method: "cash", seatId: "seat-2", status: "pending", createdAt: Date.now() };
 
 // Anyone can read events (the booking page), nobody but the owner writes them.
 await assertSucceeds(getDoc(ev(anon, "e1")));
@@ -74,6 +74,15 @@ await assertFails(setDoc(doc(reqCol(anon), "r6"), { ...goodReq, name: "x".repeat
 await assertFails(setDoc(doc(reqCol(anon), "r7"), { ...goodReq, method: "bitcoin" }));
 await assertFails(setDoc(doc(reqCol(anon), "r8"), { ...goodReq, createdAt: "now" }));
 await assertFails(setDoc(doc(reqCol(anon), "r9"), { ...goodReq, bookingId: "e1" }));
+// The public seat id is separate from the secret request id, so it must be present and a short string.
+const { seatId: _s, ...noSeat } = goodReq;
+await assertFails(setDoc(doc(reqCol(anon), "r11"), noSeat));
+await assertFails(setDoc(doc(reqCol(anon), "r12"), { ...goodReq, seatId: 5 }));
+await assertFails(setDoc(doc(reqCol(anon), "r13"), { ...goodReq, seatId: "x".repeat(61) }));
+// Final review: a player can't pick their place in line with a made-up clock.
+await assertFails(setDoc(doc(reqCol(anon), "r14"), { ...goodReq, createdAt: 0 }));
+await assertFails(setDoc(doc(reqCol(anon), "r15"), { ...goodReq, createdAt: Date.now() + 86400000 }));
+await assertSucceeds(setDoc(doc(reqCol(anon), "r16"), { ...goodReq, createdAt: Date.now() - 60000 }));
 // Review Focus 2: an event that doesn't exist (or was deleted) can't collect requests.
 await assertFails(setDoc(doc(anon, "accounts/u1/events/nope/requests/r10"), goodReq));
 await assertSucceeds(getDoc(doc(reqCol(anon), "r1")));

@@ -40,8 +40,9 @@ Already built:
   Attendees are an array in joined order: the first `maxPlayers` are confirmed, the rest wait (derived).
 - Public page `/open-play?host={uid}` (`OpenPlay.jsx`): lists a host's upcoming events (public read); a player sends a request to
   `accounts/{uid}/events/{id}/requests` (not signed in, so `firestore.rules` allows a validated pending create and a single `get`
-  by the random request id; only the host can list/update). Approving adds the attendee (attendee id = request id) so the
-  player's page shows confirmed / waitlist / paid. Request ids live in the player's localStorage. Phone numbers stay in the
+  by the random request id; only the host can list/update). Approving adds the attendee (attendee id = the request's public `seatId`, never the
+  request id, so the public attendee list can't reach a phone number; `createdAt` must be within 10 min of server time because it
+  sets the place in line) so the player's page shows confirmed / waitlist / paid. Request and seat ids live in the player's localStorage. Phone numbers stay in the
   request doc, never on the event. QR codes use `qrcode` (`QrCode.jsx`).
 - Delete account cascade: `utils/accountData.js` (`deleteAccountData`, `EVENT_SUBCOLLECTIONS`; step 3 adds the game
   subcollections there). Test: `tests/cascade.test.mjs` via `npm run test:rules`. Rules must be re-published in the Firebase

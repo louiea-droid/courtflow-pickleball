@@ -1,6 +1,6 @@
 import { addDoc, collection, deleteDoc, doc, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
-import { addAttendee, splitAttendees } from "../utils/bookings";
+import { addAttendee, attendeeFromRequest, splitAttendees } from "../utils/bookings";
 import { EVENT_SUBCOLLECTIONS } from "../utils/accountData";
 import { wipeCollection } from "../utils/wipe";
 
@@ -69,20 +69,18 @@ export function useEventActions({ uid, events, hostName, timeZone, notify }) {
     notify(promoted ? `${promoted.name} moved up from the waitlist.` : "Removed from the list.");
   };
 
-  // The attendee id is the request id, so the player's own page can find their seat.
+  // The attendee id is the request's seatId, so the player's own page can find their seat
+  // without the public list revealing the request id (see attendeeFromRequest).
   const approve = async (eventId, request) => {
     const e = find(eventId);
     if (!e) return notify("That open play no longer exists.");
-    const attendee = {
-      id: request.id, name: request.name, method: request.method, paid: "unpaid", joinedAt: request.createdAt,
-      ...(request.ref ? { ref: request.ref } : {}),
-    };
-    const next = addAttendee((e.attendees || []).filter((a) => a.id !== request.id), attendee);
+    const attendee = attendeeFromRequest(request);
+    const next = addAttendee((e.attendees || []).filter((a) => a.id !== attendee.id), attendee);
     const batch = writeBatch(db);
     batch.update(eventRef(eventId), { attendees: next });
     batch.update(requestRef(eventId, request.id), { status: "approved" });
     await batch.commit();
-    const waiting = splitAttendees({ ...e, attendees: next }).waitlist.some((a) => a.id === request.id);
+    const waiting = splitAttendees({ ...e, attendees: next }).waitlist.some((a) => a.id === attendee.id);
     notify(waiting ? `${request.name} approved, on the waitlist.` : `${request.name} confirmed.`);
   };
 

@@ -28,17 +28,23 @@ service cloud.firestore {
 
     // A player's request to join an event. Players aren't signed in, so this is the one
     // thing the public may create: a pending request with these fields only, for an event
-    // that exists. Only the host can list, change or delete requests.
+    // that exists. seatId is the public id of the player's spot on the event (the request
+    // id stays secret, so the phone number can't be reached from the public attendee list).
+    // createdAt sets the place in line, so it must be near the real time. Only the host can
+    // list, change or delete requests.
     function validEventRequest(uid, eventId) {
       let d = request.resource.data;
-      return d.keys().hasOnly(['name', 'contact', 'method', 'ref', 'status', 'createdAt'])
-        && d.keys().hasAll(['name', 'contact', 'method', 'status', 'createdAt'])
+      return d.keys().hasOnly(['name', 'contact', 'method', 'ref', 'seatId', 'status', 'createdAt'])
+        && d.keys().hasAll(['name', 'contact', 'method', 'seatId', 'status', 'createdAt'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 60
         && d.contact is string && d.contact.size() > 0 && d.contact.size() <= 40
         && d.method in ['cash', 'online']
         && (!('ref' in d) || (d.ref is string && d.ref.size() <= 60))
+        && d.seatId is string && d.seatId.size() > 0 && d.seatId.size() <= 60
         && d.status == 'pending'
         && d.createdAt is number
+        && d.createdAt > request.time.toMillis() - 600000
+        && d.createdAt < request.time.toMillis() + 600000
         && exists(/databases/$(database)/documents/accounts/$(uid)/events/$(eventId));
     }
 

@@ -12,7 +12,10 @@ import { DEFAULT_DISPLAY } from "./data/constants";
 // read it back (rules allow a single get, never a list).
 const storeKey = (hostId) => `cf-openplay-${hostId}`;
 function loadMine(hostId) {
-  try { return JSON.parse(localStorage.getItem(storeKey(hostId))) || []; } catch { return []; }
+  try {
+    // Entries from before seat ids (or from the old club booking page) can't be matched; drop them.
+    return (JSON.parse(localStorage.getItem(storeKey(hostId))) || []).filter((m) => m.rid && m.seatId && m.eventId);
+  } catch { return []; }
 }
 const requestRef = (hostId, m) => doc(db, "accounts", hostId, "events", m.eventId, "requests", m.rid);
 
@@ -47,16 +50,17 @@ function JoinForm({ event, hostId, onSent, onCancel }) {
     setBusy(true);
     setError("");
     const rid = crypto.randomUUID();
+    const seatId = crypto.randomUUID();
     try {
       await setDoc(doc(db, "accounts", hostId, "events", event.id, "requests", rid), {
         name: name.trim(), contact: contact.trim(),
         method: paid ? method : "cash",
         ...(paid && method === "online" && ref.trim() ? { ref: ref.trim() } : {}),
-        status: "pending", createdAt: Date.now(),
+        seatId, status: "pending", createdAt: Date.now(),
       });
-      onSent({ rid, eventId: event.id });
+      onSent({ rid, seatId, eventId: event.id });
     } catch {
-      setError("Couldn't send your request. Check your connection and try again.");
+      setError("Couldn't send your request. Check your connection and your phone's clock, then try again.");
       setBusy(false);
     }
   };
@@ -153,7 +157,7 @@ const PAID_LABEL = { paid: "Payment received", refunded: "Refunded", unpaid: "Pa
 function MyBookings({ mine, events, status }) {
   const rows = mine.map((m) => {
     const event = events.find((e) => e.id === m.eventId);
-    return { ...m, event, st: myStatus(event, m.rid, status[m.rid]) };
+    return { ...m, event, st: myStatus(event, m.seatId, status[m.rid]) };
   }).filter((r) => status[r.rid] !== undefined || r.event);
   if (!rows.length) return null;
   return (

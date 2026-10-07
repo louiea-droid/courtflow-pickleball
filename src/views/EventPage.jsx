@@ -65,7 +65,7 @@ export default function EventPage({ event, requests, actions, ready, onEdit, onS
   const { confirmed, waitlist } = splitAttendees(event);
   const totals = bookingTotals(event);
   const pending = requests.filter((r) => r.status === "pending");
-  const contactOf = (a) => requests.find((r) => r.id === a.id)?.contact;
+  const contactOf = (a) => requests.find((r) => r.seatId === a.id)?.contact;
   const full = confirmed.length >= event.maxPlayers;
 
   return (
