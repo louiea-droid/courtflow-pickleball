@@ -1227,3 +1227,9 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .event-row{text-decoration:none;color:inherit}
 .event-row svg{color:var(--faint)}
 .acct-main>h1+p+.panel{margin-top:0}
+.back-link{display:inline-flex;align-items:center;gap:6px;margin:0 0 14px;color:var(--ink-2);font-weight:700;font-size:13px;text-decoration:none}
+.back-link:hover{color:var(--accent-ink)}
+.event-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.event-head h1{margin:0 0 4px;font:700 28px "Space Grotesk";letter-spacing:-.5px}
+.event-head p{margin:0;color:var(--muted);font-size:13.5px}
+.event-head .date-tile{width:56px;height:62px}

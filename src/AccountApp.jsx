@@ -11,6 +11,7 @@ import Settings from "./views/Settings";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
 import Host from "./views/Host";
+import EventPage from "./views/EventPage";
 import BookingModal from "./components/BookingModal";
 import ShareModal from "./components/ShareModal";
 import { useEvents, useEventRequests } from "./hooks/useEvents";
@@ -125,6 +126,11 @@ export default function AccountApp() {
           <Host
             events={events} requestsByEvent={requestsByEvent} fallbackZone={display.timeZone}
             onNew={() => setEventModal("new")} onShare={() => setShowShare(true)} navigate={navigate}
+          />
+        ) : route === "event" ? (
+          <EventPage
+            event={events.find((e) => e.id === eventId)} requests={requestsByEvent[eventId] || []}
+            actions={actions} ready={eventsReady} onEdit={setEventModal} onShare={() => setShowShare(true)} navigate={navigate}
           />
         ) : (
           <Hub clubName={acct.account.clubName} navigate={navigate} />
