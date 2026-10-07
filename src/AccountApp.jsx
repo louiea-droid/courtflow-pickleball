@@ -10,10 +10,24 @@ import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Settings from "./views/Settings";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
+import Host from "./views/Host";
+import BookingModal from "./components/BookingModal";
+import ShareModal from "./components/ShareModal";
+import { useEvents, useEventRequests } from "./hooks/useEvents";
+import { useEventActions } from "./hooks/useEventActions";
+import { hasEndedIn } from "./utils/bookings";
 
 export default function AccountApp() {
   const acct = useAccount();
-  const { route, navigate } = useRoute();
+  const { route, eventId, navigate } = useRoute();
+  const [eventModal, setEventModal] = useState(null); // null | "new" | an event being edited
+  const [showShare, setShowShare] = useState(false);
+  const uid = acct.user?.uid;
+  const { events, ready: eventsReady } = useEvents(uid);
+  const fallbackZone = { ...DEFAULT_DISPLAY, ...acct.account?.display }.timeZone;
+  // Listen for requests only on events still on the calendar (and the one open on screen).
+  const watched = events.filter((e) => !hasEndedIn(e, fallbackZone) || e.id === eventId).map((e) => e.id);
+  const requestsByEvent = useEventRequests(uid, watched);
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [showDelete, setShowDelete] = useState(false);
@@ -31,6 +45,11 @@ export default function AccountApp() {
   const costDefaults = { ...DEFAULT_COST, ...acct.account?.costDefaults };
   const live = { ...DEFAULT_LIVE, ...acct.account?.live };
   const save = async (patch) => { await acct.updateAccount(patch); notify("Saved."); };
+  const actions = useEventActions({
+    uid, events, hostName: acct.account?.clubName || "", timeZone: display.timeZone, notify,
+  });
+  const latestPayInfo = [...events].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]?.payInfo;
+  const todayYmd = new Intl.DateTimeFormat("en-CA", { timeZone: display.timeZone }).format(new Date());
 
   // Success signs the user out (deleteUser). This shell stays mounted behind the
   // sign-in screen, so close the dialog or the next sign-in opens on it.
@@ -81,6 +100,7 @@ export default function AccountApp() {
         </a>
         <nav aria-label="Account">
           <a href="/" className={route === "hub" ? "active" : ""} onClick={go("/")}>Home</a>
+          <a href="/host" className={route === "host" || route === "event" ? "active" : ""} onClick={go("/host")}>Open play</a>
           <a href="/settings" className={route === "settings" ? "active" : ""} onClick={go("/settings")}>Settings</a>
         </nav>
         <button className="outline" onClick={acct.signOutUser}><LogOut size={14} /> Sign out</button>
@@ -101,6 +121,11 @@ export default function AccountApp() {
             onSetLive={(change) => save({ live: { ...live, ...change } })}
             onSetDisplay={(change) => save({ display: { ...display, ...change } })}
           />
+        ) : route === "host" ? (
+          <Host
+            events={events} requestsByEvent={requestsByEvent} fallbackZone={display.timeZone}
+            onNew={() => setEventModal("new")} onShare={() => setShowShare(true)} navigate={navigate}
+          />
         ) : (
           <Hub clubName={acct.account.clubName} navigate={navigate} />
         )}
@@ -109,6 +134,24 @@ export default function AccountApp() {
         <DeleteAccountDialog
           variant="account" clubName={acct.account.clubName} needsPassword={acct.hasPassword} loading={deleting}
           onCancel={() => setShowDelete(false)} onConfirm={handleDelete}
+        />
+      )}
+      {eventModal && (
+        <BookingModal
+          booking={eventModal === "new" ? null : eventModal} today={todayYmd} lastPayInfo={latestPayInfo}
+          close={() => setEventModal(null)}
+          submit={async (data) => {
+            const id = await actions.save(eventModal === "new" ? null : eventModal.id, data);
+            setEventModal(null);
+            if (eventModal === "new") navigate(`/event/${id}`);
+          }}
+        />
+      )}
+      {showShare && (
+        <ShareModal
+          url={`${window.location.origin}/open-play?host=${uid}`} close={() => setShowShare(false)}
+          title="Share your booking page" openLabel="Open booking page" qr
+          hint="Players scan the code or open the link to see your upcoming open play and ask to join. You confirm each request on its event page."
         />
       )}
       <Toast toast={toast} onDismiss={dismissToast} />

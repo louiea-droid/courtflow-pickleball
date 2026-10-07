@@ -2,7 +2,7 @@ import { CalendarDays, ListOrdered, Settings, Users } from "lucide-react";
 
 // `soon` cards are the next build steps. The quick session at /club needs no login.
 const CARDS = [
-  { key: "host", icon: CalendarDays, title: "Host open play", body: "Schedule open play, take bookings and payments, then run the game.", soon: true },
+  { key: "host", icon: CalendarDays, title: "Host open play", body: "Schedule open play, take bookings and payments, then run the game.", to: "/host" },
   { key: "players", icon: Users, title: "Players", body: "Your roster, remembered across every open play.", soon: true },
   { key: "settings", icon: Settings, title: "Settings", body: "Club name, theme, queue rules and cost defaults.", to: "/settings" },
   { key: "club", icon: ListOrdered, title: "Quick session", body: "Run the queue right now, no booking needed. Saved on this device.", href: "/club" },
