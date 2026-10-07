@@ -8,8 +8,8 @@ const env = await initializeTestEnvironment({ projectId: "rules-test", firestore
 
 await env.withSecurityRulesDisabled(async (ctx) => {
   const db = ctx.firestore();
-  await setDoc(doc(db, "sessions/club1/bookings/b1"), { title: "x", attendees: [] });
   await setDoc(doc(db, "sessions/club1/players/p1"), { name: "P" });
+  await setDoc(doc(db, "accounts/u1/events/e1"), { title: "Saturday", date: "2026-10-10", attendees: [] });
   await setDoc(doc(db, "accounts/u1"), { clubName: "One" });
   await setDoc(doc(db, "accounts/u1/roster/r1"), { name: "Regular" });
 });
@@ -24,33 +24,11 @@ const legacy = env.authenticatedContext("c1", { email: "club1@courtflow.local" }
 const u1 = env.authenticatedContext("u1", { email: "one@example.com" }).firestore();
 const u2 = env.authenticatedContext("u2", { email: "two@example.com" }).firestore();
 
-// ---- Legacy clubs and open-play requests (sessions/**) ----
-const good = { bookingId: "b1", name: "Dee", contact: "0917", method: "online", ref: "GC1", status: "pending", createdAt: Date.now() };
-const cash = { ...good, method: "cash" }; delete cash.ref;
-const req = (db, id) => doc(db, "sessions/club1/bookingRequests", id);
-
-await assertSucceeds(setDoc(req(anon, "r1"), good));
-await assertSucceeds(setDoc(req(anon, "r2"), cash));
-await assertFails(setDoc(req(anon, "r3"), { ...good, status: "approved" }));
-await assertFails(setDoc(req(anon, "r4"), { ...good, extra: 1 }));
-await assertFails(setDoc(req(anon, "r5"), { ...good, bookingId: "nope" }));
-await assertFails(setDoc(req(anon, "r6"), { ...good, name: "x".repeat(61) }));
-await assertFails(setDoc(req(anon, "r7"), { ...good, name: "" }));
-await assertFails(setDoc(req(anon, "r8"), { ...good, method: "bitcoin" }));
-await assertFails(setDoc(req(anon, "r9"), { ...good, createdAt: "now" }));
-await assertSucceeds(getDoc(req(anon, "r1")));
-await assertFails(getDocs(collection(anon, "sessions/club1/bookingRequests")));
-await assertFails(updateDoc(req(anon, "r1"), { status: "approved" }));
-await assertFails(deleteDoc(req(anon, "r1")));
-await assertFails(setDoc(req(anon, "r1"), good));
-await assertSucceeds(getDoc(doc(anon, "sessions/club1/bookings/b1")));
+// ---- Quick sessions (sessions/**) ----
+await assertSucceeds(getDoc(doc(anon, "sessions/club1/players/p1")));
 await assertSucceeds(getDocs(collection(anon, "sessions/club1/players")));
-await assertFails(setDoc(doc(anon, "sessions/club1/bookings/b2"), { title: "evil" }));
 await assertFails(updateDoc(doc(anon, "sessions/club1/players/p1"), { name: "evil" }));
-await assertSucceeds(getDocs(collection(club1, "sessions/club1/bookingRequests")));
-await assertSucceeds(updateDoc(req(club1, "r1"), { status: "approved" }));
 await assertSucceeds(setDoc(doc(club1, "sessions/club1/bookings/b3"), { title: "ok" }));
-await assertFails(getDocs(collection(club2, "sessions/club1/bookingRequests")));
 await assertFails(setDoc(doc(club2, "sessions/club1/bookings/b4"), { title: "no" }));
 // The old email rule is gone: a club login can't write a session just because its email names it.
 await assertFails(setDoc(doc(legacy, "sessions/club1/bookings/b5"), { title: "old" }));
@@ -63,6 +41,52 @@ await assertSucceeds(setDoc(doc(u1, "sessions/u1/players/p1"), { name: "P" }));
 await assertFails(setDoc(doc(u2, "sessions/u1/players/p2"), { name: "evil" }));
 await assertFails(setDoc(doc(anon, "sessions/club1"), { location: "evil" }));
 await assertSucceeds(getDoc(doc(anon, "sessions/u1")));
+// Nothing creates public requests under sessions any more.
+const oldReq = { bookingId: "b1", name: "Dee", contact: "0917", method: "cash", status: "pending", createdAt: Date.now() };
+await assertFails(setDoc(doc(anon, "sessions/club1/bookingRequests/old1"), oldReq));
+
+// ---- Events (accounts/{uid}/events/**): public read, owner writes, private requests ----
+const ev = (db, ...rest) => doc(db, "accounts/u1/events", ...rest);
+const reqCol = (db) => collection(db, "accounts/u1/events/e1/requests");
+const goodReq = { name: "Dee", contact: "0917 555 0100", method: "online", ref: "GC1", status: "pending", createdAt: Date.now() };
+const cashReq = { name: "Dee", contact: "0917", method: "cash", status: "pending", createdAt: Date.now() };
+
+// Anyone can read events (the booking page), nobody but the owner writes them.
+await assertSucceeds(getDoc(ev(anon, "e1")));
+await assertSucceeds(getDocs(collection(anon, "accounts/u1/events")));
+await assertFails(setDoc(ev(anon, "e2"), { title: "evil", attendees: [] }));
+await assertFails(updateDoc(ev(anon, "e1"), { title: "evil" }));
+await assertFails(deleteDoc(ev(anon, "e1")));
+await assertFails(updateDoc(ev(u2, "e1"), { title: "evil" }));
+await assertFails(setDoc(ev(legacy, "e2"), { title: "evil" }));
+await assertSucceeds(setDoc(ev(u1, "e2"), { title: "Mine", attendees: [] }));
+// The account doc and roster stay private even though events are public.
+await assertFails(getDoc(doc(anon, "accounts/u1")));
+await assertFails(getDocs(collection(anon, "accounts/u1/roster")));
+
+// Join requests: a validated pending create, one read by id, never a list.
+await assertSucceeds(setDoc(doc(reqCol(anon), "r1"), goodReq));
+await assertSucceeds(setDoc(doc(reqCol(anon), "r2"), cashReq));
+await assertFails(setDoc(doc(reqCol(anon), "r3"), { ...goodReq, status: "approved" }));
+await assertFails(setDoc(doc(reqCol(anon), "r4"), { ...goodReq, extra: 1 }));
+await assertFails(setDoc(doc(reqCol(anon), "r5"), { ...goodReq, name: "" }));
+await assertFails(setDoc(doc(reqCol(anon), "r6"), { ...goodReq, name: "x".repeat(61) }));
+await assertFails(setDoc(doc(reqCol(anon), "r7"), { ...goodReq, method: "bitcoin" }));
+await assertFails(setDoc(doc(reqCol(anon), "r8"), { ...goodReq, createdAt: "now" }));
+await assertFails(setDoc(doc(reqCol(anon), "r9"), { ...goodReq, bookingId: "e1" }));
+// Review Focus 2: an event that doesn't exist (or was deleted) can't collect requests.
+await assertFails(setDoc(doc(anon, "accounts/u1/events/nope/requests/r10"), goodReq));
+await assertSucceeds(getDoc(doc(reqCol(anon), "r1")));
+// Review Focus 1: nobody but the owner can list requests (phone numbers).
+await assertFails(getDocs(reqCol(anon)));
+await assertFails(getDocs(reqCol(u2)));
+await assertFails(getDocs(reqCol(legacy)));
+await assertFails(updateDoc(doc(reqCol(anon), "r1"), { status: "approved" }));
+await assertFails(deleteDoc(doc(reqCol(anon), "r1")));
+await assertFails(setDoc(doc(reqCol(anon), "r1"), goodReq)); // overwrite = update
+await assertSucceeds(getDocs(reqCol(u1)));
+await assertSucceeds(updateDoc(doc(reqCol(u1), "r1"), { status: "approved" }));
+await assertSucceeds(deleteDoc(doc(reqCol(u1), "r2")));
 
 // ---- Accounts (accounts/{uid}/**): owner only, nothing public ----
 await assertSucceeds(getDoc(doc(u1, "accounts/u1")));

@@ -8,53 +8,57 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == sessionId;
     }
 
-    // A player's request to join an open play. Players aren't signed in, so this
-    // is the one thing the public may create: a pending request with these fields
-    // only, for a booking that exists. Only the club can list, change or delete it.
-    function validRequest(sessionId) {
+    match /sessions/{sessionId} {
+      allow read: if true;
+      allow write: if isClub(sessionId);
+
+      // Everything under a quick session is public to read, except leftover bookingRequests.
+      match /{coll}/{docId} {
+        allow read: if coll != 'bookingRequests' || isClub(sessionId);
+        allow write: if isClub(sessionId);
+      }
+    }
+
+    // Accounts: everything under accounts/{uid} belongs to that signed-in user.
+    // Legacy club logins (fake @courtflow.local emails) are never account owners.
+    function isAccountOwner(uid) {
+      return request.auth != null && request.auth.uid == uid
+        && !request.auth.token.get('email', '').lower().matches('.*@courtflow[.]local');
+    }
+
+    // A player's request to join an event. Players aren't signed in, so this is the one
+    // thing the public may create: a pending request with these fields only, for an event
+    // that exists. Only the host can list, change or delete requests.
+    function validEventRequest(uid, eventId) {
       let d = request.resource.data;
-      return d.keys().hasOnly(['bookingId', 'name', 'contact', 'method', 'ref', 'status', 'createdAt'])
-        && d.keys().hasAll(['bookingId', 'name', 'contact', 'method', 'status', 'createdAt'])
-        && d.bookingId is string
+      return d.keys().hasOnly(['name', 'contact', 'method', 'ref', 'status', 'createdAt'])
+        && d.keys().hasAll(['name', 'contact', 'method', 'status', 'createdAt'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 60
         && d.contact is string && d.contact.size() > 0 && d.contact.size() <= 40
         && d.method in ['cash', 'online']
         && (!('ref' in d) || (d.ref is string && d.ref.size() <= 60))
         && d.status == 'pending'
         && d.createdAt is number
-        && exists(/databases/$(database)/documents/sessions/$(sessionId)/bookings/$(d.bookingId));
+        && exists(/databases/$(database)/documents/accounts/$(uid)/events/$(eventId));
     }
 
-    match /sessions/{sessionId} {
-      allow read: if true;
-      allow write: if isClub(sessionId);
-
-      // Everything under a club (players, courts, costs, bookings…) is public to
-      // read; booking requests hold phone numbers, so only the club lists them.
-      match /{coll}/{docId} {
-        allow read: if coll != 'bookingRequests' || isClub(sessionId);
-        allow write: if isClub(sessionId);
-      }
-
-      // The request id is a random UUID the player keeps, so a single get works
-      // as "my booking" without exposing anyone else's request.
-      match /bookingRequests/{requestId} {
-        allow get: if true;
-        allow create: if validRequest(sessionId);
-      }
-    }
-
-    // Accounts: everything under accounts/{uid} belongs to that signed-in user.
-    // Legacy club logins (fake @courtflow.local emails) are never account owners.
-    // Step 2 loosens this for events (public read) and join requests.
-    function isAccountOwner(uid) {
-      return request.auth != null && request.auth.uid == uid
-        && !request.auth.token.get('email', '').lower().matches('.*@courtflow[.]local');
-    }
     match /accounts/{uid} {
       allow read, write: if isAccountOwner(uid);
       match /{document=**} {
         allow read, write: if isAccountOwner(uid);
+      }
+
+      // Events are public to read (the booking page lists them); only the host writes.
+      // Rules are additive, so the owner-only block above still grants the host everything.
+      match /events/{eventId} {
+        allow read: if true;
+
+        // The request id is a random UUID the player keeps, so a single get works as
+        // "my booking" without exposing anyone else's request. No public list.
+        match /requests/{requestId} {
+          allow get: if true;
+          allow create: if validEventRequest(uid, eventId);
+        }
       }
     }
   }
