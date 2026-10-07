@@ -29,4 +29,14 @@ assert.equal(eventIdOf("/event/abc%20x/"), "abc x");
 assert.equal(eventIdOf("/host"), null);
 assert.equal(eventIdOf("/event/"), null);
 
+// Review Focus 5: the game page is /event/<id>/game; anything deeper or lookalike is the hub.
+assert.equal(routeOf("/event/abc123/game"), "game");
+assert.equal(routeOf("/event/abc123/game/"), "game");
+assert.equal(routeOf("/event/abc123/gamex"), "hub");
+assert.equal(routeOf("/event/abc123/game/extra"), "hub");
+assert.equal(routeOf("/event/abc123"), "event");
+assert.equal(eventIdOf("/event/abc123/game"), "abc123");
+assert.equal(eventIdOf("/event/abc%20x/game/"), "abc x");
+assert.equal(eventIdOf("/event/abc123/gamex"), null);
+
 console.log("route.check: ok");
