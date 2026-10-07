@@ -32,16 +32,21 @@ Already built:
   `--on-team2` (white unless under 3:1; check: `node src/utils/theme.check.mjs`).
 - Undo a match result: `recordWin` snapshots what it changes; the toast offers Undo for 10s.
 
-- Open play bookings (NOT mounted in the quick session any more; step 2 moves it under accounts/events. Code kept: `views/Bookings.jsx`, writes in `hooks/useBookingActions.js`, pure logic in
-  `utils/bookings.js`; check: `node src/utils/bookings.check.mjs`). Docs live in `sessions/{club}/bookings`; attendees are an
-  array in joined order, the first `maxPlayers` are confirmed and the rest wait (derived, nothing stored). "Check in to the queue"
-  adds the confirmed players to the roster/queue and logs a Cost entry (`bookingId`) carrying who already paid.
-- Public page `/open-play?club=` (`OpenPlay.jsx`): lists upcoming events; a player sends a request to
-  `sessions/{club}/bookingRequests` (not signed in, so `firestore.rules` allows create-only with validated fields, and a single
-  `get` by the random request id; only the club can list/update). The host approves in Bookings, which adds the attendee
-  (attendee id = request id) so the player's page can show confirmed / waitlist / paid. A player's request ids live in their
-  localStorage. Phone numbers stay in the request doc, never on the public booking. QR codes use `qrcode` (`QrCode.jsx`),
-  shown in the share modal and on the Live Board. Rules were tested in the emulator; deploy with `firebase deploy --only firestore:rules`.
+- Events (step 2 of `docs/superpowers/specs/2026-10-06-accounts-and-events-design.md`): an open play is a doc at
+  `accounts/{uid}/events/{eventId}` (title, date, startTime, durationMins, maxPlayers, fee, level, notes, payInfo, `attendees[]`,
+  status, and the host's `hostName` / `timeZone` copied on so the public page needn't read the private account doc). Routes
+  `/host` (list, `views/Host.jsx`) and `/event/:id` (`views/EventPage.jsx`); writes in `hooks/useEventActions.js`; reads in
+  `hooks/useEvents.js`; seat/waitlist/payment logic in `utils/bookings.js` (check: `node src/utils/bookings.check.mjs`).
+  Attendees are an array in joined order: the first `maxPlayers` are confirmed, the rest wait (derived).
+- Public page `/open-play?host={uid}` (`OpenPlay.jsx`): lists a host's upcoming events (public read); a player sends a request to
+  `accounts/{uid}/events/{id}/requests` (not signed in, so `firestore.rules` allows a validated pending create and a single `get`
+  by the random request id; only the host can list/update). Approving adds the attendee (attendee id = request id) so the
+  player's page shows confirmed / waitlist / paid. Request ids live in the player's localStorage. Phone numbers stay in the
+  request doc, never on the event. QR codes use `qrcode` (`QrCode.jsx`).
+- Delete account cascade: `utils/accountData.js` (`deleteAccountData`, `EVENT_SUBCOLLECTIONS`; step 3 adds the game
+  subcollections there). Test: `tests/cascade.test.mjs` via `npm run test:rules`. Rules must be re-published in the Firebase
+  console after any change to `firestore.rules`.
+- "Play now" and "Proceed to game" are step 3; per-event Live Board links and the landing page are step 4.
 - Accounts (step 1 of `docs/superpowers/specs/2026-10-06-accounts-and-events-design.md`): real Firebase accounts
   (email + password or Google) with a profile at `accounts/{uid}` (owner-only in `firestore.rules`). `main.jsx` picks the page
   with `routeOf` in `utils/route.js`: `/live`, `/open-play`, `/club` (the quick session, below), everything else is
