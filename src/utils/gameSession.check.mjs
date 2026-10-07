@@ -72,6 +72,11 @@ assert.equal(c2.createdAt, 10);
 assert.equal(c2.total, 450);
 assert.equal(bookingCostEntry({ ...event, fee: 0 }, new Set(["a"]), null, 1), null);
 assert.equal(bookingCostEntry(event, new Set(), null, 1), null);
+// Someone already charged stays on the entry (and keeps their paid flag) even if they left the game.
+const c3 = bookingCostEntry(event, new Set(["b"]), { paid: { a: true, b: false }, playerIds: ["a", "b"], createdAt: 10 }, 99);
+assert.deepEqual(c3.playerIds, ["a", "b"]);
+assert.deepEqual(c3.paid, { a: true, b: false });
+assert.equal(c3.total, 300);
 
 // Play now: today, the current quarter hour, no seats, a live game.
 assert.equal(floorQuarter("17:52"), "17:45");
@@ -94,7 +99,7 @@ assert.equal(pn.timeZone, "Asia/Manila");
 assert.equal(pn.hostName, "Club");
 
 // The event page's game line.
-assert.deepEqual(gameSummary([{ checked: true, games: 3 }, { checked: false, games: 1 }, { checked: true, games: 0 }]), { players: 3, checkedIn: 2, matches: 2 });
-assert.deepEqual(gameSummary([]), { players: 0, checkedIn: 0, matches: 0 });
+assert.deepEqual(gameSummary([{ checked: true, games: 3 }, { checked: false, games: 1 }, { checked: true, games: 0 }], "Doubles"), { players: 3, checkedIn: 2, matches: 1 });
+assert.deepEqual(gameSummary([], "Doubles"), { players: 0, checkedIn: 0, matches: 0 });
 
 console.log("gameSession.check: ok");

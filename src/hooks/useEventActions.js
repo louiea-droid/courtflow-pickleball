@@ -1,8 +1,7 @@
-import { addDoc, collection, deleteDoc, doc, updateDoc, writeBatch } from "firebase/firestore";
+import { addDoc, collection, doc, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
 import { addAttendee, attendeeFromRequest, splitAttendees } from "../utils/bookings";
-import { EVENT_SUBCOLLECTIONS } from "../utils/accountData";
-import { wipeCollection } from "../utils/wipe";
+import { deleteEventData } from "../utils/accountData";
 
 const norm = (s) => s.trim().toLowerCase();
 
@@ -33,10 +32,8 @@ export function useEventActions({ uid, events, hostName, timeZone, notify }) {
     return created.id;
   };
 
-  // Requests live under the event, so wipe them before the event doc goes.
   const remove = async (id) => {
-    for (const name of EVENT_SUBCOLLECTIONS) await wipeCollection(db, collection(eventRef(id), name));
-    await deleteDoc(eventRef(id));
+    await deleteEventData(db, uid, id);
     notify("Open play deleted.");
   };
 
@@ -84,10 +81,13 @@ export function useEventActions({ uid, events, hostName, timeZone, notify }) {
     notify(waiting ? `${request.name} approved, on the waitlist.` : `${request.name} confirmed.`);
   };
 
+  // The payment reference lives on the private request, never on the public event.
+  const setRef = (eventId, requestId, ref) => updateDoc(requestRef(eventId, requestId), { ref });
+
   const decline = async (eventId, request) => {
     await updateDoc(requestRef(eventId, request.id), { status: "declined" });
     notify(`${request.name} declined.`);
   };
 
-  return { save, remove, add, setPaid, patch, kick, approve, decline };
+  return { save, remove, add, setPaid, patch, kick, approve, decline, setRef };
 }

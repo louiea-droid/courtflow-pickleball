@@ -17,7 +17,9 @@ export function readableOn(hex) {
   return 1.05 / (luminance + 0.05) >= 3 ? "#fff" : "#0f1b15";
 }
 
-export function applyTheme(display = {}) {
+// `persist: false` (the public booking page) applies the colors without touching the host's
+// cached theme, so a host previewing their page on their own device keeps their own look.
+export function applyTheme(display = {}, { persist = true } = {}) {
   const { theme, accent, team1, team2 } = { ...DEFAULT_DISPLAY, ...display };
   const vars = {
     "--accent": accent, "--team1": team1, "--team2": team2,
@@ -29,6 +31,7 @@ export function applyTheme(display = {}) {
   const root = document.documentElement;
   root.dataset.theme = theme;
   for (const [name, value] of Object.entries(vars)) root.style.setProperty(name, value);
+  if (!persist) return;
   try { localStorage.setItem(THEME_CACHE_KEY, key); } catch { /* private mode */ }
 }
 

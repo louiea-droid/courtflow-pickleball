@@ -3,7 +3,7 @@ import assert from "node:assert";
 import fs from "node:fs";
 import { initializeTestEnvironment } from "@firebase/rules-unit-testing";
 import { collection, doc, getDocs, setDoc } from "firebase/firestore";
-import { deleteAccountData } from "../src/utils/accountData.js";
+import { deleteAccountData, deleteEventData } from "../src/utils/accountData.js";
 
 const env = await initializeTestEnvironment({
   projectId: "cascade-test",
@@ -27,6 +27,14 @@ await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(db, `accounts/u1/events/${e}/${sub}/x`), { n: 1 });
     }
   }
+  // One event deleted on its own (u3): its subcollections go with it and its sibling stays.
+  await setDoc(doc(db, "accounts/u3"), { clubName: "Three" });
+  for (const e of ["e1", "e2"]) {
+    await setDoc(doc(db, `accounts/u3/events/${e}`), { title: e, attendees: [] });
+    for (const sub of ["requests", "players", "courts", "matchLog", "costs"]) {
+      await setDoc(doc(db, `accounts/u3/events/${e}/${sub}/x`), { n: 1 });
+    }
+  }
   // Another account must be untouched.
   await setDoc(doc(db, "accounts/u2"), { clubName: "Two" });
   await setDoc(doc(db, "accounts/u2/events/e9"), { title: "other" });
@@ -35,6 +43,14 @@ await env.withSecurityRulesDisabled(async (ctx) => {
 });
 
 assert.equal(await count("accounts/u1/events/e1/requests"), 3);
+
+// Deleting one event takes the doc and every subcollection, and leaves the other event alone.
+await deleteEventData(env.authenticatedContext("u3", { email: "three@example.com" }).firestore(), "u3", "e1");
+assert.equal(await count("accounts/u3/events"), 1);
+for (const sub of ["requests", "players", "courts", "matchLog", "costs"]) {
+  assert.equal(await count(`accounts/u3/events/e1/${sub}`), 0, `u3/e1/${sub} left behind`);
+  assert.equal(await count(`accounts/u3/events/e2/${sub}`), 1, `u3/e2/${sub} was touched`);
+}
 await deleteAccountData(env.authenticatedContext("u1", { email: "one@example.com" }).firestore(), "u1");
 
 // Review Focus 3: nothing left, including request subcollections whose parent event is gone.
@@ -49,7 +65,7 @@ for (const e of ["e1", "e2"]) {
   }
 }
 await env.withSecurityRulesDisabled(async (ctx) => {
-  assert.equal((await getDocs(collection(ctx.firestore(), "accounts"))).docs.map((d) => d.id).join(), "u2");
+  assert.equal((await getDocs(collection(ctx.firestore(), "accounts"))).docs.map((d) => d.id).join(), "u2,u3");
 });
 assert.equal(await count("accounts/u2/events/e9/requests"), 1);
 assert.equal(await count("accounts/u2/events/e9/players"), 1);

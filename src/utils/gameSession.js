@@ -2,6 +2,7 @@
 // so everything below is covered by gameSession.check.mjs.
 import { seedSession } from "../data/constants.js";
 import { splitAttendees } from "./bookings.js";
+import { matchCount } from "./stats.js";
 
 // What the queue app sees as `session`: the event doc (its game settings and title) with the
 // account-wide settings layered on. QueueApp merges the DEFAULT_* values over these.
@@ -64,10 +65,12 @@ export function playersToAdd(event, pickedIds, players, now) {
 
 // The one cost entry for the booking fee, covering the attendees now in the game. `existing`
 // is the entry already saved (if any), so a later "Add to game" keeps the paid toggles the
-// host set on the Cost tab and its Live Board visibility.
+// host set on the Cost tab and its Live Board visibility. Anyone already charged stays on it,
+// even if they have since left the game, so money they handed over is never dropped.
 export function bookingCostEntry(event, inGameIds, existing, now) {
   const fee = event.fee || 0;
-  const members = (event.attendees || []).filter((a) => inGameIds.has(a.id));
+  const charged = new Set(existing?.playerIds || []);
+  const members = (event.attendees || []).filter((a) => inGameIds.has(a.id) || charged.has(a.id));
   if (fee <= 0 || !members.length) return null;
   const hours = (event.durationMins || 60) / 60;
   const total = fee * members.length;
@@ -97,11 +100,10 @@ export function playNowEvent({ account, today, hm, timeZone, hostName, now }) {
 }
 
 // The event page's game line.
-export function gameSummary(players) {
-  const games = players.reduce((n, p) => n + (p.games || 0), 0);
+export function gameSummary(players, format) {
   return {
     players: players.length,
     checkedIn: players.filter((p) => p.checked).length,
-    matches: Math.round(games / 2),
+    matches: matchCount(players, format),
   };
 }

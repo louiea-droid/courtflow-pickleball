@@ -80,14 +80,18 @@ export const hasEndedIn = (event, fallbackZone) => hasEnded(event, nowIn(event.t
 
 // The attendee a host's approval adds to the public event doc. Its id is the request's
 // public seatId, never the request id (that is the secret key to the private request
-// doc, which holds the phone number), and no contact detail is copied.
+// doc, which holds the phone number). No contact detail and no payment reference is copied; both
+// stay on the private request.
 export const attendeeFromRequest = (request) => ({
   id: request.seatId, name: request.name, method: request.method, paid: "unpaid", joinedAt: request.createdAt,
-  ...(request.ref ? { ref: request.ref } : {}),
 });
 
-// Over = its scheduled time has passed in its own zone, or the host ended the game early.
-export const isOver = (event, fallbackZone) => event.status === "ended" || hasEndedIn(event, fallbackZone);
+// Over = the host ended the game, or its scheduled time has passed in its own zone. A game that is
+// live stays on the host list until the host ends it, however long it runs.
+export const isOver = (event, fallbackZone) =>
+  event.status === "ended" || (event.status !== "live" && hasEndedIn(event, fallbackZone));
 
-// What the public booking page lists: not a walk-in, not over.
-export const isListed = (event, fallbackZone) => !event.walkIn && !isOver(event, fallbackZone);
+// What the public booking page lists: not a walk-in, not ended, and its scheduled time not past
+// (a forgotten live game must not stay listed forever).
+export const isListed = (event, fallbackZone) =>
+  !event.walkIn && event.status !== "ended" && !hasEndedIn(event, fallbackZone);

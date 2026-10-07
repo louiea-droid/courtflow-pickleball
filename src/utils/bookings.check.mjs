@@ -53,9 +53,10 @@ const reqDoc = { id: "secret-rid", seatId: "seat-9", name: "Dee", contact: "0917
 const seat = attendeeFromRequest(reqDoc);
 assert.equal(seat.id, "seat-9");
 assert.equal(seat.joinedAt, 1234);
-assert.equal(seat.ref, "GC1");
+assert.equal(seat.ref, undefined); // the payment reference stays on the private request
 assert.ok(!JSON.stringify(seat).includes("secret-rid"));
 assert.ok(!JSON.stringify(seat).includes("0917"));
+assert.ok(!JSON.stringify(seat).includes("GC1"));
 
 // Review Focus 3: ended or walk-in events never show as joinable on the public page.
 assert.equal(isOver({ ...future, status: "scheduled" }, "UTC"), false);
@@ -66,5 +67,8 @@ assert.equal(isListed({ ...future, status: "live" }, "UTC"), true);
 assert.equal(isListed({ ...future, status: "ended" }, "UTC"), false);
 assert.equal(isListed({ ...future, walkIn: true }, "UTC"), false);
 assert.equal(isListed(old, "UTC"), false);
+// A game the host has not ended is not "past" on the host list, but the public page stops listing it once its time has passed.
+assert.equal(isOver({ ...old, status: "live" }, "UTC"), false);
+assert.equal(isListed({ ...old, status: "live" }, "UTC"), false);
 
 console.log("bookings.check: ok");
