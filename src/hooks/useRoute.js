@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { routeOf } from "../utils/route";
+import { eventIdOf, routeOf } from "../utils/route";
 
 export function useRoute() {
   const [path, setPath] = useState(window.location.pathname);
@@ -12,5 +12,5 @@ export function useRoute() {
     window.history.pushState({}, "", to);
     setPath(to);
   };
-  return { route: routeOf(path), navigate };
+  return { route: routeOf(path), eventId: eventIdOf(path), navigate };
 }

@@ -73,3 +73,7 @@ export function myStatus(booking, requestId, requestStatus) {
   if (requestStatus === "approved") return { key: "gone", label: "Removed from the list by the host" };
   return { key: "pending", label: "Waiting for the host to confirm" };
 }
+
+// Upcoming vs past in the event's own time zone (stored when it was created), so a
+// visitor in another zone sees the same answer. Events with no zone use the fallback.
+export const hasEndedIn = (event, fallbackZone) => hasEnded(event, nowIn(event.timeZone || fallbackZone));

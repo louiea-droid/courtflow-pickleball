@@ -6,5 +6,13 @@ export function routeOf(pathname) {
   if (path === "/open-play") return "open-play";
   if (path === "/club") return "club";
   if (path === "/settings") return "settings";
+  if (path === "/host") return "host";
+  if (/^\/event\/[^/]+$/.test(path)) return "event";
   return "hub";
+}
+
+// "/event/<id>" -> "<id>" (decoded), else null.
+export function eventIdOf(pathname) {
+  const m = pathname.replace(/\/+$/, "").match(/^\/event\/([^/]+)$/);
+  return m ? decodeURIComponent(m[1]) : null;
 }

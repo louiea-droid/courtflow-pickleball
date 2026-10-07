@@ -1,6 +1,6 @@
 // Self-check for booking seats, totals and player-facing status. Run: node src/utils/bookings.check.mjs
 import assert from "node:assert";
-import { addAttendee, bookingTotals, endHM, hasEnded, myStatus, splitAttendees } from "./bookings.js";
+import { addAttendee, bookingTotals, endHM, hasEnded, hasEndedIn, myStatus, splitAttendees } from "./bookings.js";
 
 const a = (id, joinedAt, paid = "unpaid", extra = {}) => ({ id, name: id, joinedAt, paid, ...extra });
 const b = { date: "2026-10-11", startTime: "18:00", durationMins: 120, maxPlayers: 2, fee: 150, attendees: [] };
@@ -39,5 +39,13 @@ assert.equal(myStatus(b, "z", "pending").key, "pending");
 assert.equal(myStatus(b, "z", "declined").key, "declined");
 assert.equal(myStatus(b, "z", "approved").key, "gone");
 assert.equal(myStatus(undefined, "z", "pending").key, "gone");
+
+// Review Focus 4: an event decides past/upcoming in its own zone, and a missing zone falls back.
+const old = { date: "2000-01-01", startTime: "10:00", durationMins: 60, maxPlayers: 4 };
+const future = { ...old, date: "2999-01-01" };
+assert.equal(hasEndedIn({ ...old, timeZone: "Asia/Manila" }, "UTC"), true);
+assert.equal(hasEndedIn({ ...future, timeZone: "Asia/Manila" }, "UTC"), false);
+assert.equal(hasEndedIn(old, "Asia/Manila"), true); // no zone on the event: use the fallback
+assert.equal(hasEndedIn({ ...future, timeZone: undefined }, "UTC"), false);
 
 console.log("bookings.check: ok");
