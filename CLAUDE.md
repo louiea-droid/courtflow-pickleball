@@ -69,7 +69,8 @@ Already built:
 - Quick session at `/club`: the classic queue app with no login. `useClub` signs the visitor in anonymously (or reuses the real
   account already signed in, never signing it out) and keeps the session at `sessions/{uid}`; rules: `isClub` = `auth.uid == sessionId`.
   Data belongs to that browser (clearing site data starts fresh). Needs Anonymous sign-in turned on in the Firebase console.
-  Settings uses `mode="quick"` (no password rows; "Back to home"; "Erase this session"); End Session archives and stays in the app. The page is `Club.jsx` (`useClub`) around `QueueApp`.
+  Settings uses `mode="quick"` (no password rows; "Erase this session"). "Back to home" is a button in the sidebar; End Session archives the stats and then goes to the home page (`/`). The page is `Club.jsx` (`useClub`) around `QueueApp`.
+- Small rules worth knowing: Esc closes the top dialog (`hooks/useEscape.js`, used by `Modal` and the confirm dialogs); "matches" = player-games / 4 for doubles, / 2 for singles (`utils/stats.js`); the player's payment reference lives on the private request, never on the public event; `deleteEventData` removes the event doc first, then its subcollections; a live game stays on the host list until ended, but the public page stops listing it once its scheduled time passes.
 
 Saved for later (owner's picks, in order of suggestion):
 - Export roster and match history to CSV (safety net before Delete Account).

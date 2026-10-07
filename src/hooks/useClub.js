@@ -5,6 +5,7 @@ import { auth, db } from "../firebase";
 import { seedSession } from "../data/constants";
 import { authMessage } from "../utils/account";
 import { wipeCollection } from "../utils/wipe";
+import { matchCount } from "../utils/stats";
 
 const QUICK_NAME = "Quick session";
 const SUBCOLLECTIONS = ["players", "courts", "history", "costs", "matchLog", "bookings", "bookingRequests"];
@@ -66,11 +67,12 @@ export function useClub() {
   async function endSession() {
     if (!club) return;
     const { id } = club;
-    const [playersSnap, courtsSnap, matchLogSnap, costsSnap] = await Promise.all([
+    const [playersSnap, courtsSnap, matchLogSnap, costsSnap, sessionSnap] = await Promise.all([
       getDocs(collection(db, "sessions", id, "players")),
       getDocs(collection(db, "sessions", id, "courts")),
       getDocs(collection(db, "sessions", id, "matchLog")),
       getDocs(collection(db, "sessions", id, "costs")),
+      getDoc(doc(db, "sessions", id)),
     ]);
     const roster = playersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     const totalGames = roster.reduce((n, p) => n + (p.games || 0), 0);
@@ -79,7 +81,7 @@ export function useClub() {
       const historyRef = doc(collection(db, "sessions", id, "history"));
       batch.set(historyRef, {
         endedAt: Date.now(),
-        matches: Math.round(totalGames / 2),
+        matches: matchCount(roster, sessionSnap.data()?.format),
         players: roster.map((p) => ({
           id: p.id, name: p.name, games: p.games || 0, wins: p.wins || 0, losses: p.losses || 0,
         })),

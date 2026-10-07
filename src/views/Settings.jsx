@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pencil, Plus, LogOut, Home, Trash2, Check, X, KeyRound, RefreshCw } from "lucide-react";
+import { Pencil, Plus, Trash2, Check, X, KeyRound, RefreshCw } from "lucide-react";
 import ChangePasswordDialog from "../components/ChangePasswordDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Select from "../components/Select";
@@ -77,7 +77,7 @@ function ColorSwatches({ label, cssVar, presets, value, onChange }) {
 }
 
 export default function Settings({
-  session, onRenameClub, onNewSession, onSwitchClub, onDeleteAccount, onChangePassword, onSetPasswordHint,
+  session, onRenameClub, onNewSession, onDeleteAccount, onChangePassword, onSetPasswordHint,
   onSetDefaults, rules, onSetRules, costDefaults, onSetCostDefaults, live, onSetLive, display, onSetDisplay,
   mode = "club", canChangePassword = true,
 }) {
@@ -338,17 +338,6 @@ export default function Settings({
         <div className="panel account-panel">
           <SettingsRow title="New Session" body="Clears the roster, courts, and match log and starts fresh. Stats are archived first.">
             <button className="outline" onClick={onNewSession}><Plus size={14} /> Start New Session</button>
-          </SettingsRow>
-
-          <SettingsRow
-            title={isQuick ? "Home" : "Switch Club"}
-            body={isQuick
-              ? "Leave this session without ending it. Come back any time from the same device."
-              : "Signs you out. Log back in with the password to pick up right where you left off."}
-          >
-            <button className="outline" onClick={onSwitchClub}>
-              {isQuick ? <Home size={14} /> : <LogOut size={14} />} {isQuick ? "Back to home" : "Switch Club"}
-            </button>
           </SettingsRow>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { useEscape } from "../hooks/useEscape";
 
 export default function ChangePasswordDialog({ onCancel, onSubmit }) {
   const [current, setCurrent] = useState("");
@@ -7,6 +8,7 @@ export default function ChangePasswordDialog({ onCancel, onSubmit }) {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  useEscape(() => { if (!saving) onCancel(); });
 
   async function submit(e) {
     e.preventDefault();

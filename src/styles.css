@@ -1088,7 +1088,6 @@ form.confirm-modal .modalactions{margin-top:4px}
 }
 .booking-head:hover{background:var(--hover)}
 .booking-head svg{color:var(--faint);transition:transform .18s ease}
-.booking-head svg.rot{transform:rotate(180deg)}
 .booking-main b{display:block;font-size:14px}
 .booking-main small{color:var(--muted);font-size:12px}
 .date-tile{
@@ -1097,7 +1096,6 @@ form.confirm-modal .modalactions{margin-top:4px}
 }
 .date-tile small{font-size:10px;font-weight:700;letter-spacing:.04em}
 .date-tile b{font:700 20px "Space Grotesk"}
-.booking-body{padding:2px 4px 12px;animation:fadeSlideUp .25s var(--ease) both}
 .booking-money{margin:4px 0 10px;color:var(--muted);font-size:13px}
 .booking-money b{color:var(--ink);font:700 16px "Space Grotesk"}
 .booking-block{margin-bottom:12px}
@@ -1127,11 +1125,6 @@ form.confirm-modal .modalactions{margin-top:4px}
 .qr{display:block;background:#fff;border-radius:10px;image-rendering:pixelated}
 .share-qr{display:flex;justify-content:center;padding:6px 0 0}
 .share-qr .qr{padding:6px;border:1px solid var(--line)}
-.liveboard-right{display:flex;align-items:center;gap:clamp(12px,1.6vw,24px);flex-shrink:0}
-.liveboard-join{display:flex;align-items:center;gap:12px}
-.liveboard-join .qr{height:clamp(52px,7vh,84px);width:auto;aspect-ratio:1}
-.liveboard-join b{display:block;font:700 clamp(13px,1.3vw,17px) "Space Grotesk"}
-.liveboard-join small{color:var(--muted);font-size:clamp(10px,.9vw,12.5px)}
 
 /* ---------- Open play (public page) ---------- */
 .openplay{max-width:620px;margin:0 auto;padding:22px 16px 56px}
@@ -1181,7 +1174,6 @@ form.confirm-modal .modalactions{margin-top:4px}
   .attendee-row{grid-template-columns:1fr auto}
   .attendee-row .pay-controls{grid-column:1 / 3;grid-row:2;justify-content:flex-start}
   .booking-add{flex-direction:column}
-  .liveboard-join small{display:none}
 }
 
 /* ---------- Accounts: sign-in extras ---------- */

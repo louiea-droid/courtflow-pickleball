@@ -63,7 +63,7 @@ export default function Sidebar({
 
           <div className="sidefoot">
             {backLink && (
-              <button className="sidebar-endsession" onClick={backLink.onClick} title={backLink.label}>
+              <button className="outline dark" onClick={backLink.onClick} title={backLink.label}>
                 <ArrowLeft /> <span>{backLink.label}</span>
               </button>
             )}

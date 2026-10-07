@@ -5,6 +5,7 @@ import { db, firebaseConfigured } from "./firebase";
 import { useEvents } from "./hooks/useEvents";
 import { applyDisplayPrefs, formatDay, formatHM, money } from "./utils/format";
 import { applyTheme } from "./utils/theme";
+import DateTile from "./components/DateTile";
 import { byStart, endHM, isListed, myStatus, splitAttendees } from "./utils/bookings";
 import { DEFAULT_DISPLAY } from "./data/constants";
 
@@ -114,12 +115,11 @@ function EventCard({ e, hostId, mine, onSent }) {
   const { confirmed, waitlist } = splitAttendees(e);
   const left = Math.max(0, e.maxPlayers - confirmed.length);
   const asked = mine.some((m) => m.eventId === e.id);
-  const [wd, rest] = formatDay(e.date).split(", ");
 
   return (
     <article className="op-card">
       <div className="op-card-top">
-        <span className="date-tile" aria-hidden="true"><small>{wd}</small><b>{rest.split(" ")[1]}</b><small>{rest.split(" ")[0]}</small></span>
+        <DateTile date={e.date} />
         <div className="op-card-title">
           <h3>{e.title}</h3>
           <p><CalendarDays size={13} /> {formatDay(e.date)}</p>
@@ -184,6 +184,17 @@ export default function OpenPlay() {
   const { events, ready } = useEvents(hostId);
   const [mine, setMine] = useState(() => (hostId ? loadMine(hostId) : []));
   const status = useMyRequests(hostId, mine);
+  // A request holds the player's place only while it is waiting, confirmed or on the waitlist;
+  // once declined, or removed by the host, they may ask again.
+  const isActive = (m) => ["pending", "confirmed", "waitlist"].includes(
+    myStatus(events.find((e) => e.id === m.eventId), m.seatId, status[m.rid]).key,
+  );
+  // A page left open drops events as they end.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
 
   const hostName = events.find((e) => e.hostName)?.hostName || "";
   useEffect(() => {
@@ -193,10 +204,11 @@ export default function OpenPlay() {
   // The host's private account (theme, zone) isn't readable here, so the page uses the
   // defaults; each event carries its own zone for deciding upcoming vs past.
   applyDisplayPrefs(DEFAULT_DISPLAY);
-  applyTheme(DEFAULT_DISPLAY);
+  applyTheme(DEFAULT_DISPLAY, { persist: false });
   const upcoming = useMemo(
     () => events.filter((e) => isListed(e, DEFAULT_DISPLAY.timeZone)).sort(byStart),
-    [events],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [events, tick],
   );
 
   if (!firebaseConfigured) return <div className="loading">Open play is unavailable — Firebase isn't configured.</div>;
@@ -224,7 +236,7 @@ export default function OpenPlay() {
       <section aria-label="Upcoming open play">
         <h2>Upcoming</h2>
         {upcoming.map((e) => (
-          <EventCard key={e.id} e={e} hostId={hostId} mine={mine.filter((m) => status[m.rid] !== "declined")} onSent={sent} />
+          <EventCard key={e.id} e={e} hostId={hostId} mine={mine.filter(isActive)} onSent={sent} />
         ))}
         {!upcoming.length && (
           <div className="empty op-empty"><Wallet size={18} /> No open play scheduled right now. Check back soon.</div>

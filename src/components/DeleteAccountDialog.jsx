@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { useEscape } from "../hooks/useEscape";
 
 // onConfirm(password) resolves to "" on success or an error message to show here.
 // needsPassword is false for Google-only accounts: the Google window confirms instead.
 export default function DeleteAccountDialog({ clubName, loading, onCancel, onConfirm, variant = "club", needsPassword = true }) {
+  useEscape(() => { if (!loading) onCancel(); });
   const [typed, setTyped] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

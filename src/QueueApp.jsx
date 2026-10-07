@@ -5,6 +5,7 @@ import {
 import { db, firebaseConfigured } from "./firebase";
 import { applyDisplayPrefs, splitCost, winPct } from "./utils/format";
 import { applyTheme } from "./utils/theme";
+import { matchCount } from "./utils/stats";
 import { matchesCourtLevel } from "./utils/courtLevels";
 import { selectForCourt, splitTeams } from "./utils/rotationModes";
 import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES } from "./data/constants";
@@ -33,7 +34,7 @@ import Settings from "./views/Settings";
 // kind "event" is a game on an event: the session is derived from the event doc plus the account
 // settings, there is no Settings tab, and End game keeps all data.
 export default function QueueApp({
-  base, kind = "quick", deriveSession, eyebrow, backLabel, onBack, onEndSession, onErase,
+  base, kind = "quick", deriveSession, eyebrow, backLabel, onBack, onHome, onEndSession, onErase,
 }) {
   const at = (...rest) => doc(db, ...base, ...rest);
   const col = (name) => collection(db, ...base, name);
@@ -484,7 +485,7 @@ export default function QueueApp({
       const historyRef = doc(col("history"));
       batch.set(historyRef, {
         endedAt: Date.now(),
-        matches: Math.round(totalGames / 2),
+        matches: matchCount(players, session.format),
         players: players.map((p) => ({
           id: p.id, name: p.name, games: p.games || 0, wins: p.wins || 0, losses: p.losses || 0,
         })),
@@ -601,7 +602,7 @@ export default function QueueApp({
         onEndSession={() => { setShowEndSession(true); setMenuOpen(false); }}
         endLabel={kind === "event" ? "End game" : "End Session"}
         hiddenTabs={kind === "event" ? ["settings"] : []}
-        backLink={kind === "event" ? { label: backLabel, onClick: onBack } : null}
+        backLink={kind === "event" ? { label: backLabel, onClick: onBack } : { label: "Back to home", onClick: onHome }}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         collapsed={collapsed}
@@ -647,7 +648,7 @@ export default function QueueApp({
               onTogglePaid={toggleCostPaid} onToggleLive={toggleCostLive} onDelete={deleteCostEntry}
             />
           )}
-          {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={kind === "quick" ? base[1] : null} />}
+          {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={kind === "quick" ? base[1] : null} format={session.format} />}
           {tab === "guide" && <Guide />}
           {tab === "settings" && kind === "quick" && (
             <Settings
@@ -655,7 +656,6 @@ export default function QueueApp({
               session={session}
               onRenameClub={(location) => updateSessionSettings({ location })}
               onNewSession={() => setShowSession(true)}
-              onSwitchClub={() => { window.location.assign("/"); }}
               onDeleteAccount={() => setShowErase(true)}
               onSetDefaults={(defaults) => updateSessionSettings({ defaults })}
               rules={rules} costDefaults={costDefaults} live={live} display={display}
@@ -698,14 +698,14 @@ export default function QueueApp({
             title={kind === "event" ? "End game?" : "End Session?"}
             message={kind === "event"
               ? "This closes the game. Players, matches and costs stay saved on the event, and you can reopen it from the event page."
-              : "This closes out today's play: stats are archived to Stats → Past Sessions, the match log and courts are cleared, and everyone will need to check in again next time."}
+              : "This closes out today's play: stats are archived to Stats → Past Sessions, the match log and courts are cleared, and everyone will need to check in again next time. You'll go back to the home page afterwards."}
             confirmLabel={kind === "event" ? "End game" : "End Session"}
             onCancel={() => setShowEndSession(false)}
             onConfirm={() => {
               setShowEndSession(false);
               Promise.resolve(onEndSession())
                 .then(() => {
-                  if (kind === "quick") { setTab("dashboard"); notify("Session ended. Stats are saved to Past Sessions."); }
+                  if (kind === "quick") onHome();
                 })
                 .catch(() => notify(`Couldn't end the ${noun} — please try again.`, 4000));
             }}

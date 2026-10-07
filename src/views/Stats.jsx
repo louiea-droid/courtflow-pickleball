@@ -4,6 +4,7 @@ import PanelHead from "../components/PanelHead";
 import PersonBadge from "../components/PersonBadge";
 import { winPct, formatDate } from "../utils/format";
 import { useSessionHistory } from "../hooks/useSessionHistory";
+import { matchCount } from "../utils/stats";
 
 function PastSession({ entry }) {
   const [open, setOpen] = useState(false);
@@ -40,8 +41,8 @@ function PastSession({ entry }) {
   );
 }
 
-export default function Stats({ players, exportCsv, sessionId }) {
-  const matches = Math.round(players.reduce((n, p) => n + p.games, 0) / 2);
+export default function Stats({ players, exportCsv, sessionId, format }) {
+  const matches = matchCount(players, format);
   const wins = players.reduce((n, p) => n + p.wins, 0);
   const avg = players.length
     ? (players.reduce((n, p) => n + p.games, 0) / players.length).toFixed(1)

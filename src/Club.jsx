@@ -12,5 +12,5 @@ export default function Club() {
       <div className="loading"><span className="spinner" />Starting your session…</div>
     );
   }
-  return <QueueApp base={sessionBase(club.id)} onEndSession={endSession} onErase={eraseSession} />;
+  return <QueueApp base={sessionBase(club.id)} onEndSession={endSession} onErase={eraseSession} onHome={() => window.location.assign("/")} />;
 }

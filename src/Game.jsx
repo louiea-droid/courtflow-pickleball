@@ -44,7 +44,7 @@ export default function Game({ uid, account, event, ready, navigate, endGame }) 
       eyebrow={`${event.title} · ${formatDay(event.date)}`}
       backLabel="Back to event"
       onBack={() => navigate(eventPage)}
-      onEndSession={async () => { await endGame(event.id); navigate(eventPage); }}
+      onEndSession={() => endGame(event.id)}
     />
   );
 }

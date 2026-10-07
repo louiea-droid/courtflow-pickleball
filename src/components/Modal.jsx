@@ -1,7 +1,9 @@
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { useEscape } from "../hooks/useEscape";
 
 export default function Modal({ title, label, close, children }) {
+  useEscape(close);
   return createPortal(
     <div className="backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <div className="modal">

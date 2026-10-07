@@ -1,6 +1,8 @@
 import { createPortal } from "react-dom";
+import { useEscape } from "../hooks/useEscape";
 
 export default function ConfirmDialog({ title, message, confirmLabel = "Remove", onCancel, onConfirm }) {
+  useEscape(onCancel);
   return createPortal(
     <div className="backdrop" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
       <div className="modal confirm-modal">

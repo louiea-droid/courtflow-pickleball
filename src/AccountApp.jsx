@@ -31,12 +31,12 @@ export default function AccountApp() {
   const [showShare, setShowShare] = useState(false);
   const [gamePick, setGamePick] = useState(false);
   const uid = acct.user?.uid;
-  const { events, ready: eventsReady } = useEvents(uid);
+  const { events, fromServer: eventsReady } = useEvents(uid);
   const fallbackZone = { ...DEFAULT_DISPLAY, ...acct.account?.display }.timeZone;
   // Listen for requests only on events still on the calendar (and the one open on screen).
   const watched = events.filter((e) => !isOver(e, fallbackZone) || e.id === eventId).map((e) => e.id);
   const requestsByEvent = useEventRequests(uid, watched);
-  const gamePlayers = useEventPlayers(uid, route === "event" ? eventId : null);
+  const { players: gamePlayers, loaded: gameLoaded } = useEventPlayers(uid, route === "event" ? eventId : null);
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [showDelete, setShowDelete] = useState(false);
@@ -67,6 +67,21 @@ export default function AccountApp() {
       navigate(`/event/${await gameActions.playNow()}/game`);
     } catch {
       notify("Couldn't start a game. Check your connection and try again.", 4000);
+    }
+  };
+  const endGame = async (id) => {
+    navigate(`/event/${id}`);
+    try {
+      await gameActions.endGame(id);
+    } catch {
+      notify("Couldn't end the game. Try again from the event page.", 4000);
+    }
+  };
+  const reopenGame = async (id) => {
+    try {
+      await gameActions.reopenGame(id);
+    } catch {
+      notify("Couldn't reopen the game. Check your connection and try again.", 4000);
     }
   };
   const todayYmd = new Intl.DateTimeFormat("en-CA", { timeZone: display.timeZone }).format(new Date());
@@ -114,7 +129,7 @@ export default function AccountApp() {
       <Suspense fallback={<div className="loading"><span className="spinner" />Loading…</div>}>
         <Game
           uid={uid} account={acct.account} event={events.find((e) => e.id === eventId)} ready={eventsReady}
-          navigate={navigate} endGame={gameActions.endGame}
+          navigate={navigate} endGame={endGame}
         />
       </Suspense>
     );
@@ -160,9 +175,9 @@ export default function AccountApp() {
         ) : route === "event" ? (
           <EventPage
             event={events.find((e) => e.id === eventId)} requests={requestsByEvent[eventId] || []}
-            actions={actions} ready={eventsReady} gamePlayers={gamePlayers}
+            actions={actions} ready={eventsReady} gamePlayers={gamePlayers} gameLoaded={gameLoaded}
             onPickPlayers={() => setGamePick(true)} onOpenGame={() => navigate(`/event/${eventId}/game`)}
-            onReopen={() => gameActions.reopenGame(eventId)} onEdit={setEventModal} onShare={() => setShowShare(true)} navigate={navigate}
+            onReopen={() => reopenGame(eventId)} onEdit={setEventModal} onShare={() => setShowShare(true)} navigate={navigate}
           />
         ) : (
           <Hub clubName={acct.account.clubName} navigate={navigate} />
