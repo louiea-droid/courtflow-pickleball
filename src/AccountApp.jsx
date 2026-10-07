@@ -196,9 +196,9 @@ export default function AccountApp() {
         <GamePickModal
           event={openEvent} players={gamePlayers} close={() => setGamePick(false)}
           submit={async (ids) => {
-            await gameActions.startGame(openEvent, ids, gamePlayers);
+            const started = await gameActions.startGame(openEvent, ids);
             setGamePick(false);
-            navigate(`/event/${openEvent.id}/game`);
+            if (started) navigate(`/event/${openEvent.id}/game`);
           }}
         />
       )}

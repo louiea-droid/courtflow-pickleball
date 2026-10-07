@@ -318,7 +318,7 @@ export default function QueueApp({
     batch.set(at("courts", `court-${nextNumber}`), {
       courtNumber: nextNumber, start: Date.now(), teamA: [], teamB: [],
     });
-    batch.set(at(), { courts: nextNumber }, { merge: true });
+    batch.update(at(), { courts: nextNumber });
     await batch.commit();
     notify(`Court ${nextNumber} added.`);
   }
@@ -343,7 +343,7 @@ export default function QueueApp({
     courts.forEach((c) => {
       if (!targetIds.includes(c.id)) batch.delete(at("courts", c.id));
     });
-    batch.set(at(), { courts: remaining.length }, { merge: true });
+    batch.update(at(), { courts: remaining.length });
     await batch.commit();
     notify(`Court ${removed?.courtNumber ?? ""} removed.`);
   }

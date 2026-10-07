@@ -1,4 +1,4 @@
-import { collection, deleteField, doc, getDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { collection, deleteField, doc, getDoc, getDocs, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
 import { eventBase } from "../utils/paths";
 import { nowIn } from "../utils/bookings";
@@ -15,7 +15,15 @@ export function useGameActions({ uid, account, hostName, timeZone, notify }) {
   // First start: the event goes live, courts are created, the ticked players are added (not
   // checked in) and the booking fee gets one cost entry. On a live event ("Add to game") only
   // the players are added and the cost entry refreshed. Safe to repeat: players are matched by id.
-  const startGame = async (event, pickedIds, players) => {
+  // The event and its players are read from Firestore here, not trusted from the screen, so a
+  // stale tab can't reset players already in the game or restart an ended one. Resolves to true
+  // when the game was started or extended, false when it was refused.
+  const startGame = async (shown, pickedIds) => {
+    const fresh = (await getDoc(eventRef(shown.id))).data();
+    if (!fresh) { notify("That open play no longer exists."); return false; }
+    if (fresh.status === "ended") { notify("This game has ended. Reopen it from the event page first.", 4000); return false; }
+    const event = { ...fresh, id: shown.id };
+    const players = (await getDocs(collection(db, ...eventBase(uid, event.id), "players"))).docs.map((d) => ({ id: d.id }));
     const now = Date.now();
     const batch = writeBatch(db);
     if (event.status !== "live") {
@@ -32,6 +40,7 @@ export function useGameActions({ uid, account, hostName, timeZone, notify }) {
     if (entry) batch.set(costRef, entry);
     await batch.commit();
     notify(added.length ? `${added.length} added to the game.` : "Game started.");
+    return true;
   };
 
   // An unscheduled event for today, live straight away. Resolves to the new event id.
