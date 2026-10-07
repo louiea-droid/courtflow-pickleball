@@ -80,4 +80,17 @@ assert.equal(ids(selectToJoin({ pool, court: { level: "Beginner" }, seated, mode
 // Nobody seated yet: falls back to the normal pick.
 assert.equal(ids(selectToJoin({ pool, court, seated: [], mode: "Skill Separated", need: 2 })), "b1,b2");
 
-console.log("rotationModes checks passed");
+// ---- Mixed Doubles: challengers for a winning team keep every team one M + one F
+const mx = (id, gender) => p(id, 3, { gender });
+pool = [mx("m1", "M"), mx("m2", "M"), mx("f1", "F")];
+assert.equal(ids(selectToJoin({ pool, court, seated: [mx("w1", "M"), mx("w2", "F")], mode: "Mixed Doubles", need: 2 })), "m1,f1");
+// Not enough of one gender waiting: nobody joins yet.
+assert.equal(ids(selectToJoin({ pool: [mx("m1", "M"), mx("m2", "M")], court, seated: [mx("w1", "M"), mx("w2", "F")], mode: "Mixed Doubles", need: 2 })), "");
+// Seated pair of the same gender (a locked duo): the other team takes the other gender.
+assert.equal(ids(selectToJoin({ pool: [mx("m1", "M"), mx("f1", "F"), mx("f2", "F")], court, seated: [mx("w1", "M"), mx("w2", "M")], mode: "Mixed Doubles", need: 2 })), "f1,f2");
+// Players with no gender set: normal next-in-queue pick.
+assert.equal(ids(selectToJoin({ pool: [mx("m1", "M"), mx("m2", "M")], court, seated: [p("w1", 3), p("w2", 3)], mode: "Mixed Doubles", need: 2 })), "m1,m2");
+// The rest are unchanged: another mode takes the front of the queue.
+assert.equal(ids(selectToJoin({ pool, court, seated: [mx("w1", "M"), mx("w2", "F")], mode: "Balanced", need: 2 })), "m1,m2");
+
+console.lomx("rotationModes checks passed");

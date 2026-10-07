@@ -107,12 +107,28 @@ export function selectForCourt({ pool, court, mode, need }) {
 }
 
 // Picks who joins a court that already has players: the challengers when winners stay on, or
-// whoever tops up an open seat. Skill Separated keeps them to the seated players' level (an
-// explicit court level still wins); every other mode takes the next in the queue.
+// whoever tops up an open seat. An explicit court level still wins. Otherwise:
+// - Skill Separated keeps them to the seated players' level.
+// - Mixed Doubles, when a team of two is seated, brings the other team: one of each gender
+//   so both teams stay one M + one F (a same-gender duo gets the other gender back).
+// - Every other mode takes the next in the queue.
 export function selectToJoin({ pool, court, seated, mode, need }) {
   const levelRestricted = Boolean(court?.level && court.level !== "Any Level");
   if (!levelRestricted && mode === "Skill Separated" && seated.length) {
     return pickForLevel(pool, skillLevelLabel(seated[0].skill), need);
+  }
+  if (!levelRestricted && mode === "Mixed Doubles" && seated.length === 2 && need === 2) {
+    const count = (g) => seated.filter((x) => x.gender === g).length;
+    const needM = Math.max(0, 2 - count("M"));
+    const needF = Math.max(0, 2 - count("F"));
+    if (needM + needF === need) {
+      const males = pool.filter((x) => x.gender === "M").slice(0, needM);
+      const females = pool.filter((x) => x.gender === "F").slice(0, needF);
+      if (males.length < needM || females.length < needF) return { taken: [], remaining: pool };
+      const taken = [...males, ...females];
+      const takenIds = new Set(taken.map((x) => x.id));
+      return { taken, remaining: pool.filter((x) => !takenIds.has(x.id)) };
+    }
   }
   return selectForCourt({ pool, court, mode: null, need });
 }
