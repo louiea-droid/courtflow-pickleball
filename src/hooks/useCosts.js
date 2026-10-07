@@ -2,18 +2,19 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db, firebaseConfigured } from "../firebase";
 
-export function useCosts(sessionId) {
+export function useCosts(base) {
+  const key = base ? base.join("/") : "";
   const [costs, setCosts] = useState([]);
 
   useEffect(() => {
-    if (!firebaseConfigured || !sessionId) {
+    if (!firebaseConfigured || !key) {
       setCosts([]);
       return;
     }
-    const q = query(collection(db, "sessions", sessionId, "costs"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, ...key.split("/"), "costs"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (s) => setCosts(s.docs.map((d) => ({ id: d.id, ...d.data() }))));
     return unsub;
-  }, [sessionId]);
+  }, [key]);
 
   return costs;
 }

@@ -9,7 +9,6 @@ import { matchesCourtLevel } from "./utils/courtLevels";
 import { selectForCourt, splitTeams } from "./utils/rotationModes";
 import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES } from "./data/constants";
 import { useSessionData } from "./hooks/useSessionData";
-import { useClub } from "./hooks/useClub";
 import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
 
@@ -28,15 +27,16 @@ import Stats from "./views/Stats";
 import Guide from "./views/Guide";
 import Settings from "./views/Settings";
 
-export default function App() {
-  const {
-    club, error: clubError, endSession, eraseSession,
-  } = useClub();
-  const SESSION_ID = club?.id;
+// The queue app on one session. `base` is the Firestore path of the document that holds it
+// (utils/paths.js): the quick session at /club today. Every read and write goes through
+// `at` (a document) and `col` (a collection) so the same code runs on any base.
+export default function QueueApp({ base, onEndSession, onErase }) {
+  const at = (...rest) => doc(db, ...base, ...rest);
+  const col = (name) => collection(db, ...base, name);
   const [tab, setTab] = useState("dashboard");
-  const { session, players, courts, busy } = useSessionData(SESSION_ID);
-  const costs = useCosts(SESSION_ID);
-  const matchLog = useMatchLog(SESSION_ID);
+  const { session, players, courts, busy } = useSessionData(base);
+  const costs = useCosts(base);
+  const matchLog = useMatchLog(base);
   const [showPlayer, setShowPlayer] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [showSession, setShowSession] = useState(false);
@@ -59,9 +59,9 @@ export default function App() {
   const live = { ...DEFAULT_LIVE, ...session.live };
   const display = { ...DEFAULT_DISPLAY, ...session.display };
   applyDisplayPrefs(display);
-  // Signed out or still loading, display is just the defaults; applying it would
-  // flip the login/loading screen to Light and overwrite the cached theme.
-  if (club && !busy) applyTheme(display);
+  // Still loading, display is just the defaults; applying it would
+  // flip the loading screen to Light and overwrite the cached theme.
+  if (!busy) applyTheme(display);
 
   useEffect(() => {
     const locked = showPlayer || Boolean(editingPlayer) || showSession || menuOpen;
@@ -93,7 +93,7 @@ export default function App() {
 
   async function addPlayer(data) {
     const id = crypto.randomUUID();
-    await setDoc(doc(db, "sessions", SESSION_ID, "players", id), {
+    await setDoc(at("players", id), {
       id, ...data, games: 0, wins: 0, losses: 0, createdAt: Date.now(), checkedAt: Date.now(),
     });
     setShowPlayer(false);
@@ -104,7 +104,7 @@ export default function App() {
     const { lockedWithId, ...fields } = data;
     const current = players.find((p) => p.id === id);
     const batch = writeBatch(db);
-    batch.update(doc(db, "sessions", SESSION_ID, "players", id), fields);
+    batch.update(at("players", id), fields);
     if (lockedWithId !== undefined && (lockedWithId || null) !== (current?.lockedWithId || null)) {
       applyLockChange(batch, current, lockedWithId || null);
     }
@@ -118,38 +118,38 @@ export default function App() {
   function applyLockChange(batch, player, newPartnerId) {
     const oldPartnerId = player?.lockedWithId || null;
     if (oldPartnerId && oldPartnerId !== newPartnerId) {
-      batch.update(doc(db, "sessions", SESSION_ID, "players", oldPartnerId), { lockedWithId: null });
+      batch.update(at("players", oldPartnerId), { lockedWithId: null });
     }
     if (newPartnerId) {
       const newPartner = players.find((p) => p.id === newPartnerId);
       if (newPartner?.lockedWithId && newPartner.lockedWithId !== player.id) {
-        batch.update(doc(db, "sessions", SESSION_ID, "players", newPartner.lockedWithId), { lockedWithId: null });
+        batch.update(at("players", newPartner.lockedWithId), { lockedWithId: null });
       }
-      batch.update(doc(db, "sessions", SESSION_ID, "players", newPartnerId), { lockedWithId: player.id });
+      batch.update(at("players", newPartnerId), { lockedWithId: player.id });
     }
-    batch.update(doc(db, "sessions", SESSION_ID, "players", player.id), { lockedWithId: newPartnerId });
+    batch.update(at("players", player.id), { lockedWithId: newPartnerId });
   }
 
   async function deletePlayer(id) {
     const p = players.find((x) => x.id === id);
     const batch = writeBatch(db);
-    batch.delete(doc(db, "sessions", SESSION_ID, "players", id));
+    batch.delete(at("players", id));
     if (p?.lockedWithId) {
-      batch.update(doc(db, "sessions", SESSION_ID, "players", p.lockedWithId), { lockedWithId: null });
+      batch.update(at("players", p.lockedWithId), { lockedWithId: null });
     }
     await batch.commit();
     notify(`${p?.name || "Player"} removed.`);
   }
 
   async function checkInPlayer(id) {
-    await updateDoc(doc(db, "sessions", SESSION_ID, "players", id), {
+    await updateDoc(at("players", id), {
       checked: true, checkedAt: Date.now(),
     });
     notify(`${players.find((p) => p.id === id)?.name || "Player"} checked in.`);
   }
 
   async function checkOutPlayer(id) {
-    await updateDoc(doc(db, "sessions", SESSION_ID, "players", id), { checked: false });
+    await updateDoc(at("players", id), { checked: false });
     notify(`${players.find((p) => p.id === id)?.name || "Player"} checked out.`);
   }
 
@@ -164,7 +164,7 @@ export default function App() {
     if (need === 2) { if (!a.length) a.push(id); else b.push(id); }
     else if (a.length < 2) a.push(id);
     else b.push(id);
-    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", c.id), {
+    await updateDoc(at("courts", c.id), {
       teamA: a, teamB: b, ...(wasEmpty ? { start: Date.now() } : {}),
     });
     notify(`Called ${players.find((p) => p.id === id)?.name || "player"} to Court ${c.courtNumber}.`);
@@ -172,10 +172,10 @@ export default function App() {
 
   async function removePlayer(courtId, id) {
     const c = courts.find((x) => x.id === courtId);
-    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", courtId), {
+    await updateDoc(at("courts", courtId), {
       teamA: c.teamA.filter((x) => x !== id), teamB: c.teamB.filter((x) => x !== id),
     });
-    await updateDoc(doc(db, "sessions", SESSION_ID, "players", id), { checkedAt: Date.now() });
+    await updateDoc(at("players", id), { checkedAt: Date.now() });
     notify("Player returned to queue.");
   }
 
@@ -192,10 +192,10 @@ export default function App() {
       return notify(`${player.name} is locked in with ${partnerName} — can't add them without their partner on this team.`, 4000);
     }
     const wasEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
-    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", courtId), {
+    await updateDoc(at("courts", courtId), {
       [key]: [...(c[key] || []), id], ...(wasEmpty ? { start: Date.now() } : {}),
     });
-    await updateDoc(doc(db, "sessions", SESSION_ID, "players", id), { checkedAt: Date.now() });
+    await updateDoc(at("players", id), { checkedAt: Date.now() });
     notify(`Added ${player?.name || "Player"} to Court ${c.courtNumber}.`);
   }
 
@@ -222,8 +222,8 @@ export default function App() {
     const teamA = inTeamA ? c.teamA.map((x) => (x === oldId ? newId : x)) : c.teamA;
     const teamB = !inTeamA ? c.teamB.map((x) => (x === oldId ? newId : x)) : c.teamB;
     const batch = writeBatch(db);
-    batch.update(doc(db, "sessions", SESSION_ID, "courts", courtId), { teamA, teamB });
-    batch.update(doc(db, "sessions", SESSION_ID, "players", oldId), { checkedAt: Date.now() });
+    batch.update(at("courts", courtId), { teamA, teamB });
+    batch.update(at("players", oldId), { checkedAt: Date.now() });
     await batch.commit();
     notify(`Swapped in ${newPlayer?.name || "Player"}.`);
   }
@@ -245,12 +245,12 @@ export default function App() {
   }
 
   async function toggleAutoRotate() {
-    await updateDoc(doc(db, "sessions", SESSION_ID), { autoRotate: !autoRotateOn });
+    await updateDoc(at(), { autoRotate: !autoRotateOn });
     notify(`Auto-rotation ${!autoRotateOn ? "enabled" : "disabled"}.`);
   }
 
   async function changeMode(newMode) {
-    await updateDoc(doc(db, "sessions", SESSION_ID), { mode: newMode });
+    await updateDoc(at(), { mode: newMode });
     notify(`Mode set to ${newMode}.`);
   }
 
@@ -266,32 +266,32 @@ export default function App() {
       return notify(`Waiting on ${need - next.length} more ${label}player(s) to check in.`);
     }
     const [teamA, teamB] = splitTeams(next, mode, rules.avoidRepeatPartners);
-    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", courtId), { teamA, teamB, start: Date.now() });
+    await updateDoc(at("courts", courtId), { teamA, teamB, start: Date.now() });
     notify(`Court ${c?.courtNumber ?? ""} match started.`);
   }
 
   async function sendPreviewToCourt(teamAIds, teamBIds) {
     const openCourt = courts.find((c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0);
     if (!openCourt) return notify("No court is open right now.");
-    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", openCourt.id), {
+    await updateDoc(at("courts", openCourt.id), {
       teamA: teamAIds, teamB: teamBIds, start: Date.now(),
     });
     notify(`Sent to Court ${openCourt.courtNumber}.`);
   }
 
   async function setCourtLevel(courtId, level) {
-    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", courtId), { level });
+    await updateDoc(at("courts", courtId), { level });
     const c = courts.find((x) => x.id === courtId);
     notify(`Court ${c?.courtNumber ?? ""} set to ${level}.`);
   }
 
   async function renameCourt(courtId, name) {
-    await updateDoc(doc(db, "sessions", SESSION_ID, "courts", courtId), { name });
+    await updateDoc(at("courts", courtId), { name });
     notify(name ? `Court renamed to ${name}.` : "Court name reset to default.");
   }
 
   async function skipQueuedPlayer(id) {
-    await updateDoc(doc(db, "sessions", SESSION_ID, "players", id), { checkedAt: Date.now() });
+    await updateDoc(at("players", id), { checkedAt: Date.now() });
     notify("Sent to the back of the queue.");
   }
 
@@ -300,8 +300,8 @@ export default function App() {
     const b = players.find((p) => p.id === idB);
     if (!a || !b) return;
     const batch = writeBatch(db);
-    batch.update(doc(db, "sessions", SESSION_ID, "players", idA), { checkedAt: b.checkedAt || Date.now() });
-    batch.update(doc(db, "sessions", SESSION_ID, "players", idB), { checkedAt: a.checkedAt || Date.now() });
+    batch.update(at("players", idA), { checkedAt: b.checkedAt || Date.now() });
+    batch.update(at("players", idB), { checkedAt: a.checkedAt || Date.now() });
     await batch.commit();
     notify(`Swapped ${a.name} and ${b.name} in the queue.`);
   }
@@ -309,10 +309,10 @@ export default function App() {
   async function addCourt() {
     const nextNumber = courts.length + 1;
     const batch = writeBatch(db);
-    batch.set(doc(db, "sessions", SESSION_ID, "courts", `court-${nextNumber}`), {
+    batch.set(at("courts", `court-${nextNumber}`), {
       courtNumber: nextNumber, start: Date.now(), teamA: [], teamB: [],
     });
-    batch.set(doc(db, "sessions", SESSION_ID), { courts: nextNumber }, { merge: true });
+    batch.set(at(), { courts: nextNumber }, { merge: true });
     await batch.commit();
     notify(`Court ${nextNumber} added.`);
   }
@@ -326,7 +326,7 @@ export default function App() {
     const targetIds = remaining.map((_, i) => `court-${i + 1}`);
     const batch = writeBatch(db);
     remaining.forEach((c, i) => {
-      batch.set(doc(db, "sessions", SESSION_ID, "courts", targetIds[i]), {
+      batch.set(at("courts", targetIds[i]), {
         courtNumber: i + 1,
         start: c.start ?? Date.now(),
         teamA: c.teamA || [],
@@ -335,9 +335,9 @@ export default function App() {
       });
     });
     courts.forEach((c) => {
-      if (!targetIds.includes(c.id)) batch.delete(doc(db, "sessions", SESSION_ID, "courts", c.id));
+      if (!targetIds.includes(c.id)) batch.delete(at("courts", c.id));
     });
-    batch.set(doc(db, "sessions", SESSION_ID), { courts: remaining.length }, { merge: true });
+    batch.set(at(), { courts: remaining.length }, { merge: true });
     await batch.commit();
     notify(`Court ${removed?.courtNumber ?? ""} removed.`);
   }
@@ -377,7 +377,7 @@ export default function App() {
         }
       }
       if (teamA.length !== (c.teamA || []).length || teamB.length !== (c.teamB || []).length) {
-        batch.update(doc(db, "sessions", SESSION_ID, "courts", c.id), {
+        batch.update(at("courts", c.id), {
           teamA, teamB, ...(wasEmpty ? { start: Date.now() } : {}),
         });
       }
@@ -409,12 +409,12 @@ export default function App() {
         lastResult: winners.includes(id) ? "win" : "loss",
       };
       if (partnerOf[id]) update.partners = [...(p.partners || []).slice(-4), partnerOf[id]];
-      batch.update(doc(db, "sessions", SESSION_ID, "players", id), update);
-      undo.update(doc(db, "sessions", SESSION_ID, "players", id),
+      batch.update(at("players", id), update);
+      undo.update(at("players", id),
         Object.fromEntries(Object.keys(update).map((k) => [k, was(p[k])])));
     });
     const nameOf = (id) => players.find((x) => x.id === id)?.name || "Player";
-    const logRef = doc(collection(db, "sessions", SESSION_ID, "matchLog"));
+    const logRef = doc(col("matchLog"));
     undo.delete(logRef);
     batch.set(logRef, {
       court: c.name || `Court ${c.courtNumber}`,
@@ -423,7 +423,7 @@ export default function App() {
       recordedAt: Date.now(),
     });
     const need = session.format === "Singles" ? 2 : 4;
-    const courtRef = doc(db, "sessions", SESSION_ID, "courts", c.id);
+    const courtRef = at("courts", c.id);
     undo.update(courtRef, {
       teamA: c.teamA || [], teamB: c.teamB || [], start: was(c.start),
       winStreak: was(c.winStreak), stayingIds: was(c.stayingIds),
@@ -466,8 +466,8 @@ export default function App() {
 
   async function newSession(data) {
     const [matchLogSnap, costsSnap] = await Promise.all([
-      getDocs(collection(db, "sessions", SESSION_ID, "matchLog")),
-      getDocs(collection(db, "sessions", SESSION_ID, "costs")),
+      getDocs(col("matchLog")),
+      getDocs(col("costs")),
     ]);
     const batch = writeBatch(db);
     // Archive before the wipe, like End Session — otherwise
@@ -475,7 +475,7 @@ export default function App() {
     // roster's game/win history instead of saving it to Stats → Past Sessions.
     const totalGames = players.reduce((n, p) => n + (p.games || 0), 0);
     if (totalGames > 0) {
-      const historyRef = doc(collection(db, "sessions", SESSION_ID, "history"));
+      const historyRef = doc(col("history"));
       batch.set(historyRef, {
         endedAt: Date.now(),
         matches: Math.round(totalGames / 2),
@@ -484,13 +484,13 @@ export default function App() {
         })),
       });
     }
-    batch.set(doc(db, "sessions", SESSION_ID), data, { merge: true });
-    courts.forEach((c) => batch.delete(doc(db, "sessions", SESSION_ID, "courts", c.id)));
-    players.forEach((p) => batch.delete(doc(db, "sessions", SESSION_ID, "players", p.id)));
+    batch.set(at(), data, { merge: true });
+    courts.forEach((c) => batch.delete(at("courts", c.id)));
+    players.forEach((p) => batch.delete(at("players", p.id)));
     matchLogSnap.forEach((d) => batch.delete(d.ref));
     costsSnap.forEach((d) => batch.delete(d.ref));
     for (let i = 1; i <= data.courts; i++) {
-      batch.set(doc(db, "sessions", SESSION_ID, "courts", `court-${i}`), {
+      batch.set(at("courts", `court-${i}`), {
         courtNumber: i, start: Date.now(), teamA: [], teamB: [],
       });
     }
@@ -501,16 +501,16 @@ export default function App() {
 
   async function updateSessionSettings(data) {
     const batch = writeBatch(db);
-    batch.set(doc(db, "sessions", SESSION_ID), data, { merge: true });
+    batch.set(at(), data, { merge: true });
     if (data.courts > courts.length) {
       for (let i = courts.length + 1; i <= data.courts; i++) {
-        batch.set(doc(db, "sessions", SESSION_ID, "courts", `court-${i}`), {
+        batch.set(at("courts", `court-${i}`), {
           courtNumber: i, start: Date.now(), teamA: [], teamB: [],
         });
       }
     } else if (data.courts < courts.length) {
       courts.filter((c) => c.courtNumber > data.courts)
-        .forEach((c) => batch.delete(doc(db, "sessions", SESSION_ID, "courts", c.id)));
+        .forEach((c) => batch.delete(at("courts", c.id)));
     }
     await batch.commit();
     notify("Session updated.");
@@ -519,7 +519,7 @@ export default function App() {
   async function addCostEntry({ label, rate, hours, courts: courtCount, playerIds }) {
     const total = Math.round(rate * hours * courtCount * 100) / 100;
     const perPerson = splitCost(total, playerIds.length, costDefaults.roundTo);
-    await addDoc(collection(db, "sessions", SESSION_ID, "costs"), {
+    await addDoc(col("costs"), {
       label: label || "Court", rate, hours, courts: courtCount, total, perPerson, playerIds,
       paid: Object.fromEntries(playerIds.map((id) => [id, false])),
       visibleOnLive: false,
@@ -531,7 +531,7 @@ export default function App() {
   async function toggleCostPaid(costId, playerId) {
     const entry = costs.find((c) => c.id === costId);
     if (!entry) return;
-    await updateDoc(doc(db, "sessions", SESSION_ID, "costs", costId), {
+    await updateDoc(at("costs", costId), {
       [`paid.${playerId}`]: !entry.paid?.[playerId],
     });
   }
@@ -539,14 +539,14 @@ export default function App() {
   async function toggleCostLive(costId) {
     const entry = costs.find((c) => c.id === costId);
     if (!entry) return;
-    await updateDoc(doc(db, "sessions", SESSION_ID, "costs", costId), {
+    await updateDoc(at("costs", costId), {
       visibleOnLive: !entry.visibleOnLive,
     });
     notify(entry.visibleOnLive ? "Hidden from Live Board." : "Now showing on Live Board.");
   }
 
   async function deleteCostEntry(costId) {
-    await deleteDoc(doc(db, "sessions", SESSION_ID, "costs", costId));
+    await deleteDoc(at("costs", costId));
     notify("Cost entry removed.");
   }
 
@@ -566,20 +566,12 @@ export default function App() {
   async function handleErase() {
     setShowErase(false);
     try {
-      await eraseSession();
+      await onErase();
       setTab("dashboard");
       notify("Session erased. You're starting fresh.");
     } catch {
       notify("Couldn't erase the session — please try again.", 4000);
     }
-  }
-
-  if (!club) {
-    return clubError ? (
-      <div className="loading">{clubError}</div>
-    ) : (
-      <div className="loading"><span className="spinner" />Starting your session…</div>
-    );
   }
 
   if (busy) {
@@ -644,7 +636,7 @@ export default function App() {
               onTogglePaid={toggleCostPaid} onToggleLive={toggleCostLive} onDelete={deleteCostEntry}
             />
           )}
-          {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={SESSION_ID} />}
+          {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={base[1]} />}
           {tab === "guide" && <Guide />}
           {tab === "settings" && (
             <Settings
@@ -679,7 +671,7 @@ export default function App() {
           />
         )}
         {showShare && (
-          <ShareModal url={`${window.location.origin}/live?club=${SESSION_ID}${live.key ? `&key=${live.key}` : ""}`} close={() => setShowShare(false)} />
+          <ShareModal url={`${window.location.origin}/live?club=${base[1]}${live.key ? `&key=${live.key}` : ""}`} close={() => setShowShare(false)} />
         )}
         {showErase && (
           <ConfirmDialog
@@ -698,7 +690,7 @@ export default function App() {
             onCancel={() => setShowEndSession(false)}
             onConfirm={() => {
               setShowEndSession(false);
-              endSession()
+              onEndSession()
                 .then(() => { setTab("dashboard"); notify("Session ended. Stats are saved to Past Sessions."); })
                 .catch(() => notify("Couldn't end the session — please try again.", 4000));
             }}

@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import "./styles.css";
 import { routeOf } from "./utils/route";
 
-const App = lazy(() => import("./App"));
+const App = lazy(() => import("./Club"));
 const LiveBoard = lazy(() => import("./LiveBoard"));
 const OpenPlay = lazy(() => import("./OpenPlay"));
 const AccountApp = lazy(() => import("./AccountApp"));

@@ -4,22 +4,23 @@ import {
 } from "firebase/firestore";
 import { db, firebaseConfigured } from "../firebase";
 
-export function useMatchLog(sessionId, count = 20) {
+export function useMatchLog(base, count = 20) {
+  const key = base ? base.join("/") : "";
   const [log, setLog] = useState([]);
 
   useEffect(() => {
-    if (!firebaseConfigured || !sessionId) {
+    if (!firebaseConfigured || !key) {
       setLog([]);
       return;
     }
     const q = query(
-      collection(db, "sessions", sessionId, "matchLog"),
+      collection(db, ...key.split("/"), "matchLog"),
       orderBy("recordedAt", "desc"),
       limit(count)
     );
     const unsub = onSnapshot(q, (s) => setLog(s.docs.map((d) => ({ id: d.id, ...d.data() }))));
     return unsub;
-  }, [sessionId, count]);
+  }, [key, count]);
 
   return log;
 }

@@ -3,6 +3,7 @@ import { firebaseConfigured } from "./firebase";
 import { useSessionData } from "./hooks/useSessionData";
 import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
+import { sessionBase } from "./utils/paths";
 import MatchLogRow from "./components/MatchLogRow";
 import PhClock from "./components/PhClock";
 import StarDisplay from "./components/StarDisplay";
@@ -92,9 +93,9 @@ function QueueTicker({ rows, rowCount }) {
 
 export default function LiveBoard() {
   const clubId = new URLSearchParams(window.location.search).get("club");
-  const { session, players, courts, busy } = useSessionData(clubId);
-  const costs = useCosts(clubId);
-  const matchLog = useMatchLog(clubId);
+  const { session, players, courts, busy } = useSessionData(sessionBase(clubId));
+  const costs = useCosts(sessionBase(clubId));
+  const matchLog = useMatchLog(sessionBase(clubId));
 
   // Keep a wall TV or tablet from dimming or sleeping while the board is up.
   // The browser drops the lock whenever the tab is hidden, so re-request on return.
