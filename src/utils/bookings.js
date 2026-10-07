@@ -85,3 +85,9 @@ export const attendeeFromRequest = (request) => ({
   id: request.seatId, name: request.name, method: request.method, paid: "unpaid", joinedAt: request.createdAt,
   ...(request.ref ? { ref: request.ref } : {}),
 });
+
+// Over = its scheduled time has passed in its own zone, or the host ended the game early.
+export const isOver = (event, fallbackZone) => event.status === "ended" || hasEndedIn(event, fallbackZone);
+
+// What the public booking page lists: not a walk-in, not over.
+export const isListed = (event, fallbackZone) => !event.walkIn && !isOver(event, fallbackZone);

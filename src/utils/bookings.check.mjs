@@ -1,6 +1,6 @@
 // Self-check for booking seats, totals and player-facing status. Run: node src/utils/bookings.check.mjs
 import assert from "node:assert";
-import { addAttendee, bookingTotals, endHM, attendeeFromRequest, hasEnded, hasEndedIn, myStatus, splitAttendees } from "./bookings.js";
+import { addAttendee, bookingTotals, endHM, attendeeFromRequest, hasEnded, hasEndedIn, isListed, isOver, myStatus, splitAttendees } from "./bookings.js";
 
 const a = (id, joinedAt, paid = "unpaid", extra = {}) => ({ id, name: id, joinedAt, paid, ...extra });
 const b = { date: "2026-10-11", startTime: "18:00", durationMins: 120, maxPlayers: 2, fee: 150, attendees: [] };
@@ -56,5 +56,15 @@ assert.equal(seat.joinedAt, 1234);
 assert.equal(seat.ref, "GC1");
 assert.ok(!JSON.stringify(seat).includes("secret-rid"));
 assert.ok(!JSON.stringify(seat).includes("0917"));
+
+// Review Focus 3: ended or walk-in events never show as joinable on the public page.
+assert.equal(isOver({ ...future, status: "scheduled" }, "UTC"), false);
+assert.equal(isOver({ ...future, status: "ended" }, "UTC"), true); // ended early by the host
+assert.equal(isOver(old, "UTC"), true);
+assert.equal(isListed({ ...future, status: "scheduled" }, "UTC"), true);
+assert.equal(isListed({ ...future, status: "live" }, "UTC"), true);
+assert.equal(isListed({ ...future, status: "ended" }, "UTC"), false);
+assert.equal(isListed({ ...future, walkIn: true }, "UTC"), false);
+assert.equal(isListed(old, "UTC"), false);
 
 console.log("bookings.check: ok");
