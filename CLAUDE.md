@@ -47,7 +47,17 @@ Already built:
 - Delete account cascade: `utils/accountData.js` (`deleteAccountData`, `EVENT_SUBCOLLECTIONS`; step 3 adds the game
   subcollections there). Test: `tests/cascade.test.mjs` via `npm run test:rules`. Rules must be re-published in the Firebase
   console after any change to `firestore.rules`.
-- "Play now" and "Proceed to game" are step 3; per-event Live Board links and the landing page are step 4.
+- Game on an event (step 3a, spec `docs/superpowers/specs/2026-10-07-event-game-design.md`): `QueueApp.jsx` is the queue app on a `base`
+  path (`utils/paths.js`: `sessionBase(uid)` for the quick session, `eventBase(uid, id)` for a game); every write goes through its `at` /
+  `col` helpers. `Club.jsx` wraps it at `/club`; `Game.jsx` at `/event/:id/game` (gates on event `status`, merges the account settings with
+  `buildGameSession`). "Proceed to game" (`GamePickModal`, nothing pre-ticked) adds the ticked attendees as players NOT checked in, sets the
+  event `live`, creates courts from the account's Session defaults and one booking-fee Cost entry (`booking-{eventId}`); "Add players to game"
+  repeats it safely (players are matched by attendee id). "Play now" makes a `walkIn` event (4 h, no seats, hidden from the public page).
+  "End game" sets `status: "ended"` and keeps everything; "Reopen game" sets it `live`. Pure logic and its check: `utils/gameSession.js`,
+  `node src/utils/gameSession.check.mjs`; writes in `hooks/useGameActions.js`. Game data (`players`, `courts`, `matchLog`, `costs` under an
+  event) is owner-only (rules don't cascade into subcollections); step 4 opens read for the Live Board. Delete cascade covers all of it
+  (`EVENT_SUBCOLLECTIONS`).
+- Still to build: the roster and skill memory (step 3b), per-event Live Board links and the landing page (step 4).
 - Accounts (step 1 of `docs/superpowers/specs/2026-10-06-accounts-and-events-design.md`): real Firebase accounts
   (email + password or Google) with a profile at `accounts/{uid}` (owner-only in `firestore.rules`). `main.jsx` picks the page
   with `routeOf` in `utils/route.js`: `/live`, `/open-play`, `/club` (the quick session, below), everything else is
@@ -59,7 +69,7 @@ Already built:
 - Quick session at `/club`: the classic queue app with no login. `useClub` signs the visitor in anonymously (or reuses the real
   account already signed in, never signing it out) and keeps the session at `sessions/{uid}`; rules: `isClub` = `auth.uid == sessionId`.
   Data belongs to that browser (clearing site data starts fresh). Needs Anonymous sign-in turned on in the Firebase console.
-  Settings uses `mode="quick"` (no password rows; "Back to home"; "Erase this session"); End Session archives and stays in the app.
+  Settings uses `mode="quick"` (no password rows; "Back to home"; "Erase this session"); End Session archives and stays in the app. The page is `Club.jsx` (`useClub`) around `QueueApp`.
 
 Saved for later (owner's picks, in order of suggestion):
 - Export roster and match history to CSV (safety net before Delete Account).

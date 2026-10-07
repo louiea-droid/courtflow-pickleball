@@ -163,7 +163,7 @@ export default function EventPage({
       {confirmDelete && (
         <ConfirmDialog
           title="Delete this open play?"
-          message={`${event.title}, its player list, payment records and join requests will be removed. Players with a pending request will see it's no longer listed.`}
+          message={`${event.title}, its player list, payment records, join requests and any game (players, matches and costs) will be removed. Players with a pending request will see it's no longer listed.`}
           confirmLabel="Delete"
           onCancel={() => setConfirmDelete(false)}
           onConfirm={async () => { setConfirmDelete(false); await actions.remove(event.id); navigate("/host"); }}

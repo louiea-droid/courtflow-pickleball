@@ -5,7 +5,7 @@ import { db, firebaseConfigured } from "./firebase";
 import { useEvents } from "./hooks/useEvents";
 import { applyDisplayPrefs, formatDay, formatHM, money } from "./utils/format";
 import { applyTheme } from "./utils/theme";
-import { byStart, endHM, hasEndedIn, myStatus, splitAttendees } from "./utils/bookings";
+import { byStart, endHM, isListed, myStatus, splitAttendees } from "./utils/bookings";
 import { DEFAULT_DISPLAY } from "./data/constants";
 
 // The player's own requests live on their device: the request id is the only key to
@@ -195,7 +195,7 @@ export default function OpenPlay() {
   applyDisplayPrefs(DEFAULT_DISPLAY);
   applyTheme(DEFAULT_DISPLAY);
   const upcoming = useMemo(
-    () => events.filter((e) => !hasEndedIn(e, DEFAULT_DISPLAY.timeZone)).sort(byStart),
+    () => events.filter((e) => isListed(e, DEFAULT_DISPLAY.timeZone)).sort(byStart),
     [events],
   );
 
