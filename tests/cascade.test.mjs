@@ -22,6 +22,7 @@ const seedClub = async (db, id, ownerId) => {
   await setDoc(doc(db, `clubs/${id}`), { name: id, visibility: "public", ownerId, createdAt: 1 });
   await setDoc(doc(db, `clubs/${id}/members/${ownerId}`), { role: "owner", name: ownerId, joinedAt: 1 });
   await setDoc(doc(db, `clubs/${id}/members/helper`), { role: "member", name: "Helper", joinedAt: 1 });
+  await setDoc(doc(db, `accounts/helper/memberships/${id}`), { clubName: id, role: "member", joinedAt: 1 });
   await setDoc(doc(db, `clubs/${id}/roster/r1`), { name: "Regular" });
   await setDoc(doc(db, `clubs/${id}/joinRequests/j1`), { name: "J" });
   await setDoc(doc(db, `clubs/${id}/private/invite`), { code: "X" });
@@ -56,6 +57,7 @@ for (const sub of EVENT_SUBS) {
 
 // Review Focus 2: deleting a club, run as its owner, leaves nothing.
 await deleteClubData(real("u3"), "c3", "u3");
+assert.equal(await count("accounts/helper/memberships"), 2, "helper's c3 card left behind"); // c1 and c2 remain
 for (const sub of ["events", "members", "roster", "joinRequests", "private"]) {
   assert.equal(await count(`clubs/c3/${sub}`), 0, `c3/${sub} left behind`);
 }
@@ -78,6 +80,7 @@ for (const e of ["e1", "e2"]) {
 assert.equal(await count("accounts/u1/memberships"), 0);
 assert.equal(await count("accounts/u1/roster"), 0);
 assert.equal(await count("accounts/u1/events"), 0);
+assert.equal(await count("accounts/helper/memberships"), 1, "helper's c1 card left behind"); // only c2 remains
 for (const sub of EVENT_SUBS) assert.equal(await count(`accounts/u1/events/oldEvent/${sub}`), 0, `legacy ${sub} left behind`);
 await env.withSecurityRulesDisabled(async (ctx) => {
   const db = ctx.firestore();
@@ -118,6 +121,23 @@ assert.equal(await count("clubs/c5/members"), 0, "c5 owner record left behind");
 assert.equal(await count("accounts/u5/memberships"), 0, "c5 copy left behind");
 await deleteAccountData(real("u4"), "u4"); // used to throw permission-denied
 assert.equal(await count("accounts/u4/memberships"), 0, "c4 copy left behind");
+
+// A plain member who deletes their account leaves the club first (no ghost member), even when their
+// record or the club's other data is already gone.
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  await setDoc(doc(db, "accounts/u7"), { name: "Seven" });
+  await setDoc(doc(db, "accounts/u7/memberships/c2"), { clubName: "c2", role: "member", joinedAt: 1 });
+  await setDoc(doc(db, "clubs/c2/members/u7"), { role: "member", name: "Seven", joinedAt: 1 });
+  await setDoc(doc(db, "accounts/u8"), { name: "Eight" });
+  await setDoc(doc(db, "accounts/u8/memberships/c2"), { clubName: "c2", role: "member", joinedAt: 1 }); // no record: was removed
+});
+assert.equal(await count("clubs/c2/members"), 3);
+await deleteAccountData(real("u7"), "u7");
+assert.equal(await count("clubs/c2/members"), 2, "u7 is still listed as a member after deleting their account");
+assert.equal(await count("accounts/u7/memberships"), 0);
+await deleteAccountData(real("u8"), "u8"); // a card with no record
+assert.equal(await count("accounts/u8/memberships"), 0);
 
 console.log("cascade: ok");
 await env.cleanup();
