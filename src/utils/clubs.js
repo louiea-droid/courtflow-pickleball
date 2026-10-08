@@ -49,7 +49,7 @@ export const clubPath = (clubId, rest = "") => `/clubs/${encodeURIComponent(club
 export const ROLE_LABEL = { owner: "Owner", manager: "Manager", member: "Member" };
 
 // ---- Part B: joining ----
-const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 characters, so a byte maps evenly; no I, O, 0, 1
+export const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 characters, so a byte maps evenly; no I, O, 0, 1
 
 // A new invite code. Resetting the link stores a new one, which stops every old link.
 export function newInviteCode() {
