@@ -15,3 +15,5 @@
 .club-form input,.club-form textarea,.club-input{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}
 .club-form textarea,textarea.club-input{resize:vertical}
 .club-save{display:flex;justify-content:flex-end;padding:10px 4px 2px}
+.acct-main > form.account-group{margin-bottom:22px}
+@media (max-width:760px){.acct-main > form.account-group{margin-bottom:16px}}
