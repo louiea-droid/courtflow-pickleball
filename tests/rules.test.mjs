@@ -129,7 +129,7 @@ await assertSucceeds(getDocs(collection(own, "clubs/priv/members")));
 await assertFails(getDocs(collection(stranger, "clubs/pub/members")));
 await assertFails(getDocs(collection(anon, "clubs/pub/members")));
 await assertFails(updateDoc(doc(own, "clubs/pub/members/mem"), { role: "manager" })); // roles arrive in part C
-await assertFails(deleteDoc(doc(mgr, "clubs/pub/members/mem")));
+await assertFails(deleteDoc(doc(mem, "clubs/pub/members/mgr"))); // a member can't remove a manager (managers removing plain members is in membership.test.mjs)
 await assertFails(deleteDoc(doc(own, "clubs/pub/members/own"))); // the owner can't leave a club that still exists
 await assertSucceeds(deleteDoc(doc(own, "clubs/priv/members/mem")));
 await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "clubs/priv/members/mem"), { role: "member", name: "Member", joinedAt: 1 }));

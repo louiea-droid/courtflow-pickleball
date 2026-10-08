@@ -34,6 +34,19 @@ service cloud.firestore {
       }
     }
 
+    // A manager may create a new member's card when approving them, and delete a card when removing the
+    // member, only in the same batch as the member-record change (getAfter / existsAfter). Nothing else
+    // of another person's account is reachable. (Everything of your own is covered by the rule above.)
+    match /accounts/{uid}/memberships/{clubId} {
+      allow create: if isManager(clubId)
+        && request.resource.data.role == 'member'
+        && request.resource.data.keys().hasOnly(['clubName', 'role', 'joinedAt'])
+        && getAfter(/databases/$(database)/documents/clubs/$(clubId)/members/$(uid)).data.role == 'member';
+      allow delete: if isManager(clubId)
+        && uid != get(clubPath(clubId)).data.ownerId
+        && !existsAfter(/databases/$(database)/documents/clubs/$(clubId)/members/$(uid));
+    }
+
     // ---- Clubs. The member record is the single source of truth for who may do what.
     function clubPath(clubId) {
       return /databases/$(database)/documents/clubs/$(clubId);
@@ -59,6 +72,57 @@ service cloud.firestore {
     // Public clubs show their open play to everyone; private clubs only to their members.
     function canSeeClub(clubId) {
       return isPublicClub(clubId) || isMember(clubId);
+    }
+
+    function invitePath(clubId) {
+      return /databases/$(database)/documents/clubs/$(clubId)/private/invite;
+    }
+    function joinRequestPath(clubId, uid) {
+      return /databases/$(database)/documents/clubs/$(clubId)/joinRequests/$(uid);
+    }
+    function nearNow(ms) {
+      return ms is number && ms > request.time.toMillis() - 600000 && ms < request.time.toMillis() + 600000;
+    }
+    function validName(n) {
+      return n is string && n.size() > 0 && n.size() <= 60;
+    }
+
+    // A person asks to join a public club (they are not signed in as a quick session, and are not a member yet).
+    function validJoinRequest(clubId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name', 'message', 'status', 'createdAt'])
+        && d.keys().hasAll(['name', 'status', 'createdAt'])
+        && validName(d.name)
+        && (!('message' in d) || (d.message is string && d.message.size() <= 200))
+        && d.status == 'pending'
+        && nearNow(d.createdAt)
+        && isPublicClub(clubId)
+        && !exists(memberPath(clubId));
+    }
+    // Joining with the club's current invite code. The rules read the invite document even though the
+    // person cannot; resetting the code (a manager) stops every old link at once.
+    function validInviteJoin(clubId, uid) {
+      let d = request.resource.data;
+      return request.auth.uid == uid
+        && d.keys().hasOnly(['role', 'name', 'joinedAt', 'inviteCode'])
+        && d.keys().hasAll(['role', 'name', 'joinedAt', 'inviteCode'])
+        && d.role == 'member'
+        && validName(d.name)
+        && nearNow(d.joinedAt)
+        && exists(invitePath(clubId))
+        && d.inviteCode == get(invitePath(clubId)).data.code;
+    }
+    // A manager approving a pending request: a plain member record, nothing else.
+    function validApproval(clubId, uid) {
+      let d = request.resource.data;
+      return isManager(clubId)
+        && d.keys().hasOnly(['role', 'name', 'joinedAt'])
+        && d.keys().hasAll(['role', 'name', 'joinedAt'])
+        && d.role == 'member'
+        && validName(d.name)
+        && d.joinedAt is number
+        && exists(joinRequestPath(clubId, uid))
+        && get(joinRequestPath(clubId, uid)).data.status == 'pending';
     }
 
     function validClub(d) {
@@ -108,14 +172,22 @@ service cloud.firestore {
         // Your own record (to learn your role, even when you have none), or any record if you're a member.
         allow get: if isRealUser() && (request.auth.uid == uid || isMember(clubId));
         allow list: if isMember(clubId);
-        // The owner's record, created in the same batch as the club (getAfter sees the new club).
-        allow create: if isRealUser() && request.auth.uid == uid
-          && request.resource.data.role == 'owner'
-          && request.resource.data.keys().hasOnly(['role', 'name', 'joinedAt'])
-          && getAfter(clubPath(clubId)).data.ownerId == request.auth.uid;
-        // The owner removes other people's records; their own record only once the club is gone.
-        allow delete: if (isOwner(clubId) && request.auth.uid != uid)
-          || (isRealUser() && request.auth.uid == uid && !exists(clubPath(clubId)));
+        // Three ways in: the owner's record (same batch as the club, getAfter sees the new club), an invite
+        // join with the current code, and a manager approving a pending request.
+        allow create: if isRealUser() && (
+          (request.auth.uid == uid
+            && request.resource.data.role == 'owner'
+            && request.resource.data.keys().hasOnly(['role', 'name', 'joinedAt'])
+            && getAfter(clubPath(clubId)).data.ownerId == request.auth.uid)
+          || validInviteJoin(clubId, uid)
+          || validApproval(clubId, uid));
+        // Four ways out: the owner removes anyone else, a manager removes plain members, a member
+        // leaves (the owner can't), and anyone's own record once the club is gone.
+        allow delete: if isRealUser() && (
+          (isOwner(clubId) && request.auth.uid != uid)
+          || (isManager(clubId) && request.auth.uid != uid && resource.data.role == 'member')
+          || (request.auth.uid == uid && resource.data.role != 'owner')
+          || (request.auth.uid == uid && !exists(clubPath(clubId))));
       }
 
       match /events/{eventId} {
@@ -141,8 +213,16 @@ service cloud.firestore {
         allow read: if isMember(clubId);
         allow write: if isManager(clubId);
       }
-      match /joinRequests/{id} {
-        allow read, write: if isManager(clubId);
+      // One request per person per club (the id is their uid). The requester sees only their own;
+      // managers see all, decline (status only) and clear them. The requester withdraws or dismisses.
+      match /joinRequests/{reqUid} {
+        allow get: if isRealUser() && (request.auth.uid == reqUid || isManager(clubId));
+        allow list: if isManager(clubId);
+        allow create: if isRealUser() && request.auth.uid == reqUid && validJoinRequest(clubId);
+        allow update: if isManager(clubId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status == 'declined';
+        allow delete: if isRealUser() && (request.auth.uid == reqUid || isManager(clubId));
       }
       match /private/{id} {
         allow read, write: if isManager(clubId);

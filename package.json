@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:rules": "firebase emulators:exec --only firestore --project rules-test \"node tests/rules.test.mjs && node tests/cascade.test.mjs\"",
+    "test:rules": "firebase emulators:exec --only firestore --project rules-test \"node tests/rules.test.mjs && node tests/cascade.test.mjs && node tests/membership.test.mjs\"",
     "emulators": "firebase emulators:start --only auth,firestore --project demo-courtflow",
     "dev:emu": "vite --mode emulator --port 5300"
   },
