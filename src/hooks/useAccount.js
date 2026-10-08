@@ -11,6 +11,8 @@ import {
   resetMessage, shouldEnsureAccount,
 } from "../utils/account";
 import { deleteAccountData } from "../utils/accountData";
+import { needsDirectorySync } from "../utils/friends";
+import { syncDirectory } from "../utils/friendsData";
 
 // Creates accounts/{uid} once. Safe to call again: it never overwrites settings.
 async function ensureAccount(user, name) {
@@ -58,6 +60,15 @@ export function useAccount() {
   }, [user]);
 
   const status = accountStatus({ user, loaded, account, failed });
+
+  // Keeps the friend directory (code, name listing, names on friendships) matching this account. One run at a
+  // time; the next account snapshot (after the write) re-checks, so it settles instead of looping.
+  const syncing = useRef(false);
+  useEffect(() => {
+    if (status !== "in" || creating.current || deleting.current || syncing.current || !needsDirectorySync(account)) return;
+    syncing.current = true;
+    syncDirectory(db, user.uid, account).catch(() => {}).finally(() => { syncing.current = false; });
+  }, [status, user, account]);
 
   const signIn = (email, password) => {
     if (isLegacyEmail(email)) return Promise.resolve(LEGACY_MESSAGE);

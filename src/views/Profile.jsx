@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, KeyRound, Pencil, Trash2, X } from "lucide-react";
+import { Check, Copy, KeyRound, Pencil, Trash2, X } from "lucide-react";
 import ChangePasswordDialog from "../components/ChangePasswordDialog";
 import PageTitle from "../components/PageTitle";
 import Select from "../components/Select";
@@ -10,6 +10,24 @@ const THEMES = [
   { value: "dark", label: "Dark" },
   { value: "system", label: "Match my device" },
 ];
+
+// The friend code with a Copy button (it is how people who aren't in the name directory find you).
+function FriendCode({ code }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* the code is on screen to copy by hand */ }
+  };
+  return (
+    <div className="friend-code">
+      <code aria-label="Your friend code">{code}</code>
+      <button className="outline" onClick={copy}><Copy size={14} /> {copied ? "Copied" : "Copy"}</button>
+    </div>
+  );
+}
 
 // Your own profile: name, sign-in email, password, appearance, and deleting the account.
 export default function Profile({ acct, onDelete }) {
@@ -50,6 +68,17 @@ export default function Profile({ acct, onDelete }) {
           </SettingsRow>
           <SettingsRow title="Email" body="What you sign in with.">
             <b>{account.email}</b>
+          </SettingsRow>
+          <SettingsRow title="Friend code" body="Share it so friends can find you, even if you are hidden from the name search.">
+            {account.friendCode ? <FriendCode code={account.friendCode} /> : <span className="hub-empty">Making your code…</span>}
+          </SettingsRow>
+          <SettingsRow title="Let people find me by name" body="Off: only people who have your friend code can find you.">
+            <label className="switch">
+              <input
+                type="checkbox" role="switch" aria-label="Let people find me by name"
+                checked={account.discoverable !== false} onChange={(e) => acct.updateAccount({ discoverable: e.target.checked })}
+              />
+            </label>
           </SettingsRow>
           <SettingsRow hidden={!acct.hasPassword} title="Password" body="Can't be looked up or displayed, only changed.">
             <button className="outline" onClick={() => setShowPassword(true)}><KeyRound size={14} /> Change password</button>
