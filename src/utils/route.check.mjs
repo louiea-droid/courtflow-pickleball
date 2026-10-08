@@ -15,6 +15,9 @@ assert.equal(routeOf("/club/"), "quick");
 assert.equal(routeOf("/clubhouse"), "hub");
 
 assert.equal(routeOf("/clubs"), "clubs");
+assert.equal(routeOf("/friends"), "friends");
+assert.equal(routeOf("/friends/"), "friends");
+assert.equal(routeOf("/friendsx"), "hub");
 assert.equal(routeOf("/clubs/"), "clubs");
 assert.equal(routeOf("/clubs/new"), "clubs-new");
 assert.equal(routeOf("/clubs/abc"), "club");

@@ -9,6 +9,8 @@ import { useGameActions } from "./hooks/useGameActions";
 import { useJoinRequests, useMembers } from "./hooks/useMembership";
 import { removeMyCopy, useMembershipActions } from "./hooks/useMembershipActions";
 import { useMyClubs } from "./hooks/useMyClubs";
+import { useFriendships } from "./hooks/useFriends";
+import { friendBuckets } from "./utils/friends";
 import { applyDisplayPrefs } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import { isOver } from "./utils/bookings";
@@ -85,6 +87,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
   // own join is still queued (offline, slow), "not a member" can be wrong and a real card would be deleted.
   // The short wait covers the moment right after joining, when the card can arrive before the record.
   const { clubs: myClubs } = useMyClubs(uid);
+  const { friendships } = useFriendships(uid);
   const hasCard = myClubs.some((c) => c.id === clubId);
   useEffect(() => {
     if (!info.confirmed || isMember || !hasCard) return undefined;
@@ -141,6 +144,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
     <AccountSidebar
       active={null} name={acct.account?.name || acct.account?.clubName} email={acct.user?.email}
       onSignOut={acct.signOutUser} navigate={navigate} clubs={myClubs} club={sideClub}
+      friendRequests={friendBuckets(friendships, uid).received.length}
     />
   );
   const inShell = (content) => <div className="acct-shell">{sidebar(null)}<main className="acct-main">{content}</main></div>;

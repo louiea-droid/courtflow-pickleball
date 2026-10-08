@@ -7,6 +7,7 @@ export function routeOf(pathname) {
   if (path === "/club") return "quick";
   if (path === "/settings") return "settings";
   if (path === "/clubs") return "clubs";
+  if (path === "/friends") return "friends";
   if (path === "/clubs/new") return "clubs-new";
   if (path === "/clubs/find") return "clubs-find";
   const m = path.match(/^\/clubs\/[^/]+(\/.*)?$/);

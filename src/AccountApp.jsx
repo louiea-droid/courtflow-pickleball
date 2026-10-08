@@ -3,6 +3,8 @@ import { LogOut } from "lucide-react";
 import { useAccount } from "./hooks/useAccount";
 import { useRoute } from "./hooks/useRoute";
 import { useMyClubs } from "./hooks/useMyClubs";
+import { useFriendships } from "./hooks/useFriends";
+import { friendBuckets } from "./utils/friends";
 import { useClubActions } from "./hooks/useClubActions";
 import { applyTheme } from "./utils/theme";
 import AccountLogin from "./components/AccountLogin";
@@ -11,6 +13,7 @@ import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
 import MyClubs from "./views/MyClubs";
+import Friends from "./views/Friends";
 import CreateClub from "./views/CreateClub";
 import FindClubs from "./views/FindClubs";
 import Profile from "./views/Profile";
@@ -23,6 +26,7 @@ export default function AccountApp() {
   const uid = acct.user?.uid;
   const name = acct.account?.name || acct.account?.clubName || "";
   const { clubs, ready: clubsReady } = useMyClubs(uid);
+  const { friendships, ready: friendsReady } = useFriendships(uid);
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [showDelete, setShowDelete] = useState(false);
@@ -82,14 +86,17 @@ export default function AccountApp() {
   return (
     <div className="acct-shell">
       <AccountSidebar
-        active={{ "clubs-find": "find", clubs: "clubs", hub: "hub" }[route] || null}
+        active={{ "clubs-find": "find", clubs: "clubs", friends: "friends", hub: "hub" }[route] || null}
         name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} clubs={clubs}
+        friendRequests={friendBuckets(friendships, uid).received.length}
       />
       <main className="acct-main">
         {route === "settings" ? (
           <Profile acct={acct} onDelete={() => setShowDelete(true)} />
         ) : route === "clubs-new" ? (
           <CreateClub onCreate={clubActions.createClub} navigate={navigate} />
+        ) : route === "friends" ? (
+          <Friends uid={uid} name={name} friendships={friendships} ready={friendsReady} notify={notify} />
         ) : route === "clubs" ? (
           <MyClubs clubs={clubs} ready={clubsReady} navigate={navigate} />
         ) : route === "clubs-find" ? (
