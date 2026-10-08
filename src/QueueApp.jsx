@@ -721,7 +721,7 @@ export default function QueueApp({
               onSetDefaults={(defaults) => updateSessionSettings({ defaults })}
               rules={rules} costDefaults={costDefaults} live={live} display={display}
               onSetLive={(change) => updateSessionSettings({ live: { ...live, ...change } })}
-              onSetDisplay={(change) => updateSessionSettings({ display: { ...savedDisplay, ...change } })}
+              onSetDisplay={(change) => updateSessionSettings({ display: { ...display, ...change } })}
               onSetRules={(change) => updateSessionSettings({ rules: { ...rules, ...change } })}
               onSetCostDefaults={(change) => updateSessionSettings({ costDefaults: { ...costDefaults, ...change } })}
             />

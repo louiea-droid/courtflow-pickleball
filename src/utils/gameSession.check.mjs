@@ -59,7 +59,12 @@ const linked = playersToAdd(event, ["b", "c"], [], 100, { b: "u-b" });
 assert.equal(linked[0].uid, "u-b");
 assert.equal("uid" in linked[1], false);
 assert.equal("uid" in playersToAdd(event, ["b"], [], 100)[0], false);
-assert.deepEqual(uidBySeat([{ seatId: "s1", uid: "u1" }, { seatId: "s2" }, { seatId: "s3", uid: 7 }, { uid: "u9" }]), { s1: "u1" });
+const ok = (o) => ({ status: "approved", ...o });
+assert.deepEqual(uidBySeat([ok({ seatId: "s1", uid: "u1" }), ok({ seatId: "s2" }), ok({ seatId: "s3", uid: 7 }), ok({ uid: "u9" })]), { s1: "u1" });
+// A request is a claim until the host approves it: anyone can send one for any seat id they have seen
+// (attendee ids are public), so only approved requests link an account to a seat.
+assert.deepEqual(uidBySeat([{ seatId: "s1", uid: "mallory", status: "pending" }, { seatId: "s2", uid: "x", status: "declined" }, { seatId: "s3", uid: "u3" }]), {});
+assert.deepEqual(uidBySeat([{ seatId: "s1", uid: "mallory", status: "pending" }, ok({ seatId: "s1", uid: "alice" })]), { s1: "alice" });
 assert.deepEqual(uidBySeat(undefined), {});
 
 // Review Focus 2: booking payment status follows the event attendee record.

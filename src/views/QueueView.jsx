@@ -53,7 +53,7 @@ export default function QueueView({ clubId, base, eventId, uid, navigate }) {
               <li key={p.id} className={`queue-row${p.uid === uid ? " me" : ""}`}>
                 <span className="queue-pos">{i + 1}</span>
                 <span className="queue-name">{p.name}{p.uid === uid ? " (you)" : ""}</span>
-                <span className="queue-games">{p.games} {p.games === 1 ? "game" : "games"}</span>
+                <span className="queue-games">{p.games || 0} {p.games === 1 ? "game" : "games"}</span>
               </li>
             ))}
           </ol>

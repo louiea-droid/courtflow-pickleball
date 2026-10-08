@@ -225,8 +225,8 @@ service cloud.firestore {
         }
 
         // Game data (players, courts, matchLog, costs): managers write it all. Club members also read the players
-        // and courts, which is the queue ("Your active session" on Home); those documents carry names, skill and
-        // gender. The match log and costs stay managers-only.
+        // and courts, which is the queue ("Your active session" on Home); those documents carry names, skill,
+        // gender, results and the linked account id (uid). The match log and costs stay managers-only.
         match /{sub}/{docId} {
           allow write: if isManager(clubId);
           allow read: if isManager(clubId) || (sub in ['players', 'courts'] && isMember(clubId));

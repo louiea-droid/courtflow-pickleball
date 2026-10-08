@@ -51,9 +51,13 @@ export function gamePickList(event, players = []) {
 }
 
 // { seatId: uid } from the event's private requests: the bookers who were signed in when they asked.
+// Only approved requests count. A request is a claim (anyone can send one naming a seat id they saw on the
+// public attendee list), so the host's approval is what ties an account to a seat.
 export function uidBySeat(requests = []) {
   return Object.fromEntries(
-    requests.filter((r) => r.seatId && typeof r.uid === "string").map((r) => [r.seatId, r.uid]),
+    requests
+      .filter((r) => r.status === "approved" && r.seatId && typeof r.uid === "string")
+      .map((r) => [r.seatId, r.uid]),
   );
 }
 

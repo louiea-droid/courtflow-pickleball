@@ -10,7 +10,7 @@ export function queueOrder(players, courts) {
   const playing = new Set(courts.flatMap(onCourt));
   return players
     .filter((p) => p.checked && !playing.has(p.id))
-    .sort((a, b) => a.games - b.games || a.checkedAt - b.checkedAt || (a.id < b.id ? -1 : 1));
+    .sort((a, b) => (a.games || 0) - (b.games || 0) || (a.checkedAt || 0) - (b.checkedAt || 0) || (a.id < b.id ? -1 : 1));
 }
 
 // null when the person isn't a checked-in player of this game; { state: "playing", court }; or

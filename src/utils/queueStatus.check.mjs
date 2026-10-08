@@ -47,4 +47,7 @@ assert.equal(DEFAULT_GAME_MINUTES, 15);
 const tieA = P("a1", { uid: "u" }), tieB = P("b1");
 assert.equal(queueStatus({ players: [tieB, tieA], courts: busy, uid: "u", format: "Doubles" }).position, 1);
 assert.equal(queueStatus({ players: [me], courts: [], uid: "u", format: "Doubles" }).upNext, true);
+// Older player docs may lack games or checkedAt: they count as 0, so the order is still stable
+const legacy = [{ id: "z", checked: true }, { id: "y", checked: true, games: 1 }, { id: "x", checked: true, games: 0, checkedAt: 5 }];
+assert.deepEqual(queueOrder(legacy, []).map((p) => p.id), ["z", "x", "y"]);
 console.log("queueStatus.check: ok");
