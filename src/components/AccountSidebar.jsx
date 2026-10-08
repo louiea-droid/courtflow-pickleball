@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import { Menu, Plus, Search, ListOrdered, Users, X } from "lucide-react";
+import { House, Menu, Search, Users, X } from "lucide-react";
 import AccountMenu from "./AccountMenu";
 import { clubPath } from "../utils/clubs";
 
 // The one sidebar for every signed-in screen in the hub and club area (a drawer behind a menu button on
-// phones). Sections: Play (find a club, quick session), Your clubs (the open club expands in place to its
-// screens: `club` = { id, name, tabs: [{ to, label, Icon, current, badge, badgeText }] }; then a way to
-// join another), Manage (create a club). The brand goes to the hub; the account menu is at the bottom.
-// `active` highlights a place: "find" | "new".
+// phones). Home, Play (find a club), Your clubs (the open club expands in place to its screens:
+// `club` = { id, name, tabs: [{ to, label, Icon, current, badge, badgeText }] }), and the account menu at
+// the bottom. Creating a club and the quick session live on Home. `active` highlights a place: "hub" | "find".
 export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -42,13 +41,16 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
           <button className="acct-menu-btn acct-side-close" type="button" aria-label="Close menu" onClick={() => setOpen(false)}><X size={18} /></button>
         </div>
         <div className="acct-side-scroll">
+          <nav aria-label="Home">
+            {link("/", "Home", House, active === "hub")}
+          </nav>
           <section className="acct-side-group" aria-label="Play">
             <p className="acct-side-label">Play</p>
             <nav aria-label="Play">
               {link("/clubs/find", "Find a club", Search, active === "find")}
-              <a className="acct-link" href="/club"><ListOrdered size={17} /><span>Quick session</span></a>
             </nav>
           </section>
+          {list.length > 0 && (
           <section className="acct-side-group" aria-label="Your clubs">
             <p className="acct-side-label">Your clubs</p>
             <nav aria-label="Your clubs">
@@ -64,15 +66,9 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
                   )}
                 </div>
               ) : link(clubPath(c.id), c.clubName, Users, false)))}
-              {link("/clubs/find", "Join another club", Plus, false)}
             </nav>
           </section>
-          <section className="acct-side-group" aria-label="Manage">
-            <p className="acct-side-label">Manage</p>
-            <nav aria-label="Manage">
-              {link("/clubs/new", "Create a club", Plus, active === "new")}
-            </nav>
-          </section>
+          )}
         </div>
         <AccountMenu name={name} email={email} onSignOut={onSignOut} navigate={navigate} />
       </aside>

@@ -13,7 +13,7 @@
 .acct-menu-btn{display:inline-grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--side-ink)}
 .acct-menu-btn:hover{background:var(--side-hover)}
 .acct-side-close,.acct-topbar{display:none}
-.acct-side-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:6px 0;scrollbar-width:thin;scrollbar-color:var(--side-line) transparent}
+.acct-side-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:6px 0 12px;border-bottom:1px solid var(--side-line);scrollbar-width:thin;scrollbar-color:var(--side-line) transparent}
 .acct-link{display:flex;align-items:center;gap:10px;min-height:44px;margin:2px 0;padding:0 12px;border-radius:10px;color:var(--side-muted);font-weight:700;font-size:13.5px;text-decoration:none;transition:background .15s ease,color .15s ease}
 .acct-link svg{flex-shrink:0}
 .acct-link span:first-of-type{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -22,7 +22,6 @@
 .acct-shell .acct-side a:focus-visible,.acct-shell .acct-topbar a:focus-visible{outline:2px solid var(--accent-bright);outline-offset:-2px}
 .acct-side .count-badge{background:var(--accent);color:var(--on-accent,#fff)}
 .acct-side-group{display:grid;gap:2px}
-.acct-side-group+.acct-side-group{padding-top:14px;border-top:1px solid var(--side-line)}
 .acct-side-name{display:flex;align-items:center;gap:10px;min-height:44px;margin:2px 0;padding:0 12px;font:700 14px/1.25 "Space Grotesk";color:#fff}
 .acct-side-name svg{flex-shrink:0;color:var(--accent-bright)}
 .acct-side-name span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

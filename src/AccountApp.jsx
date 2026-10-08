@@ -81,7 +81,7 @@ export default function AccountApp() {
   return (
     <div className="acct-shell">
       <AccountSidebar
-        active={route === "clubs-find" ? "find" : route === "clubs-new" ? "new" : route === "settings" ? null : "hub"}
+        active={route === "clubs-find" ? "find" : route === "clubs-new" || route === "settings" ? null : "hub"}
         name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} clubs={clubs}
       />
       <main className="acct-main">
