@@ -178,7 +178,8 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
       <main className="acct-main">
         <section className={`club-head${canManage ? "" : " solo"}`}>
           <div className="club-head-top">
-            <h1>{club.name}</h1>
+            {/* One h1 per page: the club name on the overview, the page title on the other screens. */}
+            {route === "club" ? <h1>{club.name}</h1> : <p className="club-name">{club.name}</p>}
             <div className="club-meta">
               {role && <span className="pill">{ROLE_LABEL[role]}</span>}
               <span className="pill off">{club.visibility === "public" ? "Public club" : "Private club"}</span>

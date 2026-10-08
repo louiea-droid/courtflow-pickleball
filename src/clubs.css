@@ -23,7 +23,7 @@
 .acct-shell a.primary,.acct-shell a.outline{text-decoration:none}
 .acct-shell .primary svg,.acct-shell .outline svg{flex-shrink:0}
 /* 44px touch targets for the bar and the main buttons */
-.acct-shell .primary,.acct-shell .outline{min-height:44px}
+.acct-shell .primary,.acct-shell .outline:not(.tiny){min-height:44px}
 .acct-brand,.acct-bar nav a{display:inline-flex;align-items:center;min-height:44px}
 
 /* ---- Cards and panels keep a visible border in dark mode ---- */
@@ -37,6 +37,7 @@
 .club-head.solo{margin-bottom:22px}
 .club-head-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
 .club-head h1{margin:0;font:700 28px/1.15 "Space Grotesk";letter-spacing:-.5px;overflow-wrap:anywhere}
+.club-name{margin:0;font:700 20px/1.2 "Space Grotesk";letter-spacing:-.3px;overflow-wrap:anywhere}
 .club-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .club-location{display:flex;align-items:center;gap:4px;margin:8px 0 0;color:var(--muted);font-size:13px}
 .club-about{margin:6px 0 0;color:var(--ink-2);max-width:62ch;line-height:1.55;overflow-wrap:anywhere}
@@ -71,11 +72,11 @@
 .club-form input,.club-form textarea,.club-input{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}
 .club-form textarea,textarea.club-input{resize:vertical}
 .club-save{display:flex;justify-content:flex-end;padding:10px 4px 2px}
-.acct-main > form.account-group{margin-bottom:22px}
+.acct-main form.account-group{margin-bottom:22px}
 
 /* ---- Phone ---- */
 @media (max-width:760px){
-  .acct-main > form.account-group{margin-bottom:16px}
+  .acct-main form.account-group{margin-bottom:16px}
 }
 @media (max-width:560px){
   .acct-bar-in .account-menu-trigger-copy,.acct-bar-in .account-menu-chevron{display:none}
