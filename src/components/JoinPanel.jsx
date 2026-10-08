@@ -42,9 +42,6 @@ export default function JoinPanel({ uid, clubId, club, invite, actions, notify, 
     );
   }
 
-  if (club.visibility !== "public") {
-    return <div className="panel notice"><p><Lock size={14} /> This club is private. Ask a manager for an invite link.</p></div>;
-  }
   if (!ready) return <p className="hub-empty">Loading…</p>;
 
   if (request?.status === "pending") {
@@ -66,6 +63,10 @@ export default function JoinPanel({ uid, clubId, club, invite, actions, notify, 
         <button className="outline" disabled={busy} onClick={() => run(actions.cancelRequest, "Couldn't dismiss it. Try again.")}>Dismiss</button>
       </div>
     );
+  }
+
+  if (club.visibility !== "public") {
+    return <div className="panel notice"><p><Lock size={14} /> This club is private. Ask a manager for an invite link.</p></div>;
   }
 
   const send = (e) => {

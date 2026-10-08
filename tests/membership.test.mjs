@@ -113,6 +113,9 @@ await assertFails(getDoc(doc(mem, "clubs/pub/private/invite")));
 // reset: a manager replaces the code; the old one stops working at once
 await assertSucceeds(setDoc(doc(mgr, "clubs/pub/private/invite"), { code: "NEWCODE2" }));
 await assertFails(setDoc(doc(mem, "clubs/pub/private/invite"), { code: "MEMCODE1" }));
+await assertFails(setDoc(doc(mgr, "clubs/pub/private/invite"), { code: "short" })); // a code is 8 characters
+await assertFails(setDoc(doc(mgr, "clubs/pub/private/invite"), { code: 12345678 }));
+await assertFails(setDoc(doc(mgr, "clubs/pub/private/invite"), { code: "ABCDEFGH", extra: 1 }));
 await assertFails(join(other, "pub", "other", memberDoc())); // GOODCODE is old now
 await assertSucceeds(join(other, "pub", "other", memberDoc({ inviteCode: "NEWCODE2" })));
 
@@ -138,6 +141,13 @@ await putRequest("pub", "req2", reqDoc({ status: "declined" }));
 await assertFails(approve(mgr, "pub", "req2")); // a declined request is not approvable
 await assertFails(setDoc(doc(mgr, "accounts/req/memberships/pub"), copyDoc("pub"))); // a card with no member record
 await assertFails(setDoc(doc(mgr, "accounts/req"), { name: "x" })); // nothing else of theirs
+await assertFails(approve(mgr, "pub", "req", approvedMember(), { clubName: "x".repeat(61), role: "member", joinedAt: now() })); // card name too long
+await assertFails(approve(mgr, "pub", "req", approvedMember(), { clubName: "pub", role: "member", joinedAt: "yesterday" }));
+await assertFails(setDoc(doc(mgr, "accounts/mem/memberships/pub"), copyDoc("pub"))); // a card for someone who is already a member
+await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "accounts/req/memberships/pub"), { clubName: "old", role: "member", joinedAt: 1 }));
+await assertSucceeds(approve(mgr, "pub", "req")); // a stale card from an earlier stay is replaced
+await seed();
+await putRequest("pub", "req", reqDoc());
 await assertSucceeds(approve(mgr, "pub", "req"));
 await putRequest("pub", "other", reqDoc());
 await assertSucceeds(approve(own, "pub", "other"));

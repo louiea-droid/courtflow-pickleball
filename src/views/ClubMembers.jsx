@@ -23,8 +23,8 @@ export default function ClubMembers({ clubId, club, uid, canManage, isOwner, req
     try {
       await fn();
       if (okMessage) notify(okMessage);
-    } catch {
-      notify(failMessage, 4000);
+    } catch (err) {
+      notify(typeof failMessage === "function" ? failMessage(err) : failMessage, 4000);
     }
     setBusy(false);
   };
@@ -48,7 +48,7 @@ export default function ClubMembers({ clubId, club, uid, canManage, isOwner, req
                 {r.message && <small>{r.message}</small>}
               </div>
               <div className="member-actions">
-                <button className="primary" disabled={busy} onClick={() => act(() => actions.approve(r), `${r.name} joined the club.`, "Couldn't approve. Check your connection and try again.")}>Approve</button>
+                <button className="primary" disabled={busy} onClick={() => act(() => actions.approve(r), `${r.name} joined the club.`, (err) => (err.code === "withdrawn" ? "They withdrew the request." : "Couldn't approve. Check your connection and try again."))}>Approve</button>
                 <button className="outline" disabled={busy} onClick={() => act(() => actions.decline(r), `Declined ${r.name}.`, "Couldn't decline. Try again.")}>Decline</button>
               </div>
             </div>
@@ -117,7 +117,7 @@ export default function ClubMembers({ clubId, club, uid, canManage, isOwner, req
           onCancel={() => setConfirm(null)}
           onConfirm={() => {
             setConfirm(null);
-            act(async () => { await actions.leave(); navigate("/"); }, `You left ${club.name}.`, "Couldn't leave. Check your connection and try again.");
+            act(async () => { await actions.leave(); navigate("/"); }, null, "Couldn't leave. Check your connection and try again.");
           }}
         />
       )}

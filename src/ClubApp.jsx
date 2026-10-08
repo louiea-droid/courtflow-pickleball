@@ -238,7 +238,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
           <nav className="club-tabs" aria-label="Club">
             {tab(base, "Overview", "club")}
             {canManage && tab(`${base}/host`, "Open play", "club-host", "club-event")}
-            {tab(`${base}/members`, <>Members{canManage && pendingRequests.length > 0 && <span className="count-badge">{pendingRequests.length}</span>}</>, "club-members")}
+            {tab(`${base}/members`, <>Members{canManage && pendingRequests.length > 0 && <><span className="count-badge">{pendingRequests.length}</span><span className="sr-only"> join requests waiting</span></>}</>, "club-members")}
             {canManage && tab(`${base}/settings`, "Settings", "club-settings")}
           </nav>
         )}

@@ -71,15 +71,15 @@ async function deleteLegacyData(db, uid) {
   await wipeCollection(db, collection(db, "accounts", uid, "roster"));
 }
 
-// Erases everything an account owns: each club it owns (with everything in it), its "My clubs"
-// copies, any data from before clubs, and the account doc itself. Data first; the caller deletes
-// the sign-in last. Clubs the person only belongs to are left first (no ghost member stays behind).
+// Erases everything an account owns. Clubs the person only belongs to are left first (no ghost
+// member stays behind), then each club it owns (with everything in it), its "My clubs" copies, any
+// data from before clubs, and the account doc itself. Data first; the caller deletes the sign-in last.
 export async function deleteAccountData(db, uid) {
   const memberships = await getDocs(collection(db, "accounts", uid, "memberships"));
   const owned = memberships.docs.filter((m) => m.data().role === "owner");
   const joined = memberships.docs.filter((m) => m.data().role !== "owner");
-  await Promise.all(owned.map((m) => deleteClubData(db, m.id, uid)));
   await Promise.all(joined.map((m) => leaveClub(db, m.id, uid)));
+  await Promise.all(owned.map((m) => deleteClubData(db, m.id, uid)));
   await wipeCollection(db, collection(db, "accounts", uid, "memberships"));
   await deleteLegacyData(db, uid);
   const batch = writeBatch(db);

@@ -23,11 +23,13 @@ export function useMembershipActions({ uid, name, clubId, club }) {
     const batch = writeBatch(db);
     batch.set(memberRef(uid), memberRecord(name, now, code));
     batch.set(cardRef(uid), membershipCopy(club, "member", now));
+    batch.delete(requestRef(uid)); // an earlier request of theirs is answered by joining
     await batch.commit();
   };
 
   // Approve: the member record, their "My clubs" card and the request go in one batch. If they already
-  // joined another way (an invite link) the batch is refused; then just clear the request.
+  // joined another way (an invite link) the batch is refused; then just clear the request. If the request is
+  // gone (they withdrew it) there is nothing to approve: the error says so.
   const approve = async (request) => {
     const now = Date.now();
     try {
@@ -37,8 +39,9 @@ export function useMembershipActions({ uid, name, clubId, club }) {
       batch.delete(requestRef(request.id));
       await batch.commit();
     } catch (err) {
-      if (!(await getDoc(memberRef(request.id))).exists()) throw err;
-      await deleteDoc(requestRef(request.id));
+      const [member, pending] = await Promise.all([getDoc(memberRef(request.id)), getDoc(requestRef(request.id))]);
+      if (member.exists()) return deleteDoc(requestRef(request.id));
+      throw pending.exists() ? err : Object.assign(new Error("withdrawn"), { code: "withdrawn" });
     }
   };
   const decline = (request) => updateDoc(requestRef(request.id), { status: "declined" });

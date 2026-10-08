@@ -34,13 +34,18 @@ service cloud.firestore {
       }
     }
 
-    // A manager may create a new member's card when approving them, and delete a card when removing the
-    // member, only in the same batch as the member-record change (getAfter / existsAfter). Nothing else
-    // of another person's account is reachable. (Everything of your own is covered by the rule above.)
+    // A manager writes a new member's card when approving them (create, or replace a stale one left from an
+    // earlier stay) and deletes it when removing the member, only in the same batch as the member-record
+    // change (exists / getAfter / existsAfter). Nothing else of another person's account is reachable.
+    // (Everything of your own is covered by the rule above.)
     match /accounts/{uid}/memberships/{clubId} {
-      allow create: if isManager(clubId)
+      allow create, update: if isManager(clubId)
         && request.resource.data.role == 'member'
         && request.resource.data.keys().hasOnly(['clubName', 'role', 'joinedAt'])
+        && request.resource.data.keys().hasAll(['clubName', 'role', 'joinedAt'])
+        && validName(request.resource.data.clubName)
+        && request.resource.data.joinedAt is number
+        && !exists(/databases/$(database)/documents/clubs/$(clubId)/members/$(uid))
         && getAfter(/databases/$(database)/documents/clubs/$(clubId)/members/$(uid)).data.role == 'member';
       allow delete: if isManager(clubId)
         && uid != get(clubPath(clubId)).data.ownerId
@@ -224,8 +229,12 @@ service cloud.firestore {
           && request.resource.data.status == 'declined';
         allow delete: if isRealUser() && (request.auth.uid == reqUid || isManager(clubId));
       }
+      // The invite code: 8 characters, nothing else on the document.
       match /private/{id} {
-        allow read, write: if isManager(clubId);
+        allow read, delete: if isManager(clubId);
+        allow create, update: if isManager(clubId)
+          && request.resource.data.keys().hasOnly(['code'])
+          && request.resource.data.code is string && request.resource.data.code.size() == 8;
       }
     }
   }

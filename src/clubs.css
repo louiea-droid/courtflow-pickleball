@@ -161,3 +161,4 @@
 .member-main small{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
 .member-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .club-tabs .count-badge{margin-left:6px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
