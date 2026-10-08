@@ -4,9 +4,10 @@ import AccountMenu from "./AccountMenu";
 import { clubPath } from "../utils/clubs";
 
 // The one sidebar for every signed-in screen in the hub and club area (a drawer behind a menu button on
-// phones). Home, Play (find a club), Your clubs (the open club expands in place to its screens:
-// `club` = { id, name, tabs: [{ to, label, Icon, current, badge, badgeText }] }), and the account menu at
-// the bottom. Creating a club and the quick session live on Home. `active` highlights a place: "hub" | "find".
+// phones). Home, Play (find a club), My clubs (a link to the page of all your clubs, with the clubs listed under
+// it; the open club expands in place to its screens: `club` = { id, name, tabs: [{ to, label, Icon, current,
+// badge, badgeText }] }), and the account menu at the bottom. Creating a club and the quick session live on
+// Home. `active` highlights a place: "hub" | "find" | "clubs".
 export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
   const go = (to) => (e) => { e.preventDefault(); setOpen(false); navigate(to); };
   const link = (to, label, Icon, current, extra) => (
     <a key={to} className="acct-link" href={to} aria-current={current ? "page" : undefined} onClick={go(to)}>
-      <Icon size={17} /><span>{label}</span>{extra}
+      {Icon && <Icon size={17} />}<span>{label}</span>{extra}
     </a>
   );
   // Your clubs, with the open club expanded in place to its screens (a club the person isn't in yet, such as a
@@ -50,25 +51,25 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
               {link("/clubs/find", "Find a club", Search, active === "find")}
             </nav>
           </section>
-          {list.length > 0 && (
-          <section className="acct-side-group" aria-label="Your clubs">
-            <p className="acct-side-label">Your clubs</p>
-            <nav aria-label="Your clubs">
-              {list.map((c) => (c.id === club?.id ? (
-                <div className="acct-side-open" key={c.id}>
-                  <p className="acct-side-name"><Users size={17} /><span>{c.clubName}</span></p>
-                  {club.tabs.length > 0 && (
-                    <div className="acct-side-sub">
-                      {club.tabs.map((t) => link(t.to, t.label, t.Icon, t.current, t.badge ? (
-                        <><span className="count-badge">{t.badge}</span><span className="sr-only"> {t.badgeText}</span></>
-                      ) : null))}
-                    </div>
-                  )}
-                </div>
-              ) : link(clubPath(c.id), c.clubName, Users, false)))}
-            </nav>
-          </section>
-          )}
+          <nav className="acct-side-group" aria-label="My clubs">
+            {link("/clubs", "My clubs", Users, active === "clubs")}
+            {list.length > 0 && (
+              <div className="acct-side-sub">
+                {list.map((c) => (c.id === club?.id ? (
+                  <div className="acct-side-open" key={c.id}>
+                    <p className="acct-side-name"><span>{c.clubName}</span></p>
+                    {club.tabs.length > 0 && (
+                      <div className="acct-side-sub">
+                        {club.tabs.map((t) => link(t.to, t.label, t.Icon, t.current, t.badge ? (
+                          <><span className="count-badge">{t.badge}</span><span className="sr-only"> {t.badgeText}</span></>
+                        ) : null))}
+                      </div>
+                    )}
+                  </div>
+                ) : link(clubPath(c.id), c.clubName, null, false)))}
+              </div>
+            )}
+          </nav>
         </div>
         <AccountMenu name={name} email={email} onSignOut={onSignOut} navigate={navigate} />
       </aside>

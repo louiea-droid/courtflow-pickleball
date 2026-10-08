@@ -24,7 +24,7 @@ export default function Hub({ name, clubs, ready, navigate }) {
         </div>
       </section>
 
-      <h2 className="club-section">Your clubs</h2>
+      <h2 className="club-section">My clubs</h2>
       {!ready ? (
         <p className="hub-empty">Loading your clubs…</p>
       ) : clubs.length === 0 ? (

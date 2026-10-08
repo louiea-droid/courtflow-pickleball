@@ -22,10 +22,10 @@
 .acct-shell .acct-side a:focus-visible,.acct-shell .acct-topbar a:focus-visible{outline:2px solid var(--accent-bright);outline-offset:-2px}
 .acct-side .count-badge{background:var(--accent);color:var(--on-accent,#fff)}
 .acct-side-group{display:grid;gap:2px}
-.acct-side-name{display:flex;align-items:center;gap:10px;min-height:44px;margin:2px 0;padding:0 12px;font:700 14px/1.25 "Space Grotesk";color:#fff}
-.acct-side-name svg{flex-shrink:0;color:var(--accent-bright)}
+.acct-side-name{display:flex;align-items:center;gap:10px;min-height:44px;margin:2px 0;padding:0 12px;font:700 13.5px/1.25 "Space Grotesk";color:#fff}
 .acct-side-name span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .acct-side-sub{margin:0 0 6px 20px;padding-left:6px;border-left:1px solid var(--side-line)}
+.acct-side-sub .acct-side-sub{margin-left:8px}
 .acct-side-label{margin:0 0 2px;padding:0 12px;color:var(--side-muted);font-size:12px;font-weight:700}
 /* the account menu, dark and opening upward */
 .acct-side .account-menu{width:100%}

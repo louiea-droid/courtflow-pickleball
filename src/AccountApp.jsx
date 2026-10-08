@@ -10,6 +10,7 @@ import AccountSidebar from "./components/AccountSidebar";
 import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
+import MyClubs from "./views/MyClubs";
 import CreateClub from "./views/CreateClub";
 import FindClubs from "./views/FindClubs";
 import Profile from "./views/Profile";
@@ -81,7 +82,7 @@ export default function AccountApp() {
   return (
     <div className="acct-shell">
       <AccountSidebar
-        active={route === "clubs-find" ? "find" : route === "clubs-new" || route === "settings" ? null : "hub"}
+        active={{ "clubs-find": "find", clubs: "clubs", hub: "hub" }[route] || null}
         name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} clubs={clubs}
       />
       <main className="acct-main">
@@ -91,6 +92,8 @@ export default function AccountApp() {
           <CreateClub onCreate={clubActions.createClub} navigate={navigate} />
         ) : route === "clubs-find" ? (
           <FindClubs myClubs={clubs} navigate={navigate} />
+        ) : route === "clubs" ? (
+          <MyClubs clubs={clubs} ready={clubsReady} navigate={navigate} />
         ) : (
           <Hub name={name} clubs={clubs} ready={clubsReady} navigate={navigate} />
         )}
