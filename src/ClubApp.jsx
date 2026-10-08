@@ -24,8 +24,6 @@ import Toast from "./components/Toast";
 // The queue app only loads when a game opens.
 const Game = lazy(() => import("./Game"));
 
-const Loading = () => <div className="loading"><span className="spinner" />Loading…</div>;
-
 // Shown in place of a screen the person's role doesn't allow (Review Focus 3): no controls at all.
 function ManagersOnly({ base, navigate }) {
   return (
@@ -99,33 +97,41 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
   };
 
   applyDisplayPrefs(display);
-  // The club's colors apply inside the club; persist: false keeps the person's own theme cached for the hub.
-  if (ready) applyTheme(display, { persist: false });
+  // Light or dark is always the person's own choice (Profile); the club only brings its accent and team
+  // colors. persist: false keeps the person's cached theme for the hub.
+  const personalTheme = acct.account?.display?.theme || "light";
+  if (ready) applyTheme({ ...display, theme: personalTheme }, { persist: false });
 
   const toHub = (e) => { e.preventDefault(); navigate("/"); };
   const go = (to) => (e) => { e.preventDefault(); navigate(to); };
 
-  if (info.status === "loading") return <Loading />;
+  // The same bar stays on screen while the club loads or when it can't be opened, so going from the hub
+  // into a club never blanks the page.
+  const bar = (
+    <AccountBar
+      active={false} name={acct.account?.name || acct.account?.clubName} email={acct.user?.email}
+      onSignOut={acct.signOutUser} navigate={navigate}
+    />
+  );
+  const inShell = (content) => <div className="acct-shell">{bar}<main className="acct-main">{content}</main></div>;
+
+  if (info.status === "loading") return inShell(<p className="hub-empty">Loading club…</p>);
   if (!ready) {
-    return (
-      <div className="loading">
-        Club not found. It may have been deleted, or it is a private club you haven't joined.
+    return inShell(
+      <div className="panel">
+        <div className="empty">Club not found. It may have been deleted, or it is a private club you haven't joined.</div>
         <a className="outline back-link" href="/" onClick={toHub}><ArrowLeft size={14} /> My clubs</a>
-      </div>
+      </div>,
     );
   }
 
   if (route === "club-game") {
     // Only managers run games. Everyone else sees the same message as the other manager screens.
-    if (!canManage) {
-      return (
-        <div className="acct-shell"><main className="acct-main"><ManagersOnly base={base} navigate={navigate} /></main></div>
-      );
-    }
+    if (!canManage) return inShell(<ManagersOnly base={base} navigate={navigate} />);
     return (
-      <Suspense fallback={<Loading />}>
+      <Suspense fallback={inShell(<p className="hub-empty">Loading game…</p>)}>
         <Game
-          clubId={clubId} club={club} event={events.find((e) => e.id === eventId)} ready={eventsReady}
+          clubId={clubId} club={{ ...club, display: { ...club.display, theme: personalTheme } }} event={events.find((e) => e.id === eventId)} ready={eventsReady}
           base={base} navigate={navigate} endGame={endGame} onSetAttendeePaid={actions.setPaid}
         />
       </Suspense>
@@ -171,10 +177,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
 
   return (
     <div className="acct-shell">
-      <AccountBar
-        active={false} name={acct.account?.name || acct.account?.clubName} email={acct.user?.email}
-        onSignOut={acct.signOutUser} navigate={navigate}
-      />
+      {bar}
       <main className="acct-main">
         <section className={`club-head${canManage ? "" : " solo"}`}>
           <div className="club-head-top">

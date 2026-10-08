@@ -305,7 +305,12 @@ export default function Settings({
       <div className="account-group">
         <div className="eyebrow">Display</div>
         <div className="panel account-panel">
-          <SettingsRow title="Theme" body="Match device follows each phone or TV’s own light or dark setting.">
+          <SettingsRow
+            title={isClub ? "Booking page and Live Board theme" : "Theme"}
+            body={isClub
+              ? "What players and TV screens see. In the app you always use your own Light or Dark choice from Profile."
+              : "Match device follows each phone or TV’s own light or dark setting."}
+          >
             <div className="account-select">
               <Select value={display.theme} onChange={(theme) => onSetDisplay({ theme })} options={THEME_OPTIONS} />
             </div>
