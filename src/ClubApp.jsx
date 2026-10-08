@@ -1,5 +1,5 @@
 import { Suspense, lazy, useRef, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 import { useClubDoc } from "./hooks/useClubDoc";
 import { useClubActions } from "./hooks/useClubActions";
 import { useEvents, useEventRequests } from "./hooks/useEvents";
@@ -9,7 +9,7 @@ import { useGameActions } from "./hooks/useGameActions";
 import { applyDisplayPrefs } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import { isOver } from "./utils/bookings";
-import { clubPath } from "./utils/clubs";
+import { ROLE_LABEL, clubPath } from "./utils/clubs";
 import { DEFAULT_DISPLAY } from "./data/constants";
 import ClubHome from "./views/ClubHome";
 import ClubSettings from "./views/ClubSettings";
@@ -18,7 +18,7 @@ import EventPage from "./views/EventPage";
 import BookingModal from "./components/BookingModal";
 import ShareModal from "./components/ShareModal";
 import GamePickModal from "./components/GamePickModal";
-import AccountMenu from "./components/AccountMenu";
+import AccountBar from "./components/AccountBar";
 import Toast from "./components/Toast";
 
 // The queue app only loads when a game opens.
@@ -134,7 +134,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
 
   const screen = () => {
     if (route === "club") {
-      return <ClubHome club={club} role={role} canManage={canManage} events={events} fallbackZone={fallbackZone} base={base} navigate={navigate} />;
+      return <ClubHome canManage={canManage} events={events} fallbackZone={fallbackZone} base={base} navigate={navigate} onNew={() => setEventModal("new")} />;
     }
     if (!canManage) return <ManagersOnly base={base} navigate={navigate} />;
     if (route === "club-host") {
@@ -164,29 +164,38 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
     );
   };
 
-  const navClass = (...routes) => (routes.includes(route) ? "active" : "");
+  // One tab per club screen; the event page keeps "Open play" active.
+  const tab = (to, label, ...routes) => (
+    <a href={to} aria-current={routes.includes(route) ? "page" : undefined} onClick={go(to)}>{label}</a>
+  );
 
   return (
     <div className="acct-shell club-shell">
-      <header className="acct-bar">
-        <a className="acct-brand" href="/" onClick={toHub}>
-          <img src="/images/courtflow.png" alt="" />
-          <b>CourtFlow</b>
-        </a>
-        <nav aria-label="Club">
-          <a href={base} className={navClass("club")} onClick={go(base)}>{club.name}</a>
-          {canManage && <a href={`${base}/host`} className={navClass("club-host", "club-event")} onClick={go(`${base}/host`)}>Open play</a>}
-          {canManage && <a href={`${base}/settings`} className={navClass("club-settings")} onClick={go(`${base}/settings`)}>Settings</a>}
-          <a href="/" onClick={toHub}>My clubs</a>
-        </nav>
-        <AccountMenu
-          name={acct.account?.name || acct.account?.clubName}
-          email={acct.user?.email}
-          onSignOut={acct.signOutUser}
-          navigate={navigate}
-        />
-      </header>
-      <main className="acct-main">{screen()}</main>
+      <AccountBar
+        active={false} name={acct.account?.name || acct.account?.clubName} email={acct.user?.email}
+        onSignOut={acct.signOutUser} navigate={navigate}
+      />
+      <main className="acct-main">
+        <section className={`club-head${canManage ? "" : " solo"}`}>
+          <div className="club-head-top">
+            <h1>{club.name}</h1>
+            <div className="club-meta">
+              {role && <span className="pill">{ROLE_LABEL[role]}</span>}
+              <span className="pill off">{club.visibility === "public" ? "Public club" : "Private club"}</span>
+            </div>
+          </div>
+          {route === "club" && club.location && <p className="club-location"><MapPin size={13} /> {club.location}</p>}
+          {route === "club" && club.description && <p className="club-about">{club.description}</p>}
+        </section>
+        {canManage && (
+          <nav className="club-tabs" aria-label="Club">
+            {tab(base, "Overview", "club")}
+            {tab(`${base}/host`, "Open play", "club-host", "club-event")}
+            {tab(`${base}/settings`, "Settings", "club-settings")}
+          </nav>
+        )}
+        {screen()}
+      </main>
       {eventModal && (
         <BookingModal
           booking={eventModal === "new" ? null : eventModal} today={todayYmd} lastPayInfo={latestPayInfo}

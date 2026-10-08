@@ -3,6 +3,7 @@ import DateTile from "../components/DateTile";
 import PanelHead from "../components/PanelHead";
 import { bookingTotals, byStart, endHM, isOver, splitAttendees } from "../utils/bookings";
 import { formatHM, money } from "../utils/format";
+import PageTitle from "../components/PageTitle";
 
 function EventRow({ e, pending, navigate, base }) {
   const { confirmed } = splitAttendees(e);
@@ -48,17 +49,15 @@ export default function Host({ events, requestsByEvent, fallbackZone, onNew, onP
 
   return (
     <>
-      <h1>Host open play</h1>
-      <p>Schedule a session, take bookings, and record who has paid.</p>
+      <PageTitle title="Open play" sub="Schedule a session, take bookings, and record who has paid.">
+        <button className="outline" onClick={onPlayNow}><Play size={15} /> Play now</button>
+        <button className="outline" onClick={onShare}><Share2 size={15} /> Share booking page</button>
+        <button className="primary" onClick={onNew}><CalendarPlus size={15} /> New open play</button>
+      </PageTitle>
       <div className="panel">
         <PanelHead title="Upcoming" sub="Open an event to manage players, payments and join requests." />
-        <div className="booking-toolbar">
-          <button className="outline" onClick={onPlayNow}><Play size={15} /> Play now</button>
-          <button className="primary" onClick={onNew}><CalendarPlus size={15} /> New open play</button>
-          <button className="outline" onClick={onShare}><Share2 size={15} /> Share booking page</button>
-        </div>
         {upcoming.map(row)}
-        {!upcoming.length && <div className="empty">No open play scheduled. Create one to start taking bookings.</div>}
+        {!upcoming.length && <div className="empty">No open play scheduled. Use New open play to start taking bookings.</div>}
       </div>
       {past.length > 0 && (
         <details className="panel history-panel booking-past">
