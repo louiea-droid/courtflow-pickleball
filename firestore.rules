@@ -1,9 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // A quick session lives at sessions/{uid}: whoever is signed in as that uid (an
-    // anonymous visitor, or a real account) owns it. Old club logins (fake emails)
-    // no longer own anything; those clubs are simply not reachable any more.
+    // ---- Quick sessions: sessions/{uid} belongs to whoever is signed in as that uid (an anonymous
+    // visitor, or a real account). Old club logins (fake emails) own nothing.
     function isClub(sessionId) {
       return request.auth != null && request.auth.uid == sessionId;
     }
@@ -19,20 +18,63 @@ service cloud.firestore {
       }
     }
 
-    // Accounts: everything under accounts/{uid} belongs to that signed-in user.
-    // Legacy club logins (fake @courtflow.local emails) are never account owners.
-    function isAccountOwner(uid) {
-      return request.auth != null && request.auth.uid == uid
+    // ---- A real person: signed in with email or Google. Not an anonymous quick-session visitor,
+    // and not an old club login (fake @courtflow.local email).
+    function isRealUser() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous'
         && !request.auth.token.get('email', '').lower().matches('.*@courtflow[.]local');
     }
 
-    // A player's request to join an event. Players aren't signed in, so this is the one
-    // thing the public may create: a pending request with these fields only, for an event
-    // that exists. seatId is the public id of the player's spot on the event (the request
-    // id stays secret, so the phone number can't be reached from the public attendee list).
-    // createdAt sets the place in line, so it must be near the real time. Only the host can
-    // list, change or delete requests.
-    function validEventRequest(uid, eventId) {
+    // ---- Accounts: the person's own profile and their "My clubs" copies. Nobody else, ever.
+    match /accounts/{uid} {
+      allow read, write: if isRealUser() && request.auth.uid == uid;
+      match /{document=**} {
+        allow read, write: if isRealUser() && request.auth.uid == uid;
+      }
+    }
+
+    // ---- Clubs. The member record is the single source of truth for who may do what.
+    function clubPath(clubId) {
+      return /databases/$(database)/documents/clubs/$(clubId);
+    }
+    function memberPath(clubId) {
+      return /databases/$(database)/documents/clubs/$(clubId)/members/$(request.auth.uid);
+    }
+    function isMember(clubId) {
+      return isRealUser() && exists(memberPath(clubId));
+    }
+    function memberRole(clubId) {
+      return get(memberPath(clubId)).data.role;
+    }
+    function isManager(clubId) {
+      return isMember(clubId) && memberRole(clubId) in ['owner', 'manager'];
+    }
+    function isOwner(clubId) {
+      return isMember(clubId) && memberRole(clubId) == 'owner';
+    }
+    function isPublicClub(clubId) {
+      return exists(clubPath(clubId)) && get(clubPath(clubId)).data.visibility == 'public';
+    }
+    // Public clubs show their open play to everyone; private clubs only to their members.
+    function canSeeClub(clubId) {
+      return isPublicClub(clubId) || isMember(clubId);
+    }
+
+    function validClub(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        && d.visibility in ['public', 'private']
+        && d.ownerId is string
+        && (!('description' in d) || (d.description is string && d.description.size() <= 500))
+        && (!('location' in d) || (d.location is string && d.location.size() <= 100));
+    }
+
+    // A player's request to join an event. Players may not be signed in (public clubs), so this is
+    // the one thing the public may create: a pending request with these fields only, for an event
+    // that exists. seatId is the public id of the player's spot (the request id stays secret, so
+    // the phone number can't be reached from the public attendee list). createdAt sets the place in
+    // line, so it must be near the real time.
+    function validEventRequest(clubId, eventId) {
       let d = request.resource.data;
       return d.keys().hasOnly(['name', 'contact', 'method', 'ref', 'seatId', 'status', 'createdAt'])
         && d.keys().hasAll(['name', 'contact', 'method', 'seatId', 'status', 'createdAt'])
@@ -45,26 +87,65 @@ service cloud.firestore {
         && d.createdAt is number
         && d.createdAt > request.time.toMillis() - 600000
         && d.createdAt < request.time.toMillis() + 600000
-        && exists(/databases/$(database)/documents/accounts/$(uid)/events/$(eventId));
+        && exists(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId));
     }
 
-    match /accounts/{uid} {
-      allow read, write: if isAccountOwner(uid);
-      match /{document=**} {
-        allow read, write: if isAccountOwner(uid);
+    match /clubs/{clubId} {
+      // Public clubs: anyone. Any club: a signed-in person who has its address (the random id),
+      // so an invite link can show what the club is. Only public clubs can be listed.
+      allow get: if resource.data.visibility == 'public' || isRealUser();
+      allow list: if resource.data.visibility == 'public';
+
+      allow create: if isRealUser() && request.resource.data.ownerId == request.auth.uid
+        && validClub(request.resource.data);
+      // Managers edit content and settings; only the owner changes visibility; the owner never changes.
+      allow update: if isManager(clubId) && validClub(request.resource.data)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && (request.resource.data.visibility == resource.data.visibility || isOwner(clubId));
+      allow delete: if isOwner(clubId);
+
+      match /members/{uid} {
+        // Your own record (to learn your role, even when you have none), or any record if you're a member.
+        allow get: if isRealUser() && (request.auth.uid == uid || isMember(clubId));
+        allow list: if isMember(clubId);
+        // The owner's record, created in the same batch as the club (getAfter sees the new club).
+        allow create: if isRealUser() && request.auth.uid == uid
+          && request.resource.data.role == 'owner'
+          && request.resource.data.keys().hasOnly(['role', 'name', 'joinedAt'])
+          && getAfter(clubPath(clubId)).data.ownerId == request.auth.uid;
+        // The owner removes other people's records; their own record only once the club is gone.
+        allow delete: if (isOwner(clubId) && request.auth.uid != uid)
+          || (isRealUser() && request.auth.uid == uid && !exists(clubPath(clubId)));
       }
 
-      // Events are public to read (the booking page lists them); only the host writes.
-      // Rules are additive, so the owner-only block above still grants the host everything.
       match /events/{eventId} {
-        allow read: if true;
+        allow read: if canSeeClub(clubId);
+        allow write: if isManager(clubId);
 
-        // The request id is a random UUID the player keeps, so a single get works as
-        // "my booking" without exposing anyone else's request. No public list.
         match /requests/{requestId} {
-          allow get: if true;
-          allow create: if validEventRequest(uid, eventId);
+          // The request id is a random UUID the player keeps, so a single get works as "my booking"
+          // without exposing anyone else's request. Phone numbers: no public list.
+          allow get: if canSeeClub(clubId);
+          allow list: if isManager(clubId);
+          allow create: if validEventRequest(clubId, eventId) && (isPublicClub(clubId) || isMember(clubId));
+          allow update, delete: if isManager(clubId);
         }
+
+        // Game data (players, courts, matchLog, costs): managers only until the Live Board decides what to show.
+        match /{sub}/{docId} {
+          allow read, write: if isManager(clubId);
+        }
+      }
+
+      match /roster/{id} {
+        allow read: if isMember(clubId);
+        allow write: if isManager(clubId);
+      }
+      match /joinRequests/{id} {
+        allow read, write: if isManager(clubId);
+      }
+      match /private/{id} {
+        allow read, write: if isManager(clubId);
       }
     }
   }
