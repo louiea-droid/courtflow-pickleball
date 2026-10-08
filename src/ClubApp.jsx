@@ -1,5 +1,5 @@
 import { Suspense, lazy, useRef, useState } from "react";
-import { ArrowLeft, LogOut } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useClubDoc } from "./hooks/useClubDoc";
 import { useClubActions } from "./hooks/useClubActions";
 import { useEvents, useEventRequests } from "./hooks/useEvents";
@@ -18,6 +18,7 @@ import EventPage from "./views/EventPage";
 import BookingModal from "./components/BookingModal";
 import ShareModal from "./components/ShareModal";
 import GamePickModal from "./components/GamePickModal";
+import AccountMenu from "./components/AccountMenu";
 import Toast from "./components/Toast";
 
 // The queue app only loads when a game opens.
@@ -178,7 +179,12 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
           {canManage && <a href={`${base}/settings`} className={navClass("club-settings")} onClick={go(`${base}/settings`)}>Settings</a>}
           <a href="/" onClick={toHub}>My clubs</a>
         </nav>
-        <button className="outline" onClick={acct.signOutUser}><LogOut size={14} /> Sign out</button>
+        <AccountMenu
+          name={acct.account?.name || acct.account?.clubName}
+          email={acct.user?.email}
+          onSignOut={acct.signOutUser}
+          navigate={navigate}
+        />
       </header>
       <main className="acct-main">{screen()}</main>
       {eventModal && (

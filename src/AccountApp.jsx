@@ -6,6 +6,7 @@ import { useMyClubs } from "./hooks/useMyClubs";
 import { useClubActions } from "./hooks/useClubActions";
 import { applyTheme } from "./utils/theme";
 import AccountLogin from "./components/AccountLogin";
+import AccountMenu from "./components/AccountMenu";
 import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
@@ -86,9 +87,8 @@ export default function AccountApp() {
         </a>
         <nav aria-label="Account">
           <a href="/" className={route === "hub" || route === "clubs" ? "active" : ""} onClick={go("/")}>My clubs</a>
-          <a href="/settings" className={route === "settings" ? "active" : ""} onClick={go("/settings")}>Profile</a>
         </nav>
-        <button className="outline" onClick={acct.signOutUser}><LogOut size={14} /> Sign out</button>
+        <AccountMenu name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} />
       </header>
       <main className="acct-main">
         {route === "settings" ? (
