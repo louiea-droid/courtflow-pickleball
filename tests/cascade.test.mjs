@@ -87,5 +87,37 @@ await env.withSecurityRulesDisabled(async (ctx) => {
 assert.equal(await count("clubs/c2/members"), 2);
 assert.equal(await count("clubs/c2/events/e1/players"), 1);
 
+// An interrupted club delete (tab closed midway) must not trap the owner. Two leftovers:
+// (a) club and owner record gone but the "My clubs" copy remains; (b) club gone, owner record and copy remain.
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  await setDoc(doc(db, "accounts/u4"), { name: "Four" });
+  await setDoc(doc(db, "accounts/u4/memberships/c4"), { clubName: "c4", role: "owner", joinedAt: 1 });
+  await setDoc(doc(db, "accounts/u5"), { name: "Five" });
+  await setDoc(doc(db, "accounts/u5/memberships/c5"), { clubName: "c5", role: "owner", joinedAt: 1 });
+  await setDoc(doc(db, "clubs/c5/members/u5"), { role: "owner", name: "Five", joinedAt: 1 });
+});
+await deleteClubData(real("u5"), "c5", "u5");
+assert.equal(await count("clubs/c5/members"), 0, "c5 owner record left behind");
+assert.equal(await count("accounts/u5/memberships"), 0, "c5 copy left behind");
+await deleteAccountData(real("u4"), "u4"); // used to throw permission-denied
+assert.equal(await count("accounts/u4/memberships"), 0, "c4 copy left behind");
+
+// An interrupted club delete (tab closed midway) must not trap the owner. Two leftovers:
+// (a) club and owner record gone but the "My clubs" copy remains; (b) club gone, owner record and copy remain.
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  await setDoc(doc(db, "accounts/u4"), { name: "Four" });
+  await setDoc(doc(db, "accounts/u4/memberships/c4"), { clubName: "c4", role: "owner", joinedAt: 1 });
+  await setDoc(doc(db, "accounts/u5"), { name: "Five" });
+  await setDoc(doc(db, "accounts/u5/memberships/c5"), { clubName: "c5", role: "owner", joinedAt: 1 });
+  await setDoc(doc(db, "clubs/c5/members/u5"), { role: "owner", name: "Five", joinedAt: 1 });
+});
+await deleteClubData(real("u5"), "c5", "u5");
+assert.equal(await count("clubs/c5/members"), 0, "c5 owner record left behind");
+assert.equal(await count("accounts/u5/memberships"), 0, "c5 copy left behind");
+await deleteAccountData(real("u4"), "u4"); // used to throw permission-denied
+assert.equal(await count("accounts/u4/memberships"), 0, "c4 copy left behind");
+
 console.log("cascade: ok");
 await env.cleanup();

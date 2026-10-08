@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDocs, writeBatch } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, writeBatch } from "firebase/firestore";
 import { wipeCollection } from "./wipe.js";
 
 // Subcollections under each event: join requests, and the game's players, courts, matchLog
@@ -23,8 +23,21 @@ export async function deleteEventData(db, clubId, eventId) {
 // owner's "My clubs" copy.
 export async function deleteClubData(db, clubId, ownerId) {
   const ref = doc(db, "clubs", clubId);
+  // A delete that was interrupted can leave the owner's record and "My clubs" copy behind with the
+  // club already gone; the owner can no longer list its events, so just finish the leftovers.
+  if (!(await getDoc(ref)).exists()) {
+    await deleteDoc(doc(ref, "members", ownerId));
+    await deleteDoc(doc(db, "accounts", ownerId, "memberships", clubId));
+    return;
+  }
   const events = await getDocs(collection(ref, "events"));
-  await Promise.all(events.docs.map((e) => deleteEventData(db, clubId, e.id)));
+  // Subcollections first, the event doc last: if this stops midway the event is still listed, so a
+  // retry finds it (deleting the doc first would orphan its requests, which hold phone numbers).
+  // ponytail: a join request could land between the wipe and the event delete; the club doc is deleted right after, so the window is seconds.
+  await Promise.all(events.docs.map(async (e) => {
+    await Promise.all(EVENT_SUBCOLLECTIONS.map((name) => wipeCollection(db, collection(e.ref, name))));
+    await deleteDoc(e.ref);
+  }));
   await Promise.all(CLUB_SUBCOLLECTIONS.map((name) => wipeCollection(db, collection(ref, name))));
   const members = await getDocs(collection(ref, "members"));
   const others = writeBatch(db);

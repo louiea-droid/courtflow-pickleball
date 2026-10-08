@@ -184,10 +184,15 @@ export default function OpenPlay() {
   // Only public clubs have a public booking page. Anything else (a private club, a deleted one,
   // a made-up id) gets one calm message.
   const [access, setAccess] = useState("checking");
+  const [club, setClub] = useState(null);
   useEffect(() => {
     if (!firebaseConfigured || !clubId) return;
     getDoc(doc(db, "clubs", clubId)).then(
-      (s) => setAccess(s.exists() && s.data().visibility === "public" ? "open" : "closed"),
+      (s) => {
+        const open = s.exists() && s.data().visibility === "public";
+        setClub(open ? s.data() : null);
+        setAccess(open ? "open" : "closed");
+      },
       () => setAccess("closed"),
     );
   }, [clubId]);
@@ -206,17 +211,18 @@ export default function OpenPlay() {
     return () => clearInterval(t);
   }, []);
 
-  const hostName = events.find((e) => e.hostName)?.hostName || "";
+  const hostName = club?.name || events.find((e) => e.hostName)?.hostName || "";
   useEffect(() => {
     document.title = hostName ? `${hostName} — Open play` : "Open play";
   }, [hostName]);
 
-  // The club's theme and zone aren't loaded on this page (a visitor may not be signed in), so it uses the
-  // defaults; each event carries its own zone for deciding upcoming vs past.
-  applyDisplayPrefs(DEFAULT_DISPLAY);
-  applyTheme(DEFAULT_DISPLAY, { persist: false });
+  // A public club's theme and time zone apply here (defaults until it loads); each event also
+  // carries its own zone for deciding upcoming vs past.
+  const display = { ...DEFAULT_DISPLAY, ...club?.display };
+  applyDisplayPrefs(display);
+  applyTheme(display, { persist: false });
   const upcoming = useMemo(
-    () => events.filter((e) => isListed(e, DEFAULT_DISPLAY.timeZone)).sort(byStart),
+    () => events.filter((e) => isListed(e, display.timeZone)).sort(byStart),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [events, tick],
   );
