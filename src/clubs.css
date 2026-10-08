@@ -7,3 +7,11 @@
 .club-actions a{display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 .club-section{margin:0 0 6px;font:700 15px "Space Grotesk"}
 .club-shell .acct-bar nav a:first-child{font-weight:800}
+.hub-empty{margin:8px 0 0;color:var(--muted);font-size:13.5px}
+.acct-main .club-section{margin:22px 0 10px}
+.club-form{display:grid;gap:14px;max-width:560px}
+.club-form label{display:grid;gap:6px;font-weight:700;font-size:13px}
+.club-form small{color:var(--muted);font-weight:500}
+.club-form input,.club-form textarea,.club-input{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}
+.club-form textarea,textarea.club-input{resize:vertical}
+.club-save{display:flex;justify-content:flex-end;padding:10px 4px 2px}

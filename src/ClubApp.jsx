@@ -214,3 +214,4 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
       <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
+}

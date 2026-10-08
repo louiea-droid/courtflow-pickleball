@@ -4,7 +4,7 @@ import { useEscape } from "../hooks/useEscape";
 
 // onConfirm(password) resolves to "" on success or an error message to show here.
 // needsPassword is false for Google-only accounts: the Google window confirms instead.
-export default function DeleteAccountDialog({ clubName, loading, onCancel, onConfirm, variant = "club", needsPassword = true }) {
+export default function DeleteAccountDialog({ clubName, loading, onCancel, onConfirm, variant = "club", needsPassword = true, ownedClubs = [] }) {
   useEscape(() => { if (!loading) onCancel(); });
   const [typed, setTyped] = useState("");
   const [password, setPassword] = useState("");
@@ -27,8 +27,10 @@ export default function DeleteAccountDialog({ clubName, loading, onCancel, onCon
         <h3>Delete {clubName}?</h3>
         <p>
           {isAccount
-            ? "This permanently deletes your account, your roster and every open play, booking and cost record. There is no undo."
-            : "This permanently deletes every player, court, match, and cost record for this club, and frees up the club name for anyone to use again. There is no undo."}
+            ? ownedClubs.length
+              ? `This permanently deletes your account and the ${ownedClubs.length === 1 ? "club" : "clubs"} you own (${ownedClubs.join(", ")}), with all their open play, games, players and members. There is no undo.`
+              : "This permanently deletes your account. There is no undo."
+            : "This permanently deletes the club with its open play, games, players and members. There is no undo."}
         </p>
         <label>
           Type <b>{clubName}</b> to confirm

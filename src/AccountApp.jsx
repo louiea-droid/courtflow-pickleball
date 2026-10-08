@@ -1,42 +1,25 @@
-import { Suspense, lazy, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { LogOut } from "lucide-react";
 import { useAccount } from "./hooks/useAccount";
 import { useRoute } from "./hooks/useRoute";
-import { applyDisplayPrefs } from "./utils/format";
+import { useMyClubs } from "./hooks/useMyClubs";
+import { useClubActions } from "./hooks/useClubActions";
 import { applyTheme } from "./utils/theme";
-import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES } from "./data/constants";
 import AccountLogin from "./components/AccountLogin";
 import DeleteAccountDialog from "./components/DeleteAccountDialog";
-import Settings from "./views/Settings";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
-import Host from "./views/Host";
-import EventPage from "./views/EventPage";
-import BookingModal from "./components/BookingModal";
-import ShareModal from "./components/ShareModal";
-import { useEvents, useEventRequests } from "./hooks/useEvents";
-import { useEventActions } from "./hooks/useEventActions";
-import { isOver } from "./utils/bookings";
-import { useEventPlayers } from "./hooks/useEventPlayers";
-import { useGameActions } from "./hooks/useGameActions";
-import GamePickModal from "./components/GamePickModal";
+import CreateClub from "./views/CreateClub";
+import Profile from "./views/Profile";
+import ClubApp from "./ClubApp";
 
-// The queue app only loads when a game opens.
-const Game = lazy(() => import("./Game"));
-
+// Sign-in, the hub, creating a club, and the profile. Everything under /clubs/:id is ClubApp.
 export default function AccountApp() {
   const acct = useAccount();
-  const { route, eventId, navigate } = useRoute();
-  const [eventModal, setEventModal] = useState(null); // null | "new" | an event being edited
-  const [showShare, setShowShare] = useState(false);
-  const [gamePick, setGamePick] = useState(false);
+  const { route, clubId, eventId, navigate } = useRoute();
   const uid = acct.user?.uid;
-  const { events, fromServer: eventsReady } = useEvents(uid);
-  const fallbackZone = { ...DEFAULT_DISPLAY, ...acct.account?.display }.timeZone;
-  // Listen for requests only on events still on the calendar (and the one open on screen).
-  const watched = events.filter((e) => !isOver(e, fallbackZone) || e.id === eventId).map((e) => e.id);
-  const requestsByEvent = useEventRequests(uid, watched);
-  const { players: gamePlayers, loaded: gameLoaded } = useEventPlayers(uid, route === "event" ? eventId : null);
+  const name = acct.account?.name || acct.account?.clubName || "";
+  const { clubs, ready: clubsReady } = useMyClubs(uid);
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [showDelete, setShowDelete] = useState(false);
@@ -48,43 +31,7 @@ export default function AccountApp() {
     toastTimer.current = setTimeout(() => setToast(null), ms);
   };
   const dismissToast = () => { clearTimeout(toastTimer.current); setToast(null); };
-
-  const display = { ...DEFAULT_DISPLAY, ...acct.account?.display };
-  const rules = { ...DEFAULT_RULES, ...acct.account?.rules };
-  const costDefaults = { ...DEFAULT_COST, ...acct.account?.costDefaults };
-  const live = { ...DEFAULT_LIVE, ...acct.account?.live };
-  const save = async (patch) => { await acct.updateAccount(patch); notify("Saved."); };
-  const actions = useEventActions({
-    uid, events, hostName: acct.account?.clubName || "", timeZone: display.timeZone, notify,
-  });
-  const latestPayInfo = [...events].filter((e) => !e.walkIn).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]?.payInfo;
-  const gameActions = useGameActions({
-    uid, account: acct.account, hostName: acct.account?.clubName || "", timeZone: display.timeZone, notify,
-  });
-  const openEvent = events.find((e) => e.id === eventId);
-  const playNow = async () => {
-    try {
-      navigate(`/event/${await gameActions.playNow()}/game`);
-    } catch {
-      notify("Couldn't start a game. Check your connection and try again.", 4000);
-    }
-  };
-  const endGame = async (id) => {
-    navigate(`/event/${id}`);
-    try {
-      await gameActions.endGame(id);
-    } catch {
-      notify("Couldn't end the game. Try again from the event page.", 4000);
-    }
-  };
-  const reopenGame = async (id) => {
-    try {
-      await gameActions.reopenGame(id);
-    } catch {
-      notify("Couldn't reopen the game. Check your connection and try again.", 4000);
-    }
-  };
-  const todayYmd = new Intl.DateTimeFormat("en-CA", { timeZone: display.timeZone }).format(new Date());
+  const clubActions = useClubActions({ uid, name, notify });
 
   // Success signs the user out (deleteUser). This shell stays mounted behind the
   // sign-in screen, so close the dialog or the next sign-in opens on it.
@@ -101,9 +48,8 @@ export default function AccountApp() {
     }
   };
 
-  applyDisplayPrefs(display);
-  // Not before the account loads: defaults would flash Light over the cached theme.
-  if (acct.status === "in") applyTheme(display);
+  // Not before the account loads: defaults would flash Light over the cached theme. Clubs apply their own colors inside ClubApp.
+  if (acct.status === "in" && !clubId) applyTheme({ theme: acct.account.display?.theme || "light" });
 
   if (acct.status === "loading") {
     return <div className="loading"><span className="spinner" />Loading…</div>;
@@ -124,18 +70,12 @@ export default function AccountApp() {
     );
   }
 
-  if (route === "game") {
-    return (
-      <Suspense fallback={<div className="loading"><span className="spinner" />Loading…</div>}>
-        <Game
-          uid={uid} account={acct.account} event={events.find((e) => e.id === eventId)} ready={eventsReady}
-          navigate={navigate} endGame={endGame} onSetAttendeePaid={actions.setPaid}
-        />
-      </Suspense>
-    );
+  if (clubId && route.startsWith("club")) {
+    return <ClubApp key={clubId} acct={acct} clubId={clubId} route={route} eventId={eventId} navigate={navigate} />;
   }
 
   const go = (to) => (e) => { e.preventDefault(); navigate(to); };
+  const ownedNames = clubs.filter((c) => c.role === "owner").map((c) => c.clubName);
 
   return (
     <div className="acct-shell">
@@ -145,76 +85,24 @@ export default function AccountApp() {
           <b>CourtFlow</b>
         </a>
         <nav aria-label="Account">
-          <a href="/" className={route === "hub" ? "active" : ""} onClick={go("/")}>Home</a>
-          <a href="/host" className={route === "host" || route === "event" ? "active" : ""} onClick={go("/host")}>Open play</a>
-          <a href="/settings" className={route === "settings" ? "active" : ""} onClick={go("/settings")}>Settings</a>
+          <a href="/" className={route === "hub" || route === "clubs" ? "active" : ""} onClick={go("/")}>My clubs</a>
+          <a href="/settings" className={route === "settings" ? "active" : ""} onClick={go("/settings")}>Profile</a>
         </nav>
         <button className="outline" onClick={acct.signOutUser}><LogOut size={14} /> Sign out</button>
       </header>
       <main className="acct-main">
         {route === "settings" ? (
-          <Settings
-            mode="account"
-            session={{ location: acct.account.clubName, defaults: acct.account.defaults }}
-            canChangePassword={acct.hasPassword}
-            onRenameClub={(clubName) => save({ clubName })}
-            onChangePassword={acct.changePassword}
-            onDeleteAccount={() => setShowDelete(true)}
-            onSetDefaults={(defaults) => save({ defaults })}
-            rules={rules} costDefaults={costDefaults} live={live} display={display}
-            onSetRules={(change) => save({ rules: { ...rules, ...change } })}
-            onSetCostDefaults={(change) => save({ costDefaults: { ...costDefaults, ...change } })}
-            onSetLive={(change) => save({ live: { ...live, ...change } })}
-            onSetDisplay={(change) => save({ display: { ...display, ...change } })}
-          />
-        ) : route === "host" ? (
-          <Host
-            events={events} requestsByEvent={requestsByEvent} fallbackZone={display.timeZone}
-            onNew={() => setEventModal("new")} onPlayNow={playNow} onShare={() => setShowShare(true)} navigate={navigate}
-          />
-        ) : route === "event" ? (
-          <EventPage
-            event={events.find((e) => e.id === eventId)} requests={requestsByEvent[eventId] || []}
-            actions={actions} ready={eventsReady} gamePlayers={gamePlayers} gameLoaded={gameLoaded}
-            onPickPlayers={() => setGamePick(true)} onOpenGame={() => navigate(`/event/${eventId}/game`)}
-            onReopen={() => reopenGame(eventId)} onEdit={setEventModal} onShare={() => setShowShare(true)} navigate={navigate}
-          />
+          <Profile acct={acct} onDelete={() => setShowDelete(true)} />
+        ) : route === "clubs-new" ? (
+          <CreateClub onCreate={clubActions.createClub} navigate={navigate} />
         ) : (
-          <Hub clubName={acct.account.clubName} navigate={navigate} />
+          <Hub name={name} clubs={clubs} ready={clubsReady} navigate={navigate} />
         )}
       </main>
       {showDelete && (
         <DeleteAccountDialog
-          variant="account" clubName={acct.account.clubName} needsPassword={acct.hasPassword} loading={deleting}
+          variant="account" clubName={name} ownedClubs={ownedNames} needsPassword={acct.hasPassword} loading={deleting}
           onCancel={() => setShowDelete(false)} onConfirm={handleDelete}
-        />
-      )}
-      {eventModal && (
-        <BookingModal
-          booking={eventModal === "new" ? null : eventModal} today={todayYmd} lastPayInfo={latestPayInfo}
-          close={() => setEventModal(null)}
-          submit={async (data) => {
-            const id = await actions.save(eventModal === "new" ? null : eventModal.id, data);
-            setEventModal(null);
-            if (eventModal === "new") navigate(`/event/${id}`);
-          }}
-        />
-      )}
-      {showShare && (
-        <ShareModal
-          url={`${window.location.origin}/open-play?host=${uid}`} close={() => setShowShare(false)}
-          title="Share your booking page" openLabel="Open booking page" qr
-          hint="Players scan the code or open the link to see your upcoming open play and ask to join. You confirm each request on its event page."
-        />
-      )}
-      {gamePick && openEvent && (
-        <GamePickModal
-          event={openEvent} players={gamePlayers} close={() => setGamePick(false)}
-          submit={async (ids) => {
-            const started = await gameActions.startGame(openEvent, ids);
-            setGamePick(false);
-            if (started) navigate(`/event/${openEvent.id}/game`);
-          }}
         />
       )}
       <Toast toast={toast} onDismiss={dismissToast} />

@@ -36,7 +36,7 @@ const ROUND_OPTIONS = [
   ...[1, 5, 10, 20].map((n) => ({ value: n, label: `Up to ₱${n}` })),
 ];
 
-function SettingsRow({ title, body, children, hidden }) {
+export function SettingsRow({ title, body, children, hidden }) {
   if (hidden) return null;
   return (
     <div className="account-row">
@@ -79,9 +79,9 @@ function ColorSwatches({ label, cssVar, presets, value, onChange }) {
 export default function Settings({
   session, onRenameClub, onNewSession, onDeleteAccount, onChangePassword, onSetPasswordHint,
   onSetDefaults, rules, onSetRules, costDefaults, onSetCostDefaults, live, onSetLive, display, onSetDisplay,
-  mode = "club", canChangePassword = true,
+  mode = "club", canChangePassword = true, isOwner = false, onDeleteClub,
 }) {
-  const isAccount = mode === "account";
+  const isClub = mode === "club"; // a club's settings page: no password rows, no Live Board (that is per event)
   const isQuick = mode === "quick"; // the classic session: no login, data lives on this device
   const [confirmNewLink, setConfirmNewLink] = useState(false);
   const defaults = { ...FALLBACK_DEFAULTS, ...session.defaults };
@@ -116,7 +116,7 @@ export default function Settings({
 
   return (
     <div className="account-groups">
-      <div className="account-group">
+      <div className="account-group" hidden={isClub}>
         <div className="eyebrow">Club</div>
         <div className="panel account-panel">
           <SettingsRow title="Club name" body="Shown throughout the app and on your public Live Board link.">
@@ -145,9 +145,7 @@ export default function Settings({
           <SettingsRow
             hidden={!canChangePassword}
             title="Password"
-            body={isAccount
-              ? "Used to sign in to your account. Can't be looked up or displayed, only changed."
-              : "Used to log back into this club. Can't be looked up or displayed, only changed."}
+            body="Can't be looked up or displayed, only changed."
           >
             <button className="outline" onClick={() => setShowChangePassword(true)}>
               <KeyRound size={14} /> Change Password
@@ -155,7 +153,7 @@ export default function Settings({
           </SettingsRow>
 
           <SettingsRow
-            hidden={isAccount || isQuick}
+            hidden={isClub || isQuick}
             title="Password hint"
             body="Shown on the login screen once this club name is typed — a private note to jog your memory, never the password itself."
           >
@@ -279,7 +277,7 @@ export default function Settings({
         </div>
       </div>
 
-      <div className="account-group" hidden={isAccount}>
+      <div className="account-group" hidden={isClub}>
         <div className="eyebrow">Live Board</div>
         <div className="panel account-panel">
           <SettingsRow title="Public Live Board" body="When off, anyone opening your link sees a notice instead of the courts.">
@@ -334,7 +332,7 @@ export default function Settings({
         </div>
       </div>
 
-      <div className="account-group" hidden={isAccount}>
+      <div className="account-group" hidden={isClub}>
         <div className="eyebrow">Session</div>
         <div className="panel account-panel">
           <SettingsRow title="New Session" body="Clears the roster, courts, and match log and starts fresh. Stats are archived first.">
@@ -343,18 +341,18 @@ export default function Settings({
         </div>
       </div>
 
-      <div className="account-group">
+      <div className="account-group" hidden={isClub && !isOwner}>
         <div className="eyebrow">Danger Zone</div>
         <div className="panel account-panel account-danger">
           <SettingsRow
-            title={isQuick ? "Erase this session" : "Delete Account"}
+            title={isQuick ? "Erase this session" : "Delete club"}
             body={isQuick
               ? "Permanently deletes every player, court, match and cost in this quick session and starts a blank one. Cannot be undone."
-              : isAccount
-              ? "Permanently erases your account, roster and open plays. Cannot be undone."
-              : "Permanently erases this club and everything in it. Cannot be undone."}
+              : "Permanently deletes this club with its open play, games, players and members. Cannot be undone."}
           >
-            <button className="danger" onClick={onDeleteAccount}><Trash2 size={14} /> {isQuick ? "Erase session" : "Delete Account"}</button>
+            <button className="danger" onClick={isQuick ? onDeleteAccount : onDeleteClub}>
+              <Trash2 size={14} /> {isQuick ? "Erase session" : "Delete club"}
+            </button>
           </SettingsRow>
         </div>
       </div>

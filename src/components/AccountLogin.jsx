@@ -4,7 +4,7 @@ import { isDarkTheme, setDeviceTheme } from "../utils/theme";
 
 const COPY = {
   signin: { title: "Sign in", blurb: "Sign in to host open play and run your games.", action: "Sign in", icon: LogIn },
-  signup: { title: "Create your account", blurb: "One account for your club, your players and every open play.", action: "Create account", icon: UserPlus },
+  signup: { title: "Create your account", blurb: "One account for the clubs you host and the clubs you join.", action: "Create account", icon: UserPlus },
   reset: { title: "Reset your password", blurb: "Enter your email and we'll send you a link to choose a new password.", action: "Send reset link", icon: LogIn },
 };
 
@@ -52,8 +52,8 @@ export default function AccountLogin({ onSignIn, onSignUp, onGoogle, onReset }) 
 
         {mode === "signup" && (
           <label>
-            Club or host name
-            <input value={clubName} onChange={(e) => setClubName(e.target.value)} placeholder="e.g. Centro Pickle Club" autoComplete="organization" autoFocus />
+            Your name
+            <input value={clubName} onChange={(e) => setClubName(e.target.value)} placeholder="e.g. Alex Santos" autoComplete="name" autoFocus />
           </label>
         )}
         <label>

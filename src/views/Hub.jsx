@@ -1,34 +1,44 @@
-import { CalendarDays, ListOrdered, Settings, Users } from "lucide-react";
+import { ListOrdered, Plus, UserRound, Users } from "lucide-react";
 
-// `soon` cards are the next build steps. The quick session at /club needs no login.
-const CARDS = [
-  { key: "host", icon: CalendarDays, title: "Host open play", body: "Schedule open play, take bookings and payments, then run the game.", to: "/host" },
-  { key: "players", icon: Users, title: "Players", body: "Your roster, remembered across every open play.", soon: true },
-  { key: "settings", icon: Settings, title: "Settings", body: "Club name, theme, queue rules and cost defaults.", to: "/settings" },
-  { key: "club", icon: ListOrdered, title: "Quick session", body: "Run the queue right now, no booking needed. Saved on this device.", href: "/club" },
-];
+const ROLE_LABEL = { owner: "Owner", manager: "Manager", member: "Member" };
 
-export default function Hub({ clubName, navigate }) {
+// The home screen: your clubs, creating one, your profile, and the quick session.
+export default function Hub({ name, clubs, ready, navigate }) {
+  const to = (path) => (e) => { e.preventDefault(); navigate(path); };
   return (
     <>
-      <h1>{clubName}</h1>
-      <p>What would you like to do?</p>
+      <h1>{name ? `Hi, ${name}` : "Your clubs"}</h1>
+      <p>Pick a club to manage or visit, or start one of your own.</p>
+
+      <h2 className="club-section">My clubs</h2>
       <div className="hub-grid">
-        {CARDS.map(({ key, icon: Icon, title, body, soon, to, href }) => {
-          const inner = (
-            <>
-              <Icon size={22} />
-              <b>{title}</b>
-              <span>{body}</span>
-              {soon && <em className="pill off">Coming soon</em>}
-            </>
-          );
-          if (soon) return <button key={key} className="hub-card" disabled>{inner}</button>;
-          if (href) return <a key={key} className="hub-card" href={href}>{inner}</a>;
-          return (
-            <a key={key} className="hub-card" href={to} onClick={(e) => { e.preventDefault(); navigate(to); }}>{inner}</a>
-          );
-        })}
+        {clubs.map((c) => (
+          <a key={c.id} className="hub-card" href={`/clubs/${c.id}`} onClick={to(`/clubs/${c.id}`)}>
+            <Users size={22} />
+            <b>{c.clubName}</b>
+            <span>{ROLE_LABEL[c.role] || "Member"}</span>
+          </a>
+        ))}
+        <a className="hub-card" href="/clubs/new" onClick={to("/clubs/new")}>
+          <Plus size={22} />
+          <b>Create a club</b>
+          <span>Start a club, then host open play and run games for it.</span>
+        </a>
+      </div>
+      {ready && !clubs.length && <p className="hub-empty">You're not in any club yet. Create one to get started.</p>}
+
+      <h2 className="club-section">Also</h2>
+      <div className="hub-grid">
+        <a className="hub-card" href="/settings" onClick={to("/settings")}>
+          <UserRound size={22} />
+          <b>Profile</b>
+          <span>Your name, password and appearance.</span>
+        </a>
+        <a className="hub-card" href="/club">
+          <ListOrdered size={22} />
+          <b>Quick session</b>
+          <span>Run the queue right now, no club needed. Saved on this device.</span>
+        </a>
       </div>
     </>
   );
