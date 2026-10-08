@@ -153,5 +153,27 @@ await assert.rejects(leaveClub(real("u9"), "c9", "u9"), "leaving as the owner mu
 assert.equal(await count("clubs/c9/members"), 1, "the owner's record must still be there");
 assert.equal(await count("accounts/u9/memberships"), 1, "the owner's card must not be deleted when the record couldn't be");
 
+// Friends: deleting an account removes its directory entries and its friendships, never anyone else's.
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  await setDoc(doc(db, "accounts/u10"), { name: "Ten", friendCode: "ABCDEFGH", directory: { name: "Ten", discoverable: true, code: "ABCDEFGH" } });
+  await setDoc(doc(db, "profiles/u10"), { name: "Ten", nameLower: "ten" });
+  await setDoc(doc(db, "friendCodes/ABCDEFGH"), { uid: "u10", name: "Ten" });
+  await setDoc(doc(db, "friendCodes/JKLMNPQR"), { uid: "u11", name: "Eleven" });
+  await setDoc(doc(db, "profiles/u11"), { name: "Eleven", nameLower: "eleven" });
+  const f = (a, b, extra = {}) => ({ users: [a, b], names: { [a]: a, [b]: b }, status: "accepted", requestedBy: a, createdAt: 1, ...extra });
+  await setDoc(doc(db, "friendships/u10_u11"), f("u10", "u11")); // accepted
+  await setDoc(doc(db, "friendships/u10_u12"), f("u10", "u12", { status: "pending" })); // a request I sent
+  await setDoc(doc(db, "friendships/u11_u12"), f("u11", "u12")); // two other people
+});
+await deleteAccountData(real("u10"), "u10");
+assert.equal(await count("profiles"), 1, "u10's name listing left behind");
+assert.equal(await count("friendCodes"), 1, "u10's friend code left behind");
+assert.equal(await count("friendships"), 1, "u10's friendships left behind (or someone else's removed)");
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  assert.equal((await getDocs(collection(db, "friendships"))).docs[0].id, "u11_u12");
+});
+
 console.log("cascade: ok");
 await env.cleanup();

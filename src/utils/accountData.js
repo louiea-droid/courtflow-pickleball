@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDoc, getDocs, writeBatch } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, where, writeBatch } from "firebase/firestore";
 import { wipeCollection } from "./wipe.js";
 
 // Subcollections under each event: join requests, and the game's players, courts, matchLog
@@ -61,6 +61,21 @@ export async function leaveClub(db, clubId, uid) {
   await deleteDoc(doc(db, "accounts", uid, "memberships", clubId));
 }
 
+// The friend directory: this person's name listing, friend code and friendships (never anyone else's).
+// The code document is only deleted when it exists and is theirs (the rules refuse a delete of anything else).
+async function deleteFriendData(db, uid) {
+  const account = (await getDoc(doc(db, "accounts", uid))).data() || {};
+  const batch = writeBatch(db);
+  const mine = await getDocs(query(collection(db, "friendships"), where("users", "array-contains", uid)));
+  mine.docs.forEach((f) => batch.delete(f.ref));
+  batch.delete(doc(db, "profiles", uid));
+  if (account.friendCode) {
+    const codeRef = doc(db, "friendCodes", account.friendCode);
+    if ((await getDoc(codeRef)).data()?.uid === uid) batch.delete(codeRef);
+  }
+  await batch.commit();
+}
+
 // Events and roster that older versions kept directly under an account.
 async function deleteLegacyData(db, uid) {
   const events = await getDocs(collection(db, "accounts", uid, "events"));
@@ -73,7 +88,7 @@ async function deleteLegacyData(db, uid) {
 
 // Erases everything an account owns. Clubs the person only belongs to are left first (no ghost
 // member stays behind), then each club it owns (with everything in it), its "My clubs" copies, any
-// data from before clubs, and the account doc itself. Data first; the caller deletes the sign-in last.
+// friend directory entries and friendships, data from before clubs, and the account doc itself. Data first; the caller deletes the sign-in last.
 export async function deleteAccountData(db, uid) {
   const memberships = await getDocs(collection(db, "accounts", uid, "memberships"));
   const owned = memberships.docs.filter((m) => m.data().role === "owner");
@@ -81,6 +96,7 @@ export async function deleteAccountData(db, uid) {
   await Promise.all(joined.map((m) => leaveClub(db, m.id, uid)));
   await Promise.all(owned.map((m) => deleteClubData(db, m.id, uid)));
   await wipeCollection(db, collection(db, "accounts", uid, "memberships"));
+  await deleteFriendData(db, uid);
   await deleteLegacyData(db, uid);
   const batch = writeBatch(db);
   batch.delete(doc(db, "accounts", uid));
