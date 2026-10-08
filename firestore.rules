@@ -155,12 +155,13 @@ service cloud.firestore {
     // line, so it must be near the real time.
     function validEventRequest(clubId, eventId) {
       let d = request.resource.data;
-      return d.keys().hasOnly(['name', 'contact', 'method', 'ref', 'seatId', 'status', 'createdAt'])
+      return d.keys().hasOnly(['name', 'contact', 'method', 'ref', 'seatId', 'status', 'createdAt', 'uid'])
         && d.keys().hasAll(['name', 'contact', 'method', 'seatId', 'status', 'createdAt'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 60
         && d.contact is string && d.contact.size() > 0 && d.contact.size() <= 40
         && d.method in ['cash', 'online']
         && (!('ref' in d) || (d.ref is string && d.ref.size() <= 60))
+        && (!('uid' in d) || (d.uid is string && isRealUser() && d.uid == request.auth.uid))
         && d.seatId is string && d.seatId.size() > 0 && d.seatId.size() <= 60
         && d.status == 'pending'
         && d.createdAt is number
@@ -223,9 +224,12 @@ service cloud.firestore {
           allow update, delete: if isManager(clubId);
         }
 
-        // Game data (players, courts, matchLog, costs): managers only until the Live Board decides what to show.
+        // Game data (players, courts, matchLog, costs): managers write it all. Club members also read the players
+        // and courts, which is the queue ("Your active session" on Home); those documents carry names, skill and
+        // gender. The match log and costs stay managers-only.
         match /{sub}/{docId} {
-          allow read, write: if isManager(clubId);
+          allow write: if isManager(clubId);
+          allow read: if isManager(clubId) || (sub in ['players', 'courts'] && isMember(clubId));
         }
       }
 

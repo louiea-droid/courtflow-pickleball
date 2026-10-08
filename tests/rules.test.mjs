@@ -152,7 +152,8 @@ await assertFails(setDoc(doc(anon, "clubs/pub/events/e3"), { title: "no" }));
 await assertFails(updateDoc(doc(anon, "clubs/pub/events/e1"), { title: "evil" }));
 await assertFails(deleteDoc(doc(mem, "clubs/pub/events/e1")));
 
-// ---- Game data under an event: managers only (names stay private until the Live Board decides what to show)
+// ---- Game data under an event: managers write all of it; club members also read the players and courts (the queue),
+// never the match log, costs or requests
 const g = (db, club, path) => doc(db, `clubs/${club}/events/e1`, path);
 await assertSucceeds(setDoc(g(own, "pub", "players/p2"), { name: "P", checked: false }));
 await assertSucceeds(setDoc(g(mgr, "pub", "courts/court-1"), { courtNumber: 1 }));
@@ -161,8 +162,18 @@ await assertSucceeds(setDoc(g(mgr, "pub", "costs/booking-e1"), { label: "Saturda
 await assertSucceeds(getDocs(collection(mgr, "clubs/pub/events/e1/players")));
 await assertFails(getDoc(g(anon, "pub", "players/p1")));
 await assertFails(getDoc(g(stranger, "pub", "players/p1")));
-await assertFails(getDoc(g(mem, "pub", "players/p1")));
-await assertFails(getDocs(collection(mem, "clubs/pub/events/e1/courts")));
+await assertSucceeds(getDoc(g(mem, "pub", "players/p1"))); // a member sees the queue
+await assertSucceeds(getDocs(collection(mem, "clubs/pub/events/e1/players")));
+await assertSucceeds(getDocs(collection(mem, "clubs/pub/events/e1/courts")));
+await assertSucceeds(getDocs(collection(mem, "clubs/priv/events/e1/players")));
+await assertFails(getDoc(g(mem, "pub", "matchLog/m1"))); // Review Focus 3: not the rest of the game data
+await assertFails(getDoc(g(mem, "pub", "costs/booking-e1")));
+await assertFails(getDocs(collection(mem, "clubs/pub/events/e1/requests")));
+await assertFails(getDocs(collection(stranger, "clubs/pub/events/e1/courts")));
+await assertFails(getDocs(collection(anon, "clubs/pub/events/e1/courts")));
+await assertFails(getDocs(collection(quick, "clubs/pub/events/e1/players")));
+await assertFails(getDocs(collection(legacy, "clubs/pub/events/e1/players")));
+await assertFails(setDoc(g(mem, "pub", "courts/court-9"), { courtNumber: 9 })); // read only
 await assertFails(setDoc(g(mem, "pub", "players/p3"), { name: "evil" }));
 await assertFails(setDoc(g(anon, "pub", "players/p3"), { name: "evil" }));
 await assertFails(deleteDoc(g(stranger, "pub", "courts/court-1")));
@@ -175,6 +186,14 @@ const cashReq = { name: "Dee", contact: "0917", method: "cash", seatId: "seat-2"
 await assertSucceeds(setDoc(doc(pubReq(anon), "r1"), goodReq)); // public club, nobody signed in
 await assertSucceeds(setDoc(doc(pubReq(anon), "r2"), cashReq));
 await assertSucceeds(setDoc(doc(pubReq(stranger), "r16"), { ...goodReq, createdAt: Date.now() - 60000 }));
+// Review Focus 1 and 2: a signed-in booker may link their account (uid), only their own, never from a quick session
+await assertSucceeds(setDoc(doc(pubReq(stranger), "r17"), { ...goodReq, seatId: "seat-17", uid: "str" }));
+await assertFails(setDoc(doc(pubReq(stranger), "r18"), { ...goodReq, seatId: "seat-18", uid: "someone-else" }));
+await assertFails(setDoc(doc(pubReq(anon), "r19"), { ...goodReq, seatId: "seat-19", uid: "str" }));
+await assertFails(setDoc(doc(pubReq(quick), "r20"), { ...goodReq, seatId: "seat-20", uid: "q1" }));
+await assertFails(setDoc(doc(pubReq(legacy), "r21"), { ...goodReq, seatId: "seat-21", uid: "c1" }));
+await assertFails(setDoc(doc(pubReq(stranger), "r22"), { ...goodReq, seatId: "seat-22", uid: 7 }));
+await assertSucceeds(setDoc(doc(pubReq(quick), "r23"), { ...goodReq, seatId: "seat-23" })); // a quick session still books without one
 await assertFails(setDoc(doc(pubReq(anon), "r3"), { ...goodReq, status: "approved" }));
 await assertFails(setDoc(doc(pubReq(anon), "r4"), { ...goodReq, extra: 1 }));
 await assertFails(setDoc(doc(pubReq(anon), "r5"), { ...goodReq, name: "" }));
