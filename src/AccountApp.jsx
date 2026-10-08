@@ -92,10 +92,10 @@ export default function AccountApp() {
           <CreateClub onCreate={clubActions.createClub} navigate={navigate} />
         ) : route === "clubs" ? (
           <MyClubs clubs={clubs} ready={clubsReady} navigate={navigate} />
-        ) : (
-          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} navigate={navigate} />
         ) : route === "clubs-find" ? (
           <FindClubs myClubs={clubs} navigate={navigate} />
+        ) : (
+          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} navigate={navigate} />
         )}
       </main>
       {showDelete && (
