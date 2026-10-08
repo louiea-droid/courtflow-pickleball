@@ -18,6 +18,7 @@ export function routeOf(pathname) {
     if (rest === "/members") return "club-members";
     if (/^\/event\/[^/]+$/.test(rest)) return "club-event";
     if (/^\/event\/[^/]+\/game$/.test(rest)) return "club-game";
+    if (/^\/event\/[^/]+\/queue$/.test(rest)) return "club-queue";
   }
   return "hub";
 }
@@ -28,8 +29,8 @@ export function clubIdOf(pathname) {
   return m && !["new", "find"].includes(m[1]) ? decodeURIComponent(m[1]) : null;
 }
 
-// "/clubs/<id>/event/<eventId>[/game]" -> "<eventId>" (decoded), else null.
+// "/clubs/<id>/event/<eventId>[/game | /queue]" -> "<eventId>" (decoded), else null.
 export function eventIdOf(pathname) {
-  const m = pathname.replace(/\/+$/, "").match(/^\/clubs\/[^/]+\/event\/([^/]+?)(?:\/game)?$/);
+  const m = pathname.replace(/\/+$/, "").match(/^\/clubs\/[^/]+\/event\/([^/]+?)(?:\/(?:game|queue))?$/);
   return m ? decodeURIComponent(m[1]) : null;
 }

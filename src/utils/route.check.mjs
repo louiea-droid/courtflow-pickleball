@@ -49,6 +49,12 @@ assert.equal(eventIdOf("/clubs/c1/event/e1"), "e1");
 assert.equal(eventIdOf("/clubs/c1/event/e1/game"), "e1");
 assert.equal(eventIdOf("/clubs/c1/event/abc%20x/game/"), "abc x");
 assert.equal(eventIdOf("/clubs/c1/host"), null);
+// The read-only queue page of a live game
+assert.equal(routeOf("/clubs/abc/event/e1/queue"), "club-queue");
+assert.equal(routeOf("/clubs/abc/event/e1/queue/"), "club-queue");
+assert.equal(routeOf("/clubs/abc/event/e1/game"), "club-game");
+assert.equal(routeOf("/clubs/abc/event/e1/other"), "hub");
+assert.equal(eventIdOf("/clubs/c1/event/e1/queue"), "e1");
 assert.equal(eventIdOf("/clubs/c1/event/"), null);
 assert.equal(eventIdOf("/clubs/c1/event/e1/gamex"), null);
 

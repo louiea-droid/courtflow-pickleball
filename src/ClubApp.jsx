@@ -18,6 +18,7 @@ import { DEFAULT_DISPLAY } from "./data/constants";
 import ClubHome from "./views/ClubHome";
 import ClubMembers from "./views/ClubMembers";
 import ClubSettings from "./views/ClubSettings";
+import QueueView from "./views/QueueView";
 import Host from "./views/Host";
 import EventPage from "./views/EventPage";
 import BookingModal from "./components/BookingModal";
@@ -190,6 +191,10 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
           requests={pendingRequests} actions={membership} navigate={navigate} notify={notify}
         />
       );
+    }
+    if (route === "club-queue") {
+      if (!isMember) return <MembersOnly base={base} navigate={navigate} />;
+      return <QueueView clubId={clubId} base={base} eventId={eventId} uid={uid} navigate={navigate} />;
     }
     if (!canManage) return <ManagersOnly base={base} navigate={navigate} />;
     if (route === "club-host") {

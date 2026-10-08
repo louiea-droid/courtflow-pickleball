@@ -90,12 +90,12 @@ export default function AccountApp() {
           <Profile acct={acct} onDelete={() => setShowDelete(true)} />
         ) : route === "clubs-new" ? (
           <CreateClub onCreate={clubActions.createClub} navigate={navigate} />
-        ) : route === "clubs-find" ? (
-          <FindClubs myClubs={clubs} navigate={navigate} />
         ) : route === "clubs" ? (
           <MyClubs clubs={clubs} ready={clubsReady} navigate={navigate} />
         ) : (
-          <Hub name={name} clubs={clubs} ready={clubsReady} navigate={navigate} />
+          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} navigate={navigate} />
+        ) : route === "clubs-find" ? (
+          <FindClubs myClubs={clubs} navigate={navigate} />
         )}
       </main>
       {showDelete && (

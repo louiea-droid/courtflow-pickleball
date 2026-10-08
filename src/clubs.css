@@ -110,6 +110,27 @@
 .home-ready p{margin:0;color:var(--muted);font-size:14px}
 .home-ready-actions{display:flex;flex-wrap:wrap;gap:10px}
 
+/* ---- Home: your active session (hidden while there is no card) ---- */
+.home-active:not(:has(.queue-card)){display:none}
+.queue-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin:0 0 10px;padding:18px 20px;border:1px solid var(--accent-line);border-left:4px solid var(--accent);border-radius:15px;background:color-mix(in srgb,var(--accent) 7%,var(--panel))}
+.queue-card-club{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:0 0 6px;font:700 16px "Space Grotesk"}
+.queue-live{display:inline-flex;align-items:center;gap:7px;font:700 12.5px "DM Sans";color:var(--accent-ink)}
+.queue-live i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.queue-card-line{margin:0;color:var(--ink-2);font-size:15px}
+.queue-card-line b{color:var(--ink)}
+
+/* ---- The read-only queue page ---- */
+.queue-list{display:grid;gap:0;margin:0;padding:0;list-style:none}
+.queue-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--card-line)}
+.queue-row:first-child{border-top:0}
+.queue-row.me{font-weight:800;color:var(--accent-ink)}
+.queue-pos{min-width:28px;color:var(--muted);font-variant-numeric:tabular-nums}
+.queue-name{flex:1;min-width:0;overflow-wrap:anywhere}
+.queue-games{color:var(--muted);font-size:13px;font-weight:500}
+.queue-courts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.queue-court b{display:block;margin:0 0 4px;font:700 14px "Space Grotesk"}
+.queue-court p{margin:0;color:var(--ink-2);font-size:13.5px;overflow-wrap:anywhere}
+
 /* ---- Forms and settings ---- */
 .club-form{display:grid;gap:14px;max-width:560px}
 .club-form label{display:grid;gap:6px;font-weight:700;font-size:13px}

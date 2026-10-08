@@ -1,4 +1,5 @@
 import { ListOrdered, Plus, Search, Users } from "lucide-react";
+import ActiveQueue from "../components/ActiveQueue";
 import PageTitle from "../components/PageTitle";
 import { ROLE_LABEL } from "../utils/clubs";
 
@@ -6,7 +7,7 @@ const greeting = (hour) => (hour < 12 ? "Good morning" : hour < 18 ? "Good after
 
 // The home screen: a greeting, the two ways to start playing, then your clubs (and one to create).
 // Profile lives in the account menu, so it is not repeated here.
-export default function Hub({ name, clubs, ready, navigate }) {
+export default function Hub({ uid, name, clubs, ready, navigate }) {
   const to = (path) => (e) => { e.preventDefault(); navigate(path); };
   const first = (name || "").trim().split(/\s+/)[0];
   return (
@@ -22,6 +23,11 @@ export default function Hub({ name, clubs, ready, navigate }) {
           <a className="primary" href="/clubs/find" onClick={to("/clubs/find")}><Search size={15} /> Find a club</a>
           <a className="outline" href="/club"><ListOrdered size={15} /> Quick session</a>
         </div>
+      </section>
+
+      <section className="home-active" aria-label="Your active session">
+        <h2 className="club-section">Your active session</h2>
+        <ActiveQueue uid={uid} clubs={ready ? clubs : []} navigate={navigate} />
       </section>
 
       <h2 className="club-section">My clubs</h2>
