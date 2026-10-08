@@ -1098,7 +1098,6 @@ form.confirm-modal .modalactions{margin-top:4px}
 .modal textarea::placeholder{color:var(--faint);font-weight:500}
 
 .booking-head .badge-open{font-size:10px;color:var(--on-accent);background:var(--accent);border-radius:99px;padding:4px 8px;font-weight:800}
-.booking-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 8px}
 .booking{border-top:1px solid var(--line-soft)}
 .booking.past{opacity:.78}
 .booking-head{
@@ -1204,10 +1203,7 @@ form.confirm-modal .modalactions{margin-top:4px}
 
 /* ---------- Accounts: shell and hub ---------- */
 .acct-shell{min-height:100vh}
-.acct-bar{
-  display:flex;align-items:center;gap:clamp(10px,3vw,24px);padding:10px clamp(16px,4vw,40px);
-  border-bottom:1px solid var(--line);background:var(--panel)
-}
+.acct-bar{border-bottom:1px solid var(--line);background:var(--panel)}
 .acct-brand{display:flex;align-items:center;gap:9px;color:var(--ink);text-decoration:none;font:700 16px "Space Grotesk"}
 .acct-brand img{height:28px;width:auto}
 .acct-bar nav{display:flex;flex-direction:row;gap:4px;margin-right:auto}
@@ -1246,8 +1242,6 @@ form.confirm-modal .modalactions{margin-top:4px}
 .account-menu-item svg{flex-shrink:0;color:var(--faint)}
 .account-menu-item:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .acct-main{max-width:920px;margin:0 auto;padding:30px clamp(16px,4vw,40px) 72px}
-.acct-main>h1{font:700 30px "Space Grotesk";letter-spacing:-.6px;margin:0 0 4px}
-.acct-main>p{margin:0 0 22px;color:var(--muted)}
 .hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .hub-card{
   display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:18px;text-align:left;
@@ -1258,19 +1252,14 @@ form.confirm-modal .modalactions{margin-top:4px}
 .hub-card svg{color:var(--accent-2)}
 .hub-card b{font:700 17px "Space Grotesk"}
 .hub-card span{color:var(--muted);font-size:13px;line-height:1.45}
-.hub-card em{font-style:normal}
 a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--accent-line)}
-.hub-card:disabled{opacity:.6;cursor:not-allowed}
 @media(max-width:560px){
-  .acct-bar{flex-wrap:wrap}
-  .acct-bar nav{order:3;width:100%}
   .open-play-fee-row{grid-template-columns:minmax(0,1fr) auto}
   .open-play-fee-row>.pill{grid-column:1/-1;width:100%}
 }
 .account-group[hidden]{display:none}
 .event-row{text-decoration:none;color:inherit}
 .event-row svg{color:var(--faint)}
-.acct-main>h1+p+.panel{margin-top:0}
 .back-link{display:inline-flex;align-items:center;gap:6px;margin:0 0 14px;color:var(--ink-2);font-weight:700;font-size:13px;text-decoration:none}
 .back-link:hover{color:var(--accent-ink)}
 .event-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}

@@ -1,11 +1,10 @@
 /* Styles for the hub and club screens: one bar, one page frame, club header and tabs, forms.
    Scoped to .acct-shell so the queue app, public page and Live Board are untouched. Tokens only. */
-.acct-shell{--page-max:1000px;--page-gutter:clamp(16px,4vw,40px);--card-line:light-dark(var(--line),var(--line-strong))}
+.acct-shell{--page-max:1000px;--page-gutter:clamp(16px,4vw,40px);--card-line:light-dark(var(--line),var(--line-strong));--accent-ink:color-mix(in srgb,var(--accent) 50%,var(--ink))}
 
 /* ---- Frame: the bar and the page share the same left and right edges ---- */
 .acct-bar{display:block;padding:10px var(--page-gutter)}
 .acct-bar-in{display:flex;align-items:center;gap:clamp(10px,3vw,24px);max-width:calc(var(--page-max) - 2 * var(--page-gutter));margin:0 auto}
-.acct-bar-in nav{order:0;width:auto;margin-right:auto}
 .acct-main{max-width:var(--page-max);padding-left:var(--page-gutter);padding-right:var(--page-gutter)}
 .page-narrow{max-width:720px}
 .acct-shell a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
@@ -21,7 +20,11 @@
 /* ---- Buttons: primary is solid accent, outline is neutral (also when it is a link), danger is red ---- */
 .acct-shell .outline{color:var(--ink)}
 .acct-shell a.primary,.acct-shell a.outline{text-decoration:none}
+.acct-shell .back-link:hover{color:var(--accent-ink)}
 .acct-shell .primary svg,.acct-shell .outline svg{flex-shrink:0}
+.acct-shell .icon{min-width:44px;min-height:44px}
+.acct-shell .swatch::after{content:"";position:absolute;inset:-6px}
+.acct-shell .swatches{gap:12px}
 /* 44px touch targets for the bar and the main buttons */
 .acct-shell .primary,.acct-shell .outline:not(.tiny){min-height:44px}
 .acct-brand,.acct-bar nav a{display:inline-flex;align-items:center;min-height:44px}
@@ -39,12 +42,15 @@
 .club-head h1{margin:0;font:700 28px/1.15 "Space Grotesk";letter-spacing:-.5px;overflow-wrap:anywhere}
 .club-name{margin:0;font:700 20px/1.2 "Space Grotesk";letter-spacing:-.3px;overflow-wrap:anywhere}
 .club-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.club-meta .pill.off{background:var(--soft);color:var(--ink-2)}
 .club-location{display:flex;align-items:center;gap:4px;margin:8px 0 0;color:var(--muted);font-size:13px}
 .club-about{margin:6px 0 0;color:var(--ink-2);max-width:62ch;line-height:1.55;overflow-wrap:anywhere}
+.acct-shell .event-head h1{font:700 28px/1.15 "Space Grotesk";letter-spacing:-.5px;overflow-wrap:anywhere}
 .club-tabs{display:flex;flex-direction:row;align-items:stretch;gap:4px;margin:0 0 22px;overflow-x:auto;box-shadow:inset 0 -1px 0 var(--card-line)}
 .club-tabs a{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-bottom:2px solid transparent;color:var(--ink-2);font-weight:700;font-size:13.5px;text-decoration:none;white-space:nowrap}
 .club-tabs a:hover{color:var(--ink)}
 .club-tabs a[aria-current="page"]{color:var(--accent-ink);border-bottom-color:var(--accent)}
+.club-tabs a:focus-visible{outline-offset:-2px}
 
 /* ---- Hub ---- */
 .hub-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
@@ -81,5 +87,5 @@
 @media (max-width:560px){
   .acct-bar-in .account-menu-trigger-copy,.acct-bar-in .account-menu-chevron{display:none}
   .acct-bar-in .account-menu-trigger{padding:4px}
-  .page-title h1,.club-head h1{font-size:24px}
+  .page-title h1,.club-head h1,.acct-shell .event-head h1{font-size:24px}
 }
