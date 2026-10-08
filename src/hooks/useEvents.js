@@ -7,14 +7,14 @@ import { db, firebaseConfigured } from "../firebase";
 // `fromServer` flips once the server has answered (or after a few seconds, so an offline
 // host isn't stuck): until then a missing event may just be one the cache doesn't have yet,
 // so screens show Loading instead of "doesn't exist".
-export function useEvents(uid) {
+export function useEvents(clubId) {
   const [state, setState] = useState({ events: [], ready: false, fromServer: false });
   useEffect(() => {
     setState({ events: [], ready: false, fromServer: false });
-    if (!firebaseConfigured || !uid) return;
+    if (!firebaseConfigured || !clubId) return;
     const settle = setTimeout(() => setState((cur) => ({ ...cur, ready: true, fromServer: true })), 5000);
     const unsub = onSnapshot(
-      query(collection(db, "accounts", uid, "events"), orderBy("date")),
+      query(collection(db, "clubs", clubId, "events"), orderBy("date")),
       { includeMetadataChanges: true },
       (s) => setState({
         events: s.docs.map((d) => ({ id: d.id, ...d.data() })), ready: true, fromServer: !s.metadata.fromCache,
@@ -22,20 +22,20 @@ export function useEvents(uid) {
       () => setState({ events: [], ready: true, fromServer: true }),
     );
     return () => { clearTimeout(settle); unsub(); };
-  }, [uid]);
+  }, [clubId]);
   return state;
 }
 
 // Join requests per event, as { [eventId]: request[] }. Only the host can list them.
 // One listener per event id; pass only the events whose requests are on screen. When the
 // set changes only the events that came or went are touched, so the others don't reset.
-export function useEventRequests(uid, eventIds) {
+export function useEventRequests(clubId, eventIds) {
   const [byEvent, setByEvent] = useState({});
   const subs = useRef(new Map());
   const key = eventIds.join(",");
 
   useEffect(() => {
-    if (!firebaseConfigured || !uid) return;
+    if (!firebaseConfigured || !clubId) return;
     const want = new Set(key ? key.split(",") : []);
     for (const [eid, unsub] of subs.current) {
       if (want.has(eid)) continue;
@@ -46,19 +46,19 @@ export function useEventRequests(uid, eventIds) {
     for (const eid of want) {
       if (subs.current.has(eid)) continue;
       subs.current.set(eid, onSnapshot(
-        query(collection(db, "accounts", uid, "events", eid, "requests"), orderBy("createdAt")),
+        query(collection(db, "clubs", clubId, "events", eid, "requests"), orderBy("createdAt")),
         (s) => setByEvent((cur) => ({ ...cur, [eid]: s.docs.map((d) => ({ id: d.id, ...d.data() })) })),
         () => {},
       ));
     }
-  }, [uid, key]);
+  }, [clubId, key]);
 
   // A different account (or leaving the page) drops everything.
   useEffect(() => () => {
     subs.current.forEach((unsub) => unsub());
     subs.current.clear();
     setByEvent({});
-  }, [uid]);
+  }, [clubId]);
 
   return byEvent;
 }

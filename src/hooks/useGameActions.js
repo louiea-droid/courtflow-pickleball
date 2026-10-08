@@ -7,10 +7,10 @@ import {
 } from "../utils/gameSession";
 
 // Every write that starts, extends, ends or reopens a game. The signed-in host owns all of it.
-export function useGameActions({ uid, account, hostName, timeZone, notify }) {
-  const acct = account || {};
-  const eventRef = (id) => doc(db, ...eventBase(uid, id));
-  const at = (id, ...rest) => doc(db, ...eventBase(uid, id), ...rest);
+export function useGameActions({ clubId, club, hostName, timeZone, notify }) {
+  const acct = club || {};
+  const eventRef = (id) => doc(db, ...eventBase(clubId, id));
+  const at = (id, ...rest) => doc(db, ...eventBase(clubId, id), ...rest);
 
   // First start: the event goes live, courts are created, the ticked players are added (not
   // checked in) and the booking fee gets one cost entry. On a live event ("Add to game") only
@@ -23,7 +23,7 @@ export function useGameActions({ uid, account, hostName, timeZone, notify }) {
     if (!fresh) { notify("That open play no longer exists."); return false; }
     if (fresh.status === "ended") { notify("This game has ended. Reopen it from the event page first.", 4000); return false; }
     const event = { ...fresh, id: shown.id };
-    const players = (await getDocs(collection(db, ...eventBase(uid, event.id), "players"))).docs.map((d) => ({ id: d.id }));
+    const players = (await getDocs(collection(db, ...eventBase(clubId, event.id), "players"))).docs.map((d) => ({ id: d.id }));
     const now = Date.now();
     const batch = writeBatch(db);
     if (event.status !== "live") {
@@ -47,7 +47,7 @@ export function useGameActions({ uid, account, hostName, timeZone, notify }) {
   const playNow = async () => {
     const now = Date.now();
     const { date, hm } = nowIn(timeZone);
-    const ref = doc(collection(db, "accounts", uid, "events"));
+    const ref = doc(collection(db, "clubs", clubId, "events"));
     const event = playNowEvent({ account: acct, today: date, hm, timeZone, hostName, now });
     const batch = writeBatch(db);
     batch.set(ref, event);

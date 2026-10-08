@@ -5,15 +5,15 @@ import { deleteEventData } from "../utils/accountData";
 
 const norm = (s) => s.trim().toLowerCase();
 
-// Every write a host can make to an event. The signed-in account owns all of these;
+// Every write a host can make to an event. The club's managers may make all of these;
 // players only ever create a pending request (public page), never touch an event.
 // ponytail: attendees is one array updated read-modify-write, so two tabs editing the
 // same event at once can overwrite each other. Fine for one host; move to per-attendee
 // docs if staff accounts arrive.
-export function useEventActions({ uid, events, hostName, timeZone, notify }) {
-  const eventsCol = () => collection(db, "accounts", uid, "events");
-  const eventRef = (id) => doc(db, "accounts", uid, "events", id);
-  const requestRef = (eventId, requestId) => doc(db, "accounts", uid, "events", eventId, "requests", requestId);
+export function useEventActions({ clubId, events, hostName, timeZone, notify }) {
+  const eventsCol = () => collection(db, "clubs", clubId, "events");
+  const eventRef = (id) => doc(db, "clubs", clubId, "events", id);
+  const requestRef = (eventId, requestId) => doc(db, "clubs", clubId, "events", eventId, "requests", requestId);
   const find = (id) => events.find((e) => e.id === id);
   const setAttendees = (id, attendees) => updateDoc(eventRef(id), { attendees });
 
@@ -33,7 +33,7 @@ export function useEventActions({ uid, events, hostName, timeZone, notify }) {
   };
 
   const remove = async (id) => {
-    await deleteEventData(db, uid, id);
+    await deleteEventData(db, clubId, id);
     notify("Open play deleted.");
   };
 
@@ -64,7 +64,7 @@ export function useEventActions({ uid, events, hostName, timeZone, notify }) {
       else delete next.paidAt;
       return next;
     });
-    const bookingRef = doc(db, "accounts", uid, "events", eventId, "costs", `booking-${eventId}`);
+    const bookingRef = doc(db, "clubs", clubId, "events", eventId, "costs", `booking-${eventId}`);
     const booking = await getDoc(bookingRef);
     const batch = writeBatch(db);
     batch.update(eventRef(eventId), { attendees });

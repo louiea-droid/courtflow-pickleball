@@ -13,10 +13,10 @@ import {
 import { deleteAccountData } from "../utils/accountData";
 
 // Creates accounts/{uid} once. Safe to call again: it never overwrites settings.
-async function ensureAccount(user, clubName) {
+async function ensureAccount(user, name) {
   const ref = doc(db, "accounts", user.uid);
   if ((await getDoc(ref)).exists()) return;
-  await setDoc(ref, { clubName: clubName || defaultClubName(user), email: user.email, createdAt: Date.now() });
+  await setDoc(ref, { name: name || defaultClubName(user), email: user.email, createdAt: Date.now() });
 }
 
 const run = async (fn) => {
@@ -67,7 +67,7 @@ export function useAccount() {
     });
   };
 
-  const signUp = (clubName, email, password) => {
+  const signUp = (name, email, password) => {
     if (isLegacyEmail(email)) return Promise.resolve(LEGACY_MESSAGE);
     return run(async () => {
       creating.current = true;
@@ -75,7 +75,7 @@ export function useAccount() {
         const { user: u } = await createUserWithEmailAndPassword(auth, email.trim(), password);
         // The form unmounts once the user exists, so a failed profile write can't show an
         // error there. Surface it as the page error instead of an endless "Loading…".
-        await ensureAccount(u, clubName.trim()).catch(() => setFailed(true));
+        await ensureAccount(u, name.trim()).catch(() => setFailed(true));
       } finally {
         creating.current = false;
       }
