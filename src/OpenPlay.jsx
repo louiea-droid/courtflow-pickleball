@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { CalendarDays, Check, Clock, Wallet } from "lucide-react";
 import { db, firebaseConfigured } from "./firebase";
 import { useEvents } from "./hooks/useEvents";
@@ -11,32 +11,32 @@ import { DEFAULT_DISPLAY } from "./data/constants";
 
 // The player's own requests live on their device: the request id is the only key to
 // read it back (rules allow a single get, never a list).
-const storeKey = (hostId) => `cf-openplay-${hostId}`;
-function loadMine(hostId) {
+const storeKey = (clubId) => `cf-openplay-${clubId}`;
+function loadMine(clubId) {
   try {
     // Entries from before seat ids (or from the old club booking page) can't be matched; drop them.
-    return (JSON.parse(localStorage.getItem(storeKey(hostId))) || []).filter((m) => m.rid && m.seatId && m.eventId);
+    return (JSON.parse(localStorage.getItem(storeKey(clubId))) || []).filter((m) => m.rid && m.seatId && m.eventId);
   } catch { return []; }
 }
-const requestRef = (hostId, m) => doc(db, "accounts", hostId, "events", m.eventId, "requests", m.rid);
+const requestRef = (clubId, m) => doc(db, "clubs", clubId, "events", m.eventId, "requests", m.rid);
 
-function useMyRequests(hostId, mine) {
+function useMyRequests(clubId, mine) {
   const [status, setStatus] = useState({});
   const key = mine.map((m) => `${m.eventId}/${m.rid}`).join(",");
   useEffect(() => {
     if (!firebaseConfigured || !key) return;
     const unsubs = mine.map((m) => onSnapshot(
-      requestRef(hostId, m),
+      requestRef(clubId, m),
       (s) => setStatus((cur) => ({ ...cur, [m.rid]: s.exists() ? s.data().status : "gone" })),
       () => {},
     ));
     return () => unsubs.forEach((u) => u());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hostId, key]);
+  }, [clubId, key]);
   return status;
 }
 
-function JoinForm({ event, hostId, onSent, onCancel }) {
+function JoinForm({ event, clubId, onSent, onCancel }) {
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [method, setMethod] = useState("cash");
@@ -53,7 +53,7 @@ function JoinForm({ event, hostId, onSent, onCancel }) {
     const rid = crypto.randomUUID();
     const seatId = crypto.randomUUID();
     try {
-      await setDoc(doc(db, "accounts", hostId, "events", event.id, "requests", rid), {
+      await setDoc(doc(db, "clubs", clubId, "events", event.id, "requests", rid), {
         name: name.trim(), contact: contact.trim(),
         method: paid ? method : "cash",
         ...(paid && method === "online" && ref.trim() ? { ref: ref.trim() } : {}),
@@ -110,7 +110,7 @@ function JoinForm({ event, hostId, onSent, onCancel }) {
   );
 }
 
-function EventCard({ e, hostId, mine, onSent }) {
+function EventCard({ e, clubId, mine, onSent }) {
   const [joining, setJoining] = useState(false);
   const { confirmed, waitlist } = splitAttendees(e);
   const left = Math.max(0, e.maxPlayers - confirmed.length);
@@ -139,7 +139,7 @@ function EventCard({ e, hostId, mine, onSent }) {
       {e.notes && <p className="op-notes">{e.notes}</p>}
 
       {joining ? (
-        <JoinForm event={e} hostId={hostId} onCancel={() => setJoining(false)} onSent={(m) => { setJoining(false); onSent(m); }} />
+        <JoinForm event={e} clubId={clubId} onCancel={() => setJoining(false)} onSent={(m) => { setJoining(false); onSent(m); }} />
       ) : asked ? (
         <p className="op-asked"><Check size={14} /> You've asked to join. See your status above.</p>
       ) : (
@@ -180,10 +180,20 @@ function MyBookings({ mine, events, status }) {
 }
 
 export default function OpenPlay() {
-  const hostId = new URLSearchParams(window.location.search).get("host");
-  const { events, ready } = useEvents(hostId);
-  const [mine, setMine] = useState(() => (hostId ? loadMine(hostId) : []));
-  const status = useMyRequests(hostId, mine);
+  const clubId = new URLSearchParams(window.location.search).get("club");
+  // Only public clubs have a public booking page. Anything else (a private club, a deleted one,
+  // a made-up id) gets one calm message.
+  const [access, setAccess] = useState("checking");
+  useEffect(() => {
+    if (!firebaseConfigured || !clubId) return;
+    getDoc(doc(db, "clubs", clubId)).then(
+      (s) => setAccess(s.exists() && s.data().visibility === "public" ? "open" : "closed"),
+      () => setAccess("closed"),
+    );
+  }, [clubId]);
+  const { events, ready } = useEvents(access === "open" ? clubId : null);
+  const [mine, setMine] = useState(() => (clubId ? loadMine(clubId) : []));
+  const status = useMyRequests(clubId, mine);
   // A request holds the player's place only while it is waiting, confirmed or on the waitlist;
   // once declined, or removed by the host, they may ask again.
   const isActive = (m) => ["pending", "confirmed", "waitlist"].includes(
@@ -201,7 +211,7 @@ export default function OpenPlay() {
     document.title = hostName ? `${hostName} — Open play` : "Open play";
   }, [hostName]);
 
-  // The host's private account (theme, zone) isn't readable here, so the page uses the
+  // The club's theme and zone aren't loaded on this page (a visitor may not be signed in), so it uses the
   // defaults; each event carries its own zone for deciding upcoming vs past.
   applyDisplayPrefs(DEFAULT_DISPLAY);
   applyTheme(DEFAULT_DISPLAY, { persist: false });
@@ -212,13 +222,16 @@ export default function OpenPlay() {
   );
 
   if (!firebaseConfigured) return <div className="loading">Open play is unavailable — Firebase isn't configured.</div>;
-  if (!hostId) return <div className="loading">No host specified. Ask the host for their open play link.</div>;
-  if (!ready) return <div className="loading"><span className="spinner" />Loading open play…</div>;
+  if (!clubId) return <div className="loading">No club specified. Ask the club for its open play link.</div>;
+  if (access === "closed") {
+    return <div className="loading">This club's open play isn't public. If you're a member, sign in and open the club page.</div>;
+  }
+  if (access === "checking" || !ready) return <div className="loading"><span className="spinner" />Loading open play…</div>;
 
   const sent = (m) => {
     const next = [...mine, m];
     setMine(next);
-    try { localStorage.setItem(storeKey(hostId), JSON.stringify(next)); } catch { /* private mode: status just won't persist */ }
+    try { localStorage.setItem(storeKey(clubId), JSON.stringify(next)); } catch { /* private mode: status just won't persist */ }
   };
 
   return (
@@ -236,7 +249,7 @@ export default function OpenPlay() {
       <section aria-label="Upcoming open play">
         <h2>Upcoming</h2>
         {upcoming.map((e) => (
-          <EventCard key={e.id} e={e} hostId={hostId} mine={mine.filter(isActive)} onSent={sent} />
+          <EventCard key={e.id} e={e} clubId={clubId} mine={mine.filter(isActive)} onSent={sent} />
         ))}
         {!upcoming.length && (
           <div className="empty op-empty"><Wallet size={18} /> No open play scheduled right now. Check back soon.</div>

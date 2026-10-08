@@ -33,13 +33,13 @@ Already built:
 - Undo a match result: `recordWin` snapshots what it changes; the toast offers Undo for 10s.
 
 - Events (step 2 of `docs/superpowers/specs/2026-10-06-accounts-and-events-design.md`): an open play is a doc at
-  `accounts/{uid}/events/{eventId}` (title, date, startTime, durationMins, maxPlayers, fee, level, notes, payInfo, `attendees[]`,
-  status, and the host's `hostName` / `timeZone` copied on so the public page needn't read the private account doc). Routes
-  `/host` (list, `views/Host.jsx`) and `/event/:id` (`views/EventPage.jsx`); writes in `hooks/useEventActions.js`; reads in
+  `clubs/{clubId}/events/{eventId}` (title, date, startTime, durationMins, maxPlayers, fee, level, notes, payInfo, `attendees[]`,
+  status, and the host's `hostName` / `timeZone` copied on so the public page needn't read the private club settings). Routes
+  `/clubs/:id/host` (list, `views/Host.jsx`) and `/clubs/:id/event/:eventId` (`views/EventPage.jsx`); writes in `hooks/useEventActions.js`; reads in
   `hooks/useEvents.js`; seat/waitlist/payment logic in `utils/bookings.js` (check: `node src/utils/bookings.check.mjs`).
   Attendees are an array in joined order: the first `maxPlayers` are confirmed, the rest wait (derived).
-- Public page `/open-play?host={uid}` (`OpenPlay.jsx`): lists a host's upcoming events (public read); a player sends a request to
-  `accounts/{uid}/events/{id}/requests` (not signed in, so `firestore.rules` allows a validated pending create and a single `get`
+- Public page `/open-play?club={clubId}` (`OpenPlay.jsx`): lists a public club's upcoming events (public read); a player sends a request to
+  `clubs/{clubId}/events/{id}/requests` (not signed in, so `firestore.rules` allows a validated pending create and a single `get`
   by the random request id; only the host can list/update). Approving adds the attendee (attendee id = the request's public `seatId`, never the
   request id, so the public attendee list can't reach a phone number; `createdAt` must be within 10 min of server time because it
   sets the place in line) so the player's page shows confirmed / waitlist / paid. Request and seat ids live in the player's localStorage. Phone numbers stay in the
@@ -48,28 +48,30 @@ Already built:
   subcollections there). Test: `tests/cascade.test.mjs` via `npm run test:rules`. Rules must be re-published in the Firebase
   console after any change to `firestore.rules`.
 - Game on an event (step 3a, spec `docs/superpowers/specs/2026-10-07-event-game-design.md`): `QueueApp.jsx` is the queue app on a `base`
-  path (`utils/paths.js`: `sessionBase(uid)` for the quick session, `eventBase(uid, id)` for a game); every write goes through its `at` /
-  `col` helpers. `Club.jsx` wraps it at `/club`; `Game.jsx` at `/event/:id/game` (gates on event `status`, merges the account settings with
+  path (`utils/paths.js`: `sessionBase(uid)` for the quick session, `eventBase(clubId, id)` for a game); every write goes through its `at` /
+  `col` helpers. `QuickSession.jsx` wraps it at `/club`; `Game.jsx` at `/clubs/:id/event/:eventId/game` (gates on event `status`, merges the club settings with
   `buildGameSession`). "Proceed to game" (`GamePickModal`, nothing pre-ticked) adds the ticked attendees as players NOT checked in, sets the
-  event `live`, creates courts from the account's Session defaults and one booking-fee Cost entry (`booking-{eventId}`); "Add players to game"
+  event `live`, creates courts from the club's Session defaults and one booking-fee Cost entry (`booking-{eventId}`); "Add players to game"
   repeats it safely (players are matched by attendee id). "Play now" makes a `walkIn` event (4 h, no seats, hidden from the public page).
   "End game" sets `status: "ended"` and keeps everything; "Reopen game" sets it `live`. Pure logic and its check: `utils/gameSession.js`,
   `node src/utils/gameSession.check.mjs`; writes in `hooks/useGameActions.js`. Game data (`players`, `courts`, `matchLog`, `costs` under an
-  event) is owner-only (rules don't cascade into subcollections); step 4 opens read for the Live Board. Delete cascade covers all of it
+  event) is managers-only (rules don't cascade into subcollections); step 4 opens read for the Live Board. Delete cascade covers all of it
   (`EVENT_SUBCOLLECTIONS`).
-- Still to build: the roster and skill memory (step 3b), per-event Live Board links and the landing page (step 4).
+- Still to build: the roster and skill memory (now per club, after clubs part A), clubs parts B and C, per-event Live Board links and the landing page (step 4).
 - Accounts (step 1 of `docs/superpowers/specs/2026-10-06-accounts-and-events-design.md`): real Firebase accounts
   (email + password or Google) with a profile at `accounts/{uid}` (owner-only in `firestore.rules`). `main.jsx` picks the page
   with `routeOf` in `utils/route.js`: `/live`, `/open-play`, `/club` (the quick session, below), everything else is
-  `AccountApp` (sign-in, hub, settings). Old club logins (`@courtflow.local` emails) are never accounts (`isAccountUser` in
-  `utils/account.js`) and own nothing in the rules. Account settings reuse `Settings.jsx` with `mode="account"`. Account
+  `AccountApp` (sign-in, hub, profile, and `ClubApp` under `/clubs/:id`). Old club logins (`@courtflow.local` emails) are never accounts (`isAccountUser` in
+  `utils/account.js`) and own nothing in the rules. Club settings reuse `Settings.jsx` with `mode="club"`. Account
   delete wipes `roster` and `events` (step 2 adds each event's subcollections to the cascade in `useAccount.js`).
   Checks: `node src/utils/account.check.mjs`, `node src/utils/route.check.mjs`, `npm run test:rules` (emulator, needs Java).
   Steps 2-4 (events, roster + proceed to game, per-event public pages) each get their own plan.
+- Clubs (part A of `docs/superpowers/specs/2026-10-08-clubs-design.md`): people create clubs (`clubs/{id}`, public or private) and the club owns its settings, events, games and (later) roster; the account is only the person's profile (`accounts/{uid}`: name, email, `display.theme`, plus `memberships/{clubId}` copies that power "My clubs"). A person's role is the club's own `members/{uid}` record (`owner` / `manager` / `member`); `utils/clubs.js` holds the pure rules (`permissions`, `validateClubInput`, `newClubDoc`; check: `node src/utils/clubs.check.mjs`) and `firestore.rules` enforces the same table (public clubs: events readable and bookable by anyone; private: members only; game data under an event is managers-only). Routes: `/` hub, `/clubs/new`, `/clubs/:id`, `/clubs/:id/host`, `/clubs/:id/event/:eventId[/game]`, `/clubs/:id/settings`, `/settings` = profile; `/club` is still the quick session (route name `quick`). `AccountApp` is sign-in + hub + profile; `ClubApp` is everything under a club and applies the club's theme and time zone. Deleting a club or an account that owns clubs goes through `utils/accountData.js` (`deleteClubData`, `deleteAccountData`; test: `tests/cascade.test.mjs`). Parts B (joining: invite link, requests, directory) and C (managers) are specified but not built.
+- Local emulators: `npm run emulators` (Auth + Firestore, project `demo-courtflow`) and `npm run dev:emu` (Vite on port 5300 pointed at them, `.env.emulator`): no real data, no published rules needed. Use them for browser checks.
 - Quick session at `/club`: the classic queue app with no login. `useClub` signs the visitor in anonymously (or reuses the real
   account already signed in, never signing it out) and keeps the session at `sessions/{uid}`; rules: `isClub` = `auth.uid == sessionId`.
   Data belongs to that browser (clearing site data starts fresh). Needs Anonymous sign-in turned on in the Firebase console.
-  Settings uses `mode="quick"` (no password rows; "Erase this session"). "Back to home" is a button in the sidebar; End Session archives the stats and then goes to the home page (`/`). The page is `Club.jsx` (`useClub`) around `QueueApp`.
+  Settings uses `mode="quick"` (no password rows; "Erase this session"). "Back to home" is a button in the sidebar; End Session archives the stats and then goes to the home page (`/`). The page is `QuickSession.jsx` (`useClub`) around `QueueApp`; its route name is `quick`.
 - Modes (`utils/rotationModes.js`, check: `node src/utils/rotationModes.check.mjs`): Balanced, Skill Separated, Custom (manual: nothing is picked or rotated by itself), Winners / Losers (winners always stay on until `rules.maxWinStreak` wins in a row, default 2, set in Settings; then they go to the back of the queue; challengers are recent winners first), Mixed Doubles (every team is one man + one woman: players with no gender are never picked and show a "!"; locks only pair a man with a woman, manual moves that break it are refused). Skill Courts was removed (saved sessions move to Balanced via `normalizeMode`). Per-court levels work in every mode.
 - Small rules worth knowing: Esc closes the top dialog (`hooks/useEscape.js`, used by `Modal` and the confirm dialogs); "matches" = player-games / 4 for doubles, / 2 for singles (`utils/stats.js`); the player's payment reference lives on the private request, never on the public event; `deleteEventData` removes the event doc first, then its subcollections; a live game stays on the host list until ended, but the public page stops listing it once its scheduled time passes.
 
