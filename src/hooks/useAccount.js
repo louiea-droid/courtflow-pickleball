@@ -35,6 +35,7 @@ export function useAccount() {
   const [account, setAccount] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [syncTick, setSyncTick] = useState(0); // bumped to run the directory sync again (after sign-up, after a failure)
   const creating = useRef(false); // sign-up writes the account itself; don't race it
   const deleting = useRef(false); // the profile vanishing mid-delete is intended; don't re-create it
 
@@ -62,13 +63,22 @@ export function useAccount() {
   const status = accountStatus({ user, loaded, account, failed });
 
   // Keeps the friend directory (code, name listing, names on friendships) matching this account. One run at a
-  // time; the next account snapshot (after the write) re-checks, so it settles instead of looping.
+  // time; the next account snapshot (after the write) re-checks, so it settles instead of looping. A failure
+  // tries again a few times, a little later (the person may be offline); sign-up bumps the tick when it is done,
+  // because its own snapshot arrives while it is still "creating".
   const syncing = useRef(false);
+  const syncFailures = useRef(0);
   useEffect(() => {
     if (status !== "in" || creating.current || deleting.current || syncing.current || !needsDirectorySync(account)) return;
     syncing.current = true;
-    syncDirectory(db, user.uid, account).catch(() => {}).finally(() => { syncing.current = false; });
-  }, [status, user, account]);
+    syncDirectory(db, user.uid, account)
+      .then(() => { syncFailures.current = 0; })
+      .catch(() => {
+        syncFailures.current += 1;
+        if (syncFailures.current <= 3) setTimeout(() => setSyncTick((t) => t + 1), 4000 * syncFailures.current);
+      })
+      .finally(() => { syncing.current = false; });
+  }, [status, user, account, syncTick]);
 
   const signIn = (email, password) => {
     if (isLegacyEmail(email)) return Promise.resolve(LEGACY_MESSAGE);
@@ -89,6 +99,7 @@ export function useAccount() {
         await ensureAccount(u, name.trim()).catch(() => setFailed(true));
       } finally {
         creating.current = false;
+        setSyncTick((t) => t + 1);
       }
     });
   };

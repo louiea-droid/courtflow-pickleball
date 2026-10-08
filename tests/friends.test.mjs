@@ -2,6 +2,7 @@
 // Run: npm run test:rules (needs Java and the Firebase CLI).
 import fs from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
+import { syncDirectory } from "../src/utils/friendsData.js";
 import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, setDoc, updateDoc, where } from "firebase/firestore";
 
 const rules = fs.readFileSync("firestore.rules", "utf8");
@@ -120,6 +121,27 @@ await assertFails(deleteDoc(fdoc(anon, "me", "bea")));
 await assertSucceeds(deleteDoc(fdoc(bea, "me", "bea")));
 await assertSucceeds(setDoc(fdoc(me, "me", "bea"), req("me", "bea"))); // and a new request can follow
 await assertSucceeds(deleteDoc(fdoc(me, "me", "bea")));
+
+// ---- syncDirectory: what a client publishes, and that one broken friendship can't block it
+await seed(async (db) => {
+  await setDoc(doc(db, "accounts/me"), { name: "Me" });
+  await setDoc(fdoc(db, "me", "bea"), req("me", "bea"));
+  await setDoc(doc(db, "friendships/cy_me"), { users: ["cy", "me"], status: "pending", requestedBy: "cy", createdAt: 1 }); // no names: an update to it is refused
+});
+const readAs = async (path) => { let snap; await env.withSecurityRulesDisabled(async (ctx) => { snap = await getDoc(doc(ctx.firestore(), path)); }); return snap; };
+await syncDirectory(me, "me", { name: "Me" });
+const acct1 = (await readAs("accounts/me")).data();
+if (!/^[A-Z2-9]{8}$/.test(acct1.friendCode || "")) throw new Error("sync did not make a friend code");
+if ((await readAs("friendCodes/" + acct1.friendCode)).data()?.uid !== "me") throw new Error("code doc missing");
+if ((await readAs("profiles/me")).data()?.nameLower !== "me") throw new Error("name listing missing");
+// turning the listing off and renaming must complete even though one friendship can't be updated
+await syncDirectory(me, "me", { ...acct1, name: "Mia", discoverable: false });
+const acct2 = (await readAs("accounts/me")).data();
+if (acct2.directory.name !== "Mia" || acct2.directory.discoverable !== false) throw new Error("account note not updated");
+if ((await readAs("profiles/me")).exists()) throw new Error("name still listed after turning the listing off");
+if ((await readAs("friendCodes/" + acct1.friendCode)).data()?.name !== "Mia") throw new Error("code doc not renamed");
+if ((await readAs("friendships/bea_me")).data()?.names?.me !== "Mia") throw new Error("friendship name not refreshed");
+if (acct2.friendCode !== acct1.friendCode) throw new Error("the friend code must never change");
 
 console.log("friends: all assertions passed");
 await env.cleanup();

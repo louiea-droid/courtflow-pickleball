@@ -76,7 +76,7 @@ export default function Profile({ acct, onDelete }) {
             <label className="switch">
               <input
                 type="checkbox" role="switch" aria-label="Let people find me by name"
-                checked={account.discoverable !== false} onChange={(e) => acct.updateAccount({ discoverable: e.target.checked })}
+                checked={account.discoverable !== false} onChange={(e) => acct.updateAccount({ discoverable: e.target.checked }).catch(() => {})}
               />
             </label>
           </SettingsRow>

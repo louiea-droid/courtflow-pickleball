@@ -47,6 +47,12 @@ The profile name is copied onto these documents (like the member records) so lis
 - Deleting an account removes its `profiles`, `friendCodes`, `chatReads`, its friendships, and the direct-message conversations it is in (the conversation and its messages). Its messages in a club chat stay, under the name they were sent with.
 - Deleting a club removes its chat and messages (the owner's cascade, like the other club subcollections).
 
+## Known limits (accepted)
+
+- **The name directory can be paged through.** Rules can't require a search prefix, so a signed-in person can read every opted-in profile in pages of 20 (names and account ids only, no emails); the 2-letter minimum is in the app, not the rules. People who don't want this turn off "Let people find me by name". If the directory ever needs to resist that, search moves behind a Cloud Function.
+- **No block list.** Someone who declines a request can be asked again at once. The rules can't rate-limit.
+- **Two tabs on a brand-new account** can each pick a friend code; one code document is left behind (it holds only the account id and name). Account deletion removes the stored code only.
+
 ## Not included (said plainly)
 
 - **Blocking and reporting.** Remove a friend and leave a direct conversation (hide it) are in; a block list is not. A club manager moderates the club chat; a direct message has no moderator. This is the main risk to decide on before opening it to the public.

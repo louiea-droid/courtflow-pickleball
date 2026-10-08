@@ -8,6 +8,8 @@ export const normalizeCode = (text = "") => text.toUpperCase().replace(/[\s-]/g,
 export const isFriendCode = (text = "") => text.length === 8 && [...text].every((c) => CODE_CHARS.includes(c));
 
 const clean = (name) => (name || "").trim().slice(0, 60);
+// Accounts from before names have only a clubName; that is the name they show.
+const accountName = (account) => clean(account.name || account.clubName);
 
 // What profiles.nameLower holds, and the range a "starts with" search asks for. Under 2 characters is
 // refused so one letter can't list a big part of the directory.
@@ -42,15 +44,16 @@ export function relationTo(friendships, me, other) {
 // The directory keeps `accounts/{uid}.directory` as what was last published; it needs publishing again when
 // there is no code yet or the name or the "find me by name" switch differs (default: findable).
 export function needsDirectorySync(account = {}) {
-  if (!clean(account.name)) return false; // nothing to publish yet
+  const name = accountName(account);
+  if (!name) return false; // nothing to publish yet
   const d = account.directory;
-  return !account.friendCode || !d || d.name !== clean(account.name)
+  return !account.friendCode || !d || d.name !== name
     || d.discoverable !== (account.discoverable !== false) || d.code !== account.friendCode;
 }
 
 // The documents the directory should hold for this account right now.
 export function directoryDocs(uid, account) {
-  const name = clean(account.name);
+  const name = accountName(account);
   return {
     code: account.friendCode,
     codeDoc: { uid, name },

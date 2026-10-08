@@ -45,6 +45,10 @@ assert.equal(needsDirectorySync({ name: "Lou" }), true); // no code yet
 assert.equal(needsDirectorySync({ ...acct, directory: undefined }), true);
 assert.equal(needsDirectorySync({ ...acct, discoverable: true }), false); // explicit true = default
 assert.equal(needsDirectorySync({ name: "  ", friendCode: "K7M2QXWA" }), false); // nothing to publish yet: wait for a name
+// Accounts from before names only have a clubName: that is the name they show, so they get a code too
+assert.equal(needsDirectorySync({ clubName: "Old Club" }), true);
+assert.equal(needsDirectorySync({ clubName: "Old Club", friendCode: "K7M2QXWA", directory: { name: "Old Club", discoverable: true, code: "K7M2QXWA" } }), false);
+assert.equal(directoryDocs("u1", { clubName: "Old Club", friendCode: "K7M2QXWA" }).codeDoc.name, "Old Club");
 
 assert.deepEqual(directoryDocs("u1", acct), { code: "K7M2QXWA", codeDoc: { uid: "u1", name: "Lou" }, profile: { name: "Lou", nameLower: "lou" } });
 assert.equal(directoryDocs("u1", { ...acct, discoverable: false }).profile, null);

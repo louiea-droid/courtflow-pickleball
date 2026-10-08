@@ -65,9 +65,14 @@ export async function leaveClub(db, clubId, uid) {
 // The code document is only deleted when it exists and is theirs (the rules refuse a delete of anything else).
 async function deleteFriendData(db, uid) {
   const account = (await getDoc(doc(db, "accounts", uid))).data() || {};
-  const batch = writeBatch(db);
   const mine = await getDocs(query(collection(db, "friendships"), where("users", "array-contains", uid)));
-  mine.docs.forEach((f) => batch.delete(f.ref));
+  // A batch holds 500 writes: friendships go in chunks, the listing and the code in the last one.
+  for (let i = 0; i < mine.docs.length; i += 400) {
+    const chunk = writeBatch(db);
+    mine.docs.slice(i, i + 400).forEach((f) => chunk.delete(f.ref));
+    await chunk.commit();
+  }
+  const batch = writeBatch(db);
   batch.delete(doc(db, "profiles", uid));
   if (account.friendCode) {
     const codeRef = doc(db, "friendCodes", account.friendCode);
