@@ -1,74 +1,91 @@
-// Account delete cascade. Run: npm run test:rules (needs Java and the Firebase CLI).
+// Delete cascades for events, clubs and accounts. Run: npm run test:rules (needs Java and the Firebase CLI).
 import assert from "node:assert";
 import fs from "node:fs";
 import { initializeTestEnvironment } from "@firebase/rules-unit-testing";
 import { collection, doc, getDocs, setDoc } from "firebase/firestore";
-import { deleteAccountData, deleteEventData } from "../src/utils/accountData.js";
+import { deleteAccountData, deleteClubData, deleteEventData } from "../src/utils/accountData.js";
 
 const env = await initializeTestEnvironment({
   projectId: "cascade-test",
   firestore: { rules: fs.readFileSync("firestore.rules", "utf8"), host: "127.0.0.1", port: 8080 },
 });
-// withSecurityRulesDisabled resolves to void, so carry the result out in a variable.
 const count = async (path) => {
   let n;
   await env.withSecurityRulesDisabled(async (ctx) => { n = (await getDocs(collection(ctx.firestore(), path))).size; });
   return n;
 };
+const real = (uid) => env.authenticatedContext(uid, { email: `${uid}@example.com`, firebase: { sign_in_provider: "password" } }).firestore();
+const EVENT_SUBS = ["requests", "players", "courts", "matchLog", "costs"];
+
+// A club with two events (every subcollection), a roster, a join request, an invite, an owner and a member.
+const seedClub = async (db, id, ownerId) => {
+  await setDoc(doc(db, `clubs/${id}`), { name: id, visibility: "public", ownerId, createdAt: 1 });
+  await setDoc(doc(db, `clubs/${id}/members/${ownerId}`), { role: "owner", name: ownerId, joinedAt: 1 });
+  await setDoc(doc(db, `clubs/${id}/members/helper`), { role: "member", name: "Helper", joinedAt: 1 });
+  await setDoc(doc(db, `clubs/${id}/roster/r1`), { name: "Regular" });
+  await setDoc(doc(db, `clubs/${id}/joinRequests/j1`), { name: "J" });
+  await setDoc(doc(db, `clubs/${id}/private/invite`), { code: "X" });
+  for (const e of ["e1", "e2"]) {
+    await setDoc(doc(db, `clubs/${id}/events/${e}`), { title: e, attendees: [] });
+    for (const sub of EVENT_SUBS) await setDoc(doc(db, `clubs/${id}/events/${e}/${sub}/x`), { n: 1 });
+  }
+};
 
 await env.withSecurityRulesDisabled(async (ctx) => {
   const db = ctx.firestore();
-  await setDoc(doc(db, "accounts/u1"), { clubName: "One" });
-  await setDoc(doc(db, "accounts/u1/roster/r1"), { name: "Regular" });
-  for (const e of ["e1", "e2"]) {
-    await setDoc(doc(db, `accounts/u1/events/${e}`), { title: e, attendees: [] });
-    for (let i = 0; i < 3; i++) await setDoc(doc(db, `accounts/u1/events/${e}/requests/r${i}`), { name: "Dee", contact: "0917" });
-    for (const sub of ["players", "courts", "matchLog", "costs"]) {
-      await setDoc(doc(db, `accounts/u1/events/${e}/${sub}/x`), { n: 1 });
-    }
-  }
-  // One event deleted on its own (u3): its subcollections go with it and its sibling stays.
-  await setDoc(doc(db, "accounts/u3"), { clubName: "Three" });
-  for (const e of ["e1", "e2"]) {
-    await setDoc(doc(db, `accounts/u3/events/${e}`), { title: e, attendees: [] });
-    for (const sub of ["requests", "players", "courts", "matchLog", "costs"]) {
-      await setDoc(doc(db, `accounts/u3/events/${e}/${sub}/x`), { n: 1 });
-    }
-  }
-  // Another account must be untouched.
-  await setDoc(doc(db, "accounts/u2"), { clubName: "Two" });
-  await setDoc(doc(db, "accounts/u2/events/e9"), { title: "other" });
-  await setDoc(doc(db, "accounts/u2/events/e9/requests/r0"), { name: "Keep", contact: "0918" });
-  await setDoc(doc(db, "accounts/u2/events/e9/players/x"), { name: "Keep" });
+  await seedClub(db, "c1", "u1");
+  await seedClub(db, "c2", "u2"); // must never be touched
+  await seedClub(db, "c3", "u3");
+  await setDoc(doc(db, "accounts/u1"), { name: "One" });
+  await setDoc(doc(db, "accounts/u1/memberships/c1"), { clubName: "c1", role: "owner", joinedAt: 1 });
+  await setDoc(doc(db, "accounts/u1/memberships/c2"), { clubName: "c2", role: "member", joinedAt: 1 }); // belongs, doesn't own
+  // Old data from before clubs, still under the account.
+  await setDoc(doc(db, "accounts/u1/roster/old"), { name: "Old" });
+  await setDoc(doc(db, "accounts/u1/events/oldEvent"), { title: "Old" });
+  for (const sub of EVENT_SUBS) await setDoc(doc(db, `accounts/u1/events/oldEvent/${sub}/x`), { n: 1 });
+  await setDoc(doc(db, "accounts/u2"), { name: "Two" });
 });
-
-assert.equal(await count("accounts/u1/events/e1/requests"), 3);
 
 // Deleting one event takes the doc and every subcollection, and leaves the other event alone.
-await deleteEventData(env.authenticatedContext("u3", { email: "three@example.com" }).firestore(), "u3", "e1");
-assert.equal(await count("accounts/u3/events"), 1);
-for (const sub of ["requests", "players", "courts", "matchLog", "costs"]) {
-  assert.equal(await count(`accounts/u3/events/e1/${sub}`), 0, `u3/e1/${sub} left behind`);
-  assert.equal(await count(`accounts/u3/events/e2/${sub}`), 1, `u3/e2/${sub} was touched`);
+await deleteEventData(real("u3"), "c3", "e1");
+assert.equal(await count("clubs/c3/events"), 1);
+for (const sub of EVENT_SUBS) {
+  assert.equal(await count(`clubs/c3/events/e1/${sub}`), 0, `c3/e1/${sub} left behind`);
+  assert.equal(await count(`clubs/c3/events/e2/${sub}`), 1, `c3/e2/${sub} was touched`);
 }
-await deleteAccountData(env.authenticatedContext("u1", { email: "one@example.com" }).firestore(), "u1");
 
-// Review Focus 3: nothing left, including request subcollections whose parent event is gone.
-assert.equal(await count("accounts/u1/roster"), 0);
-assert.equal(await count("accounts/u1/events"), 0);
-assert.equal(await count("accounts/u1/events/e1/requests"), 0);
-assert.equal(await count("accounts/u1/events/e2/requests"), 0);
-// Review Focus 4: the game's data goes too, with no orphans holding names or who paid.
+// Review Focus 2: deleting a club, run as its owner, leaves nothing.
+await deleteClubData(real("u3"), "c3", "u3");
+for (const sub of ["events", "members", "roster", "joinRequests", "private"]) {
+  assert.equal(await count(`clubs/c3/${sub}`), 0, `c3/${sub} left behind`);
+}
 for (const e of ["e1", "e2"]) {
-  for (const sub of ["players", "courts", "matchLog", "costs"]) {
-    assert.equal(await count(`accounts/u1/events/${e}/${sub}`), 0, `${e}/${sub} left behind`);
-  }
+  for (const sub of EVENT_SUBS) assert.equal(await count(`clubs/c3/events/${e}/${sub}`), 0, `c3/${e}/${sub} left behind`);
 }
 await env.withSecurityRulesDisabled(async (ctx) => {
-  assert.equal((await getDocs(collection(ctx.firestore(), "accounts"))).docs.map((d) => d.id).join(), "u2,u3");
+  const clubs = await getDocs(collection(ctx.firestore(), "clubs"));
+  assert.equal(clubs.docs.map((d) => d.id).sort().join(), "c1,c2"); // c3 is gone
 });
-assert.equal(await count("accounts/u2/events/e9/requests"), 1);
-assert.equal(await count("accounts/u2/events/e9/players"), 1);
+
+// Deleting an account removes the clubs it owns, its copies, and the pre-club data; clubs it only belongs to stay.
+await deleteAccountData(real("u1"), "u1");
+for (const sub of ["events", "members", "roster", "joinRequests", "private"]) {
+  assert.equal(await count(`clubs/c1/${sub}`), 0, `c1/${sub} left behind`);
+}
+for (const e of ["e1", "e2"]) {
+  for (const sub of EVENT_SUBS) assert.equal(await count(`clubs/c1/events/${e}/${sub}`), 0, `c1/${e}/${sub} left behind`);
+}
+assert.equal(await count("accounts/u1/memberships"), 0);
+assert.equal(await count("accounts/u1/roster"), 0);
+assert.equal(await count("accounts/u1/events"), 0);
+for (const sub of EVENT_SUBS) assert.equal(await count(`accounts/u1/events/oldEvent/${sub}`), 0, `legacy ${sub} left behind`);
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  assert.equal((await getDocs(collection(db, "accounts"))).docs.map((d) => d.id).join(), "u2");
+  assert.equal((await getDocs(collection(db, "clubs"))).docs.map((d) => d.id).join(), "c2");
+});
+assert.equal(await count("clubs/c2/members"), 2);
+assert.equal(await count("clubs/c2/events/e1/players"), 1);
 
 console.log("cascade: ok");
 await env.cleanup();
