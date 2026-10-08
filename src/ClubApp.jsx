@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, CalendarDays, LayoutDashboard, MapPin, Settings as SettingsIcon, Users } from "lucide-react";
 import { useClubDoc } from "./hooks/useClubDoc";
 import { useClubActions } from "./hooks/useClubActions";
 import { useEvents, useEventRequests } from "./hooks/useEvents";
@@ -22,7 +22,7 @@ import EventPage from "./views/EventPage";
 import BookingModal from "./components/BookingModal";
 import ShareModal from "./components/ShareModal";
 import GamePickModal from "./components/GamePickModal";
-import AccountBar from "./components/AccountBar";
+import AccountSidebar from "./components/AccountSidebar";
 import JoinPanel from "./components/JoinPanel";
 import Toast from "./components/Toast";
 
@@ -130,17 +130,16 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
   if (ready) applyTheme({ ...display, theme: personalTheme }, { persist: false });
 
   const toHub = (e) => { e.preventDefault(); navigate("/"); };
-  const go = (to) => (e) => { e.preventDefault(); navigate(to); };
 
   // The same bar stays on screen while the club loads or when it can't be opened, so going from the hub
   // into a club never blanks the page.
-  const bar = (
-    <AccountBar
-      active={false} name={acct.account?.name || acct.account?.clubName} email={acct.user?.email}
-      onSignOut={acct.signOutUser} navigate={navigate}
+  const sidebar = (sideClub) => (
+    <AccountSidebar
+      active={null} name={acct.account?.name || acct.account?.clubName} email={acct.user?.email}
+      onSignOut={acct.signOutUser} navigate={navigate} clubs={myClubs} club={sideClub}
     />
   );
-  const inShell = (content) => <div className="acct-shell">{bar}<main className="acct-main">{content}</main></div>;
+  const inShell = (content) => <div className="acct-shell">{sidebar(null)}<main className="acct-main">{content}</main></div>;
 
   if (info.status === "loading") return inShell(<p className="hub-empty">Loading club…</p>);
   if (!ready) {
@@ -216,14 +215,21 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
     );
   };
 
-  // One tab per club screen; the event page keeps "Open play" active.
-  const tab = (to, label, ...routes) => (
-    <a href={to} aria-current={routes.includes(route) ? "page" : undefined} onClick={go(to)}>{label}</a>
-  );
+  // One sidebar entry per club screen; the event page keeps "Open play" active.
+  const tab = (to, label, Icon, routes, extra) => ({ to, label, Icon, current: routes.includes(route), ...extra });
+  const sideClub = {
+    id: clubId, name: club.name,
+    tabs: !isMember ? [] : [
+      tab(base, "Overview", LayoutDashboard, ["club"]),
+      ...(canManage ? [tab(`${base}/host`, "Open play", CalendarDays, ["club-host", "club-event"])] : []),
+      tab(`${base}/members`, "Members", Users, ["club-members"], canManage && pendingRequests.length > 0 ? { badge: pendingRequests.length, badgeText: "join requests waiting" } : {}),
+      ...(canManage ? [tab(`${base}/settings`, "Settings", SettingsIcon, ["club-settings"])] : []),
+    ],
+  };
 
   return (
     <div className="acct-shell">
-      {bar}
+      {sidebar(sideClub)}
       <main className="acct-main">
         <section className={`club-head${isMember ? "" : " solo"}`}>
           <div className="club-head-top">
@@ -237,14 +243,6 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
           {route === "club" && club.location && <p className="club-location"><MapPin size={13} /> {club.location}</p>}
           {route === "club" && club.description && <p className="club-about">{club.description}</p>}
         </section>
-        {isMember && (
-          <nav className="club-tabs" aria-label="Club">
-            {tab(base, "Overview", "club")}
-            {canManage && tab(`${base}/host`, "Open play", "club-host", "club-event")}
-            {tab(`${base}/members`, <>Members{canManage && pendingRequests.length > 0 && <><span className="count-badge">{pendingRequests.length}</span><span className="sr-only"> join requests waiting</span></>}</>, "club-members")}
-            {canManage && tab(`${base}/settings`, "Settings", "club-settings")}
-          </nav>
-        )}
         {screen()}
       </main>
       {eventModal && (

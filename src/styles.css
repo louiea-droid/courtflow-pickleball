@@ -1203,13 +1203,6 @@ form.confirm-modal .modalactions{margin-top:4px}
 
 /* ---------- Accounts: shell and hub ---------- */
 .acct-shell{min-height:100vh}
-.acct-bar{border-bottom:1px solid var(--line);background:var(--panel)}
-.acct-brand{display:flex;align-items:center;gap:9px;color:var(--ink);text-decoration:none;font:700 16px "Space Grotesk"}
-.acct-brand img{height:28px;width:auto}
-.acct-bar nav{display:flex;flex-direction:row;gap:4px;margin-right:auto}
-.acct-bar nav a{padding:8px 12px;border-radius:9px;color:var(--ink-2);text-decoration:none;font-weight:700;font-size:13.5px}
-.acct-bar nav a:hover{background:var(--soft)}
-.acct-bar nav a.active{background:var(--accent-soft);color:var(--accent-ink)}
 .account-menu{position:relative;flex-shrink:0}
 .account-menu-trigger{
   display:flex;align-items:center;gap:9px;min-height:44px;padding:4px 10px 4px 5px;

@@ -2,10 +2,53 @@
    Scoped to .acct-shell so the queue app, public page and Live Board are untouched. Tokens only. */
 .acct-shell{--page-max:1000px;--page-gutter:clamp(16px,4vw,40px);--card-line:light-dark(var(--line),var(--line-strong));--accent-ink:color-mix(in srgb,var(--accent) 50%,var(--ink))}
 
-/* ---- Frame: the bar and the page share the same left and right edges ---- */
-.acct-bar{display:block;padding:10px var(--page-gutter)}
-.acct-bar-in{display:flex;align-items:center;gap:clamp(10px,3vw,24px);max-width:calc(var(--page-max) - 2 * var(--page-gutter));margin:0 auto}
-.acct-main{max-width:var(--page-max);padding-left:var(--page-gutter);padding-right:var(--page-gutter)}
+/* ---- Frame: a dark sidebar (the queue app's look) beside the page; a drawer behind a menu button on phones ---- */
+.acct-side,.acct-topbar{--side-ink:#eef6f0;--side-muted:#a3b0a8;--side-line:#26332b;--side-hover:#1c2620;--side-active:#202c24}
+.acct-shell{display:flex;align-items:flex-start}
+.acct-side{width:248px;flex-shrink:0;position:sticky;top:0;height:100vh;height:100dvh;display:flex;flex-direction:column;gap:8px;padding:14px 12px;background:var(--nav);border-right:1px solid light-dark(transparent,#1a241e);color:var(--side-ink);z-index:40}
+.acct-side-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.acct-brand{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;color:var(--side-ink);text-decoration:none}
+.acct-brand img{height:30px;width:auto}
+.acct-brand b{font:700 17px "Space Grotesk"}
+.acct-menu-btn{display:inline-grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--side-ink)}
+.acct-menu-btn:hover{background:var(--side-hover)}
+.acct-side-close,.acct-topbar{display:none}
+.acct-side-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:6px 0;scrollbar-width:thin;scrollbar-color:var(--side-line) transparent}
+.acct-link{display:flex;align-items:center;gap:10px;min-height:44px;margin:2px 0;padding:0 12px;border-radius:10px;color:var(--side-muted);font-weight:700;font-size:13.5px;text-decoration:none;transition:background .15s ease,color .15s ease}
+.acct-link svg{flex-shrink:0}
+.acct-link span:first-of-type{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-link:hover{background:var(--side-hover);color:#fff}
+.acct-link[aria-current="page"]{background:var(--side-active);color:#fff;box-shadow:inset 3px 0 var(--accent-bright)}
+.acct-shell .acct-side a:focus-visible,.acct-shell .acct-topbar a:focus-visible{outline:2px solid var(--accent-bright);outline-offset:-2px}
+.acct-side .count-badge{background:var(--accent);color:var(--on-accent,#fff)}
+.acct-side-group{display:grid;gap:2px;padding-top:14px;border-top:1px solid var(--side-line)}
+.acct-side-name{margin:0 0 6px;padding:0 12px;font:700 16px/1.25 "Space Grotesk";color:#fff;overflow-wrap:anywhere}
+.acct-side-label{margin:0 0 2px;padding:0 12px;color:var(--side-muted);font-size:12px;font-weight:700}
+/* the account menu, dark and opening upward */
+.acct-side .account-menu{width:100%}
+.acct-side .account-menu-trigger{width:100%;padding:6px 10px 6px 6px;border-radius:12px;border-color:#29362e;background:#141d18;color:var(--side-ink)}
+.acct-side .account-menu-trigger:hover{border-color:#3a4a3f;background:#1a251f}
+.acct-side .account-menu-trigger-copy{flex:1}
+.acct-side .account-menu-trigger-copy b{max-width:none}
+.acct-side .account-menu-trigger-copy small,.acct-side .account-menu-chevron{color:var(--side-muted)}
+.acct-side .account-menu-avatar{background:color-mix(in srgb,var(--accent) 24%,transparent);color:var(--accent-bright)}
+.acct-side .account-menu-panel{top:auto;bottom:calc(100% + 8px);left:0;right:auto;width:100%;border-color:#29362e;background:#141d18;box-shadow:0 -16px 40px #0009}
+.acct-side .account-menu-identity{border-bottom-color:#29362e}
+.acct-side .account-menu-identity b{color:var(--side-ink)}
+.acct-side .account-menu-identity span{color:var(--side-muted)}
+.acct-side .account-menu-item{color:#c9d2cc}
+.acct-side .account-menu-item:hover{background:var(--side-hover);color:#fff}
+.acct-side .account-menu-item svg{color:var(--side-muted)}
+.acct-main{flex:1 1 0;min-width:0;max-width:var(--page-max);padding-left:var(--page-gutter);padding-right:var(--page-gutter)}
+@media (max-width:860px){
+  .acct-shell{display:block}
+  .acct-topbar{display:flex;align-items:center;gap:4px;position:sticky;top:0;z-index:30;padding:4px 10px;background:var(--nav)}
+  .acct-topbar .acct-brand{padding:0 4px}
+  .acct-side{position:fixed;left:0;top:0;bottom:0;width:min(280px,86vw);transform:translateX(-100%);visibility:hidden;transition:transform .3s var(--ease),visibility 0s .3s}
+  .acct-side.open{transform:none;visibility:visible;transition-delay:0s;box-shadow:20px 0 50px #0004}
+  .acct-side-close{display:inline-grid}
+  .acct-side-top .acct-brand{display:none}
+}
 .page-narrow{max-width:720px}
 .acct-shell a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 
@@ -25,9 +68,8 @@
 .acct-shell .icon{min-width:44px;min-height:44px}
 .acct-shell .swatch::after{content:"";position:absolute;inset:-6px}
 .acct-shell .swatches{gap:12px}
-/* 44px touch targets for the bar and the main buttons */
+/* 44px touch targets for the main buttons */
 .acct-shell .primary,.acct-shell .outline:not(.tiny){min-height:44px}
-.acct-brand,.acct-bar nav a{display:inline-flex;align-items:center;min-height:44px}
 
 /* ---- Cards and panels keep a visible border in dark mode ---- */
 .acct-shell .panel,.acct-shell .hub-card,.acct-shell .hub-row{border-color:var(--card-line)}
@@ -35,7 +77,7 @@
 .panel-row .club-section{margin:0}
 .acct-shell .empty{padding:18px 12px}
 
-/* ---- Club header and tabs ---- */
+/* ---- Club header ---- */
 .club-head{margin:0 0 14px}
 .club-head.solo{margin-bottom:22px}
 .club-head-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
@@ -46,11 +88,6 @@
 .club-location{display:flex;align-items:center;gap:4px;margin:8px 0 0;color:var(--muted);font-size:13px}
 .club-about{margin:6px 0 0;color:var(--ink-2);max-width:62ch;line-height:1.55;overflow-wrap:anywhere}
 .acct-shell .event-head h1{font:700 28px/1.15 "Space Grotesk";letter-spacing:-.5px;overflow-wrap:anywhere}
-.club-tabs{display:flex;flex-direction:row;align-items:stretch;gap:4px;margin:0 0 22px;overflow-x:auto;box-shadow:inset 0 -1px 0 var(--card-line)}
-.club-tabs a{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-bottom:2px solid transparent;color:var(--ink-2);font-weight:700;font-size:13.5px;text-decoration:none;white-space:nowrap}
-.club-tabs a:hover{color:var(--ink)}
-.club-tabs a[aria-current="page"]{color:var(--accent-ink);border-bottom-color:var(--accent)}
-.club-tabs a:focus-visible{outline-offset:-2px}
 
 /* ---- Hub ---- */
 .hub-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
@@ -85,8 +122,6 @@
   .acct-main form.account-group{margin-bottom:16px}
 }
 @media (max-width:560px){
-  .acct-bar-in .account-menu-trigger-copy,.acct-bar-in .account-menu-chevron{display:none}
-  .acct-bar-in .account-menu-trigger{padding:4px}
   .page-title h1,.club-head h1,.acct-shell .event-head h1{font-size:24px}
 }
 
@@ -160,5 +195,4 @@
 .member-main b{overflow-wrap:anywhere}
 .member-main small{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
 .member-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.club-tabs .count-badge{margin-left:6px}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

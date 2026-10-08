@@ -6,7 +6,7 @@ import { useMyClubs } from "./hooks/useMyClubs";
 import { useClubActions } from "./hooks/useClubActions";
 import { applyTheme } from "./utils/theme";
 import AccountLogin from "./components/AccountLogin";
-import AccountBar from "./components/AccountBar";
+import AccountSidebar from "./components/AccountSidebar";
 import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
@@ -80,9 +80,9 @@ export default function AccountApp() {
 
   return (
     <div className="acct-shell">
-      <AccountBar
-        active={route === "hub" || route === "clubs"} name={name} email={acct.user?.email}
-        onSignOut={acct.signOutUser} navigate={navigate}
+      <AccountSidebar
+        active={route === "clubs-find" ? "find" : route === "clubs-new" ? "new" : route === "settings" ? null : "hub"}
+        name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} clubs={clubs}
       />
       <main className="acct-main">
         {route === "settings" ? (
