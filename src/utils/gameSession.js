@@ -50,9 +50,18 @@ export function gamePickList(event, players = []) {
   ];
 }
 
+// { seatId: uid } from the event's private requests: the bookers who were signed in when they asked.
+export function uidBySeat(requests = []) {
+  return Object.fromEntries(
+    requests.filter((r) => r.seatId && typeof r.uid === "string").map((r) => [r.seatId, r.uid]),
+  );
+}
+
 // New player docs for the ticked attendees who are not in the game yet, in joined order.
 // Checked out: the host taps each in as they arrive. Idempotent, so "Add to game" is safe to repeat.
-export function playersToAdd(event, pickedIds, players, now) {
+// A booker who was signed in (`uidBySeat`) brings their account id onto the player, so their Home can show
+// where they are in the queue.
+export function playersToAdd(event, pickedIds, players, now, uids = {}) {
   const have = new Set(players.map((p) => p.id));
   const picked = new Set(pickedIds);
   return (event.attendees || [])
@@ -60,6 +69,7 @@ export function playersToAdd(event, pickedIds, players, now) {
     .map((a, i) => ({
       id: a.id, name: a.name, skill: 0, gender: "", checked: false,
       games: 0, wins: 0, losses: 0, createdAt: now + i, checkedAt: now + i,
+      ...(uids[a.id] ? { uid: uids[a.id] } : {}),
     }));
 }
 

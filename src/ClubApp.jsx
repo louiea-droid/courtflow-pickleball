@@ -12,6 +12,7 @@ import { useMyClubs } from "./hooks/useMyClubs";
 import { applyDisplayPrefs } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import { isOver } from "./utils/bookings";
+import { uidBySeat } from "./utils/gameSession";
 import { ROLE_LABEL, clubPath } from "./utils/clubs";
 import { DEFAULT_DISPLAY } from "./data/constants";
 import ClubHome from "./views/ClubHome";
@@ -269,7 +270,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
         <GamePickModal
           event={openEvent} players={gamePlayers} close={() => setGamePick(false)}
           submit={async (ids) => {
-            const started = await gameActions.startGame(openEvent, ids);
+            const started = await gameActions.startGame(openEvent, ids, uidBySeat(requestsByEvent[openEvent.id]));
             setGamePick(false);
             if (started) navigate(`${base}/event/${openEvent.id}/game`);
           }}

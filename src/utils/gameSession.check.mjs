@@ -2,7 +2,7 @@
 import assert from "node:assert";
 import {
   bookingCostEntry, buildGameSession, courtDocs, floorQuarter, gamePickList, gameStartFields,
-  gameSummary, playNowEvent, playersToAdd,
+  gameSummary, playNowEvent, playersToAdd, uidBySeat,
 } from "./gameSession.js";
 
 const att = (id, joinedAt, paid = "unpaid") => ({ id, name: id.toUpperCase(), joinedAt, paid, method: "cash" });
@@ -53,6 +53,14 @@ assert.deepEqual(playersToAdd(event, ["a"], [{ id: "a" }], 100), []);
 const both = playersToAdd(event, ["c", "b"], [], 100);
 assert.deepEqual(both.map((p) => p.id), ["b", "c"]); // joined order, not tick order
 assert.ok(both[0].createdAt < both[1].createdAt);
+
+// The active queue: a booker who was signed in brings their uid onto the player, nobody else gets one.
+const linked = playersToAdd(event, ["b", "c"], [], 100, { b: "u-b" });
+assert.equal(linked[0].uid, "u-b");
+assert.equal("uid" in linked[1], false);
+assert.equal("uid" in playersToAdd(event, ["b"], [], 100)[0], false);
+assert.deepEqual(uidBySeat([{ seatId: "s1", uid: "u1" }, { seatId: "s2" }, { seatId: "s3", uid: 7 }, { uid: "u9" }]), { s1: "u1" });
+assert.deepEqual(uidBySeat(undefined), {});
 
 // Review Focus 2: booking payment status follows the event attendee record.
 const c1 = bookingCostEntry(event, new Set(["a", "b"]), null, 50);

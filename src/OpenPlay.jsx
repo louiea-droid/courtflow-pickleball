@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { CalendarDays, Check, Clock, Wallet } from "lucide-react";
-import { db, firebaseConfigured } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db, firebaseConfigured } from "./firebase";
 import { useEvents } from "./hooks/useEvents";
 import { applyDisplayPrefs, formatDay, formatHM, money } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import DateTile from "./components/DateTile";
 import { byStart, endHM, isListed, myStatus, splitAttendees } from "./utils/bookings";
 import { DEFAULT_DISPLAY } from "./data/constants";
+import { isAccountUser } from "./utils/account";
 
 // The player's own requests live on their device: the request id is the only key to
 // read it back (rules allow a single get, never a list).
@@ -44,6 +46,10 @@ function JoinForm({ event, clubId, onSent, onCancel }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const paid = event.fee > 0;
+  // A signed-in account (not a quick session or an old club login) links the booking to the person, so their
+  // Home can show their place in the queue. Everyone else books exactly as before.
+  const [uid, setUid] = useState(null);
+  useEffect(() => (firebaseConfigured ? onAuthStateChanged(auth, (u) => setUid(isAccountUser(u) ? u.uid : null)) : undefined), []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -58,6 +64,7 @@ function JoinForm({ event, clubId, onSent, onCancel }) {
         method: paid ? method : "cash",
         ...(paid && method === "online" && ref.trim() ? { ref: ref.trim() } : {}),
         seatId, status: "pending", createdAt: Date.now(),
+        ...(uid ? { uid } : {}),
       });
       onSent({ rid, seatId, eventId: event.id });
     } catch {

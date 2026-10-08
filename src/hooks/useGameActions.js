@@ -18,7 +18,7 @@ export function useGameActions({ clubId, club, hostName, timeZone, notify }) {
   // The event and its players are read from Firestore here, not trusted from the screen, so a
   // stale tab can't reset players already in the game or restart an ended one. Resolves to true
   // when the game was started or extended, false when it was refused.
-  const startGame = async (shown, pickedIds) => {
+  const startGame = async (shown, pickedIds, uids = {}) => {
     const fresh = (await getDoc(eventRef(shown.id))).data();
     if (!fresh) { notify("That open play no longer exists."); return false; }
     if (fresh.status === "ended") { notify("This game has ended. Reopen it from the event page first.", 4000); return false; }
@@ -31,7 +31,7 @@ export function useGameActions({ clubId, club, hostName, timeZone, notify }) {
       batch.update(eventRef(event.id), fields);
       courtDocs(fields.courts, now).forEach((c) => batch.set(at(event.id, "courts", c.id), c.data));
     }
-    const added = playersToAdd(event, pickedIds, players, now);
+    const added = playersToAdd(event, pickedIds, players, now, uids);
     added.forEach((p) => batch.set(at(event.id, "players", p.id), p));
     const costRef = at(event.id, "costs", `booking-${event.id}`);
     const existing = (await getDoc(costRef)).data() || null;
