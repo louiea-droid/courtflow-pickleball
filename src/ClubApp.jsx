@@ -27,8 +27,8 @@ const Game = lazy(() => import("./Game"));
 // Shown in place of a screen the person's role doesn't allow (Review Focus 3): no controls at all.
 function ManagersOnly({ base, navigate }) {
   return (
-    <div className="panel">
-      <div className="empty">This page is for the club's managers.</div>
+    <div className="panel notice">
+      <p>This page is for the club's managers.</p>
       <a className="outline back-link" href={base} onClick={(e) => { e.preventDefault(); navigate(base); }}>
         <ArrowLeft size={14} /> Back to the club
       </a>
@@ -118,8 +118,8 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
   if (info.status === "loading") return inShell(<p className="hub-empty">Loading club…</p>);
   if (!ready) {
     return inShell(
-      <div className="panel">
-        <div className="empty">Club not found. It may have been deleted, or it is a private club you haven't joined.</div>
+      <div className="panel notice">
+        <p>Club not found. It may have been deleted, or it is a private club you haven't joined.</p>
         <a className="outline back-link" href="/" onClick={toHub}><ArrowLeft size={14} /> My clubs</a>
       </div>,
     );

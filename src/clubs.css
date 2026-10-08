@@ -89,3 +89,45 @@
   .acct-bar-in .account-menu-trigger{padding:4px}
   .page-title h1,.club-head h1,.acct-shell .event-head h1{font-size:24px}
 }
+
+/* ---- Notices (club not found, managers only, missing event): left aligned, one action ---- */
+.panel.notice{display:grid;gap:12px;justify-items:start;padding:20px}
+.notice p{margin:0;color:var(--ink-2);line-height:1.5;max-width:62ch}
+.notice .back-link{margin:0}
+
+/* ---- Sign-in: wordmark, one card, readable labels, 46px fields. Scoped to .clublogin so the
+   shared rules in styles.css keep serving the dialogs that reuse them. ---- */
+.clublogin{--accent-ink:color-mix(in srgb,var(--accent) 50%,var(--ink));padding:24px 16px}
+.clublogin-wrap{width:min(400px,100%);display:grid;gap:18px}
+.clublogin-brand{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--ink);font:700 19px "Space Grotesk"}
+.clublogin-brand img{height:34px;width:auto}
+.clublogin .clublogin-card{width:100%;padding:22px;gap:16px;text-align:left}
+.clublogin-head h1{margin:0;font:700 24px/1.15 "Space Grotesk";letter-spacing:-.4px}
+.clublogin-head p{margin:6px 0 0;color:var(--muted);font-size:14px;line-height:1.5}
+.clublogin .clublogin-card label{color:var(--ink);font-size:13px;font-weight:700;letter-spacing:0;text-transform:none}
+.clublogin .clublogin-card input{min-height:46px;margin-top:6px;padding:11px 12px;font-size:15px;font-weight:500}
+.clublogin-field{display:grid;gap:6px}
+.clublogin .clublogin-card .clublogin-pw{position:relative;margin-top:0}
+.clublogin .clublogin-card .clublogin-pw input{margin-top:0;padding-right:52px}
+.clublogin-eye{position:absolute;top:50%;right:3px;transform:translateY(-50%);width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--faint)}
+.clublogin-eye:hover{color:var(--ink);background:var(--soft)}
+.clublogin-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:var(--soft)}
+.clublogin-tabs button{min-height:40px;border:0;border-radius:9px;background:transparent;color:var(--ink-2);font:700 13.5px "DM Sans"}
+.clublogin-tabs button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:var(--shadow-sm)}
+.clublogin-back,.clublogin-link{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;font:700 13px "DM Sans"}
+.clublogin-back{justify-self:start;min-height:44px;color:var(--ink-2)}
+.clublogin-back:hover{color:var(--accent-ink)}
+.clublogin-link{color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+.clublogin-forgot{justify-self:end;min-height:32px;margin-top:-8px}
+.clublogin .clublogin-card .primary{min-height:46px;margin-top:0}
+.clublogin .clublogin-google{width:100%;min-height:46px}
+.clublogin-alert,.clublogin-note{display:flex;align-items:flex-start;gap:8px;margin:0;padding:10px 12px;border-radius:10px;font-size:13px;font-weight:600;line-height:1.45}
+.clublogin-alert svg,.clublogin-note svg{flex-shrink:0;margin-top:1px}
+.clublogin .clublogin-card .clublogin-alert{background:var(--danger-soft);border:1px solid var(--danger-line);color:var(--danger-ink);font-size:13px}
+.clublogin .clublogin-card .clublogin-note{background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent-ink);font-size:13px}
+.clublogin-foot{margin:0;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
+.clublogin-foot a{color:var(--accent-ink);font-weight:700;text-underline-offset:3px}
+@media (max-width:420px){
+  .clublogin .clublogin-card{padding:18px}
+  .theme-toggle{right:12px;bottom:12px}
+}

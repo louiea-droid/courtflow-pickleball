@@ -9,8 +9,8 @@ function Message({ text, to, label, navigate }) {
   return (
     <div className="acct-shell">
       <main className="acct-main">
-        <div className="panel">
-          <div className="empty">{text}</div>
+        <div className="panel notice">
+          <p>{text}</p>
           <a className="outline back-link" href={to} onClick={(e) => { e.preventDefault(); navigate(to); }}>
             <ArrowLeft size={14} /> {label}
           </a>

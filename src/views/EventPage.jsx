@@ -59,8 +59,8 @@ export default function EventPage({
 
   if (!event) {
     return ready ? (
-      <div className="panel">
-        <div className="empty">This open play doesn't exist or was deleted.</div>
+      <div className="panel notice">
+        <p>This open play doesn't exist or was deleted.</p>
         <a className="outline back-link" href={`${base}/host`} onClick={back}><ArrowLeft size={14} /> Back to open play</a>
       </div>
     ) : <div className="loading"><span className="spinner" />Loading…</div>;
