@@ -4,7 +4,7 @@ import Modal from "./Modal";
 import QrCode from "./QrCode";
 
 export default function ShareModal({
-  url, close, title = "Share Live Board", openLabel = "Open Live Board", qr = false,
+  url, close, title = "Share Live Board", label = "PUBLIC LINK", openLabel = "Open Live Board", qr = false,
   hint = "Anyone with this link can view a read-only, live-updating view of the courts and queue. No sign-in required.",
 }) {
   const [copied, setCopied] = useState(false);
@@ -22,7 +22,7 @@ export default function ShareModal({
   };
 
   return (
-    <Modal title={title} label="PUBLIC LINK" close={close}>
+    <Modal title={title} label={label} close={close}>
       <div className="share-linkbox">
         <input ref={inputRef} readOnly value={url} onFocus={(e) => e.target.select()} />
         <button className={copied ? "primary" : "outline"} onClick={copyLink}>

@@ -131,3 +131,33 @@
   .clublogin .clublogin-card{padding:18px}
   .theme-toggle{right:12px;bottom:12px}
 }
+
+/* ---- Part B: find a club, join panel, members ---- */
+.hub-start-actions{display:flex;flex-wrap:wrap;gap:8px}
+.find-search{display:flex;align-items:center;gap:8px;min-height:46px;padding:0 12px;margin:0 0 14px;border:1px solid var(--card-line);border-radius:12px;background:var(--panel);color:var(--muted)}
+.find-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
+.find-search input{flex:1;min-height:44px;border:0;background:transparent;color:var(--ink);font:inherit}
+.find-search input:focus{outline:none;box-shadow:none;border:0}
+.find-list{display:grid;gap:10px}
+.find-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--card-line);border-radius:15px;background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s ease,background .15s ease}
+.find-row:hover{border-color:var(--accent-line);background:var(--hover)}
+.find-main{display:grid;gap:3px;flex:1}
+.find-main b{font:700 16px "Space Grotesk";overflow-wrap:anywhere}
+.find-main small{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:13px}
+.find-about{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.join-panel{display:grid;gap:12px;justify-items:start;padding:20px;margin:0 0 18px}
+.join-panel p{margin:0;color:var(--ink-2);line-height:1.5;max-width:62ch}
+.join-panel .club-section{margin:0}
+.join-panel label{display:grid;gap:6px;width:100%;max-width:520px;font-weight:700;font-size:13px}
+.join-panel label small{color:var(--muted);font-weight:500}
+.join-panel textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);resize:vertical}
+.join-panel .join-error{color:var(--danger-ink);font-weight:600}
+.members-block{margin:0 0 18px}
+.members-block .club-section{margin:0 0 4px}
+.members-help{margin:0 0 10px;color:var(--muted);font-size:13.5px;line-height:1.5;max-width:62ch}
+.member-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 12px;padding:12px 0;border-top:1px solid var(--card-line)}
+.member-main{display:grid;gap:2px;min-width:0}
+.member-main b{overflow-wrap:anywhere}
+.member-main small{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.member-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.club-tabs .count-badge{margin-left:6px}

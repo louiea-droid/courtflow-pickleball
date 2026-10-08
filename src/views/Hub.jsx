@@ -1,4 +1,4 @@
-import { ChevronRight, ListOrdered, Plus, Users } from "lucide-react";
+import { ChevronRight, ListOrdered, Plus, Search, Users } from "lucide-react";
 import PageTitle from "../components/PageTitle";
 import { ROLE_LABEL } from "../utils/clubs";
 
@@ -17,7 +17,10 @@ export default function Hub({ name, clubs, ready, navigate }) {
         <div className="panel hub-start">
           <b>Create your first club</b>
           <p>A club holds your open play, games and settings. You'll be its owner.</p>
-          <a className="primary" href="/clubs/new" onClick={to("/clubs/new")}><Plus size={15} /> Create a club</a>
+          <div className="hub-start-actions">
+            <a className="primary" href="/clubs/new" onClick={to("/clubs/new")}><Plus size={15} /> Create a club</a>
+            <a className="outline" href="/clubs/find" onClick={to("/clubs/find")}><Search size={15} /> Find a club</a>
+          </div>
         </div>
       ) : (
         <div className="hub-grid">
@@ -31,6 +34,10 @@ export default function Hub({ name, clubs, ready, navigate }) {
           <a className="hub-card hub-card-new" href="/clubs/new" onClick={to("/clubs/new")}>
             <Plus size={22} />
             <b>Create a club</b>
+          </a>
+          <a className="hub-card hub-card-new" href="/clubs/find" onClick={to("/clubs/find")}>
+            <Search size={22} />
+            <b>Find a club</b>
           </a>
         </div>
       )}

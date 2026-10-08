@@ -1,4 +1,4 @@
-import { Suspense, lazy, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { useClubDoc } from "./hooks/useClubDoc";
 import { useClubActions } from "./hooks/useClubActions";
@@ -6,12 +6,16 @@ import { useEvents, useEventRequests } from "./hooks/useEvents";
 import { useEventActions } from "./hooks/useEventActions";
 import { useEventPlayers } from "./hooks/useEventPlayers";
 import { useGameActions } from "./hooks/useGameActions";
+import { useJoinRequests } from "./hooks/useMembership";
+import { removeMyCopy, useMembershipActions } from "./hooks/useMembershipActions";
+import { useMyClubs } from "./hooks/useMyClubs";
 import { applyDisplayPrefs } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import { isOver } from "./utils/bookings";
 import { ROLE_LABEL, clubPath } from "./utils/clubs";
 import { DEFAULT_DISPLAY } from "./data/constants";
 import ClubHome from "./views/ClubHome";
+import ClubMembers from "./views/ClubMembers";
 import ClubSettings from "./views/ClubSettings";
 import Host from "./views/Host";
 import EventPage from "./views/EventPage";
@@ -19,29 +23,32 @@ import BookingModal from "./components/BookingModal";
 import ShareModal from "./components/ShareModal";
 import GamePickModal from "./components/GamePickModal";
 import AccountBar from "./components/AccountBar";
+import JoinPanel from "./components/JoinPanel";
 import Toast from "./components/Toast";
 
 // The queue app only loads when a game opens.
 const Game = lazy(() => import("./Game"));
 
 // Shown in place of a screen the person's role doesn't allow (Review Focus 3): no controls at all.
-function ManagersOnly({ base, navigate }) {
+function Restricted({ text, base, navigate }) {
   return (
     <div className="panel notice">
-      <p>This page is for the club's managers.</p>
+      <p>{text}</p>
       <a className="outline back-link" href={base} onClick={(e) => { e.preventDefault(); navigate(base); }}>
         <ArrowLeft size={14} /> Back to the club
       </a>
     </div>
   );
 }
+const ManagersOnly = (props) => <Restricted text="This page is for the club's managers." {...props} />;
+const MembersOnly = (props) => <Restricted text="This page is for the club's members." {...props} />;
 
 // Everything under /clubs/:id. It loads the club and this person's role, applies the club's theme
 // and time zone, and routes to the screens. Managers get the open play and settings screens.
 export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
   const uid = acct.user.uid;
   const info = useClubDoc(uid, clubId);
-  const { club, role, canManage, isOwner } = info;
+  const { club, role, isMember, canManage, isOwner } = info;
   const ready = info.status === "ready";
   const base = clubPath(clubId);
 
@@ -59,7 +66,22 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
 
   const display = { ...DEFAULT_DISPLAY, ...club?.display };
   const fallbackZone = display.timeZone;
-  const { events, fromServer: eventsReady } = useEvents(ready ? clubId : null);
+  // Public clubs show open play to everyone, private ones to members only (no listener for anyone else).
+  const canSee = ready && (club.visibility === "public" || isMember);
+  const { events, fromServer: eventsReady } = useEvents(canSee ? clubId : null);
+  const { requests: pendingRequests } = useJoinRequests(ready && canManage ? clubId : null);
+  const personName = acct.account?.name || acct.account?.clubName;
+  const membership = useMembershipActions({ uid, name: personName, clubId, club });
+  const invite = new URLSearchParams(window.location.search).get("invite");
+  // A "My clubs" card for a club the person is not in (they were removed, or it was deleted) cleans itself
+  // up. The short wait covers the moment right after joining, when the card can arrive before the record.
+  const { clubs: myClubs } = useMyClubs(uid);
+  const hasCard = myClubs.some((c) => c.id === clubId);
+  useEffect(() => {
+    if (info.status === "loading" || isMember || !hasCard) return undefined;
+    const t = setTimeout(() => { removeMyCopy(uid, clubId).catch(() => {}); }, 2500);
+    return () => clearTimeout(t);
+  }, [info.status, isMember, hasCard, uid, clubId]);
   // Listen for requests only on events still on the calendar (and the one open on screen), and only for managers.
   const watched = canManage ? events.filter((e) => !isOver(e, fallbackZone) || e.id === eventId).map((e) => e.id) : [];
   const requestsByEvent = useEventRequests(ready ? clubId : null, watched);
@@ -140,7 +162,26 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
 
   const screen = () => {
     if (route === "club") {
-      return <ClubHome canManage={canManage} events={events} fallbackZone={fallbackZone} base={base} navigate={navigate} onNew={() => setEventModal("new")} />;
+      return (
+        <>
+          {!isMember && (
+            <JoinPanel
+              uid={uid} clubId={clubId} club={club} invite={invite} actions={membership} notify={notify}
+              onJoined={() => navigate(base)}
+            />
+          )}
+          {canSee && <ClubHome canManage={canManage} events={events} fallbackZone={fallbackZone} base={base} navigate={navigate} onNew={() => setEventModal("new")} />}
+        </>
+      );
+    }
+    if (route === "club-members") {
+      if (!isMember) return <MembersOnly base={base} navigate={navigate} />;
+      return (
+        <ClubMembers
+          clubId={clubId} club={club} uid={uid} canManage={canManage} isOwner={isOwner}
+          requests={pendingRequests} actions={membership} navigate={navigate} notify={notify}
+        />
+      );
     }
     if (!canManage) return <ManagersOnly base={base} navigate={navigate} />;
     if (route === "club-host") {
@@ -179,7 +220,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
     <div className="acct-shell">
       {bar}
       <main className="acct-main">
-        <section className={`club-head${canManage ? "" : " solo"}`}>
+        <section className={`club-head${isMember ? "" : " solo"}`}>
           <div className="club-head-top">
             {/* One h1 per page: the club name on the overview, the page title on the other screens. */}
             {route === "club" ? <h1>{club.name}</h1> : <p className="club-name">{club.name}</p>}
@@ -191,11 +232,12 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
           {route === "club" && club.location && <p className="club-location"><MapPin size={13} /> {club.location}</p>}
           {route === "club" && club.description && <p className="club-about">{club.description}</p>}
         </section>
-        {canManage && (
+        {isMember && (
           <nav className="club-tabs" aria-label="Club">
             {tab(base, "Overview", "club")}
-            {tab(`${base}/host`, "Open play", "club-host", "club-event")}
-            {tab(`${base}/settings`, "Settings", "club-settings")}
+            {canManage && tab(`${base}/host`, "Open play", "club-host", "club-event")}
+            {tab(`${base}/members`, <>Members{canManage && pendingRequests.length > 0 && <span className="count-badge">{pendingRequests.length}</span>}</>, "club-members")}
+            {canManage && tab(`${base}/settings`, "Settings", "club-settings")}
           </nav>
         )}
         {screen()}

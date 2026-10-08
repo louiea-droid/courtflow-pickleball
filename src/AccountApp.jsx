@@ -11,6 +11,7 @@ import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
 import CreateClub from "./views/CreateClub";
+import FindClubs from "./views/FindClubs";
 import Profile from "./views/Profile";
 import ClubApp from "./ClubApp";
 
@@ -88,6 +89,8 @@ export default function AccountApp() {
           <Profile acct={acct} onDelete={() => setShowDelete(true)} />
         ) : route === "clubs-new" ? (
           <CreateClub onCreate={clubActions.createClub} navigate={navigate} />
+        ) : route === "clubs-find" ? (
+          <FindClubs myClubs={clubs} navigate={navigate} />
         ) : (
           <Hub name={name} clubs={clubs} ready={clubsReady} navigate={navigate} />
         )}
