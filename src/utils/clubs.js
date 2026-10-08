@@ -44,3 +44,6 @@ export function permissions(role) {
 }
 
 export const clubPath = (clubId, rest = "") => `/clubs/${encodeURIComponent(clubId)}${rest}`;
+
+// Role names as shown on screen (hub cards, club header).
+export const ROLE_LABEL = { owner: "Owner", manager: "Manager", member: "Member" };

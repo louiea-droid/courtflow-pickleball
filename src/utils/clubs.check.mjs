@@ -1,6 +1,6 @@
 // Self-check for club helpers. Run: node src/utils/clubs.check.mjs
 import assert from "node:assert";
-import { clubPath, membershipCopy, newClubDoc, permissions, validateClubInput } from "./clubs.js";
+import { ROLE_LABEL, clubPath, membershipCopy, newClubDoc, permissions, validateClubInput } from "./clubs.js";
 
 // Input checks: each failure says what to fix.
 assert.equal(validateClubInput({ name: "Centro", visibility: "public" }), "");
@@ -39,5 +39,8 @@ assert.deepEqual(permissions("hacker"), { isMember: false, canManage: false, isO
 assert.equal(clubPath("abc"), "/clubs/abc");
 assert.equal(clubPath("abc", "/host"), "/clubs/abc/host");
 assert.equal(clubPath("a b", "/settings"), "/clubs/a%20b/settings");
+
+// One set of role names for every screen.
+assert.deepEqual(ROLE_LABEL, { owner: "Owner", manager: "Manager", member: "Member" });
 
 console.log("clubs.check: ok");
