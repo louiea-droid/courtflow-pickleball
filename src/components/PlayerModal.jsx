@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { deleteField } from "firebase/firestore";
 import Modal from "./Modal";
 import Select from "./Select";
 import StarRating from "./StarRating";
@@ -10,13 +11,21 @@ const GENDER_OPTIONS = [
   { value: "F" },
 ];
 
-export default function PlayerModal({ close, submit, player, players = [], mode }) {
+// `memberChoices` ([{ id, name }], club games only) lets the host tie a player to a club member, so the
+// member's Home shows their place in the queue.
+export default function PlayerModal({ close, submit, player, players = [], mode, memberChoices = [] }) {
   const isEdit = Boolean(player);
   const [name, setName] = useState(player?.name || "");
   const [skill, setSkill] = useState(player?.skill || 0);
   const [gender, setGender] = useState(player?.gender || "");
   const [checked, setChecked] = useState(player ? player.checked : true);
   const [lockedWithId, setLockedWithId] = useState(player?.lockedWithId || "");
+  const [uid, setUid] = useState(player?.uid || "");
+  const pickMember = (id) => {
+    setUid(id);
+    const m = memberChoices.find((x) => x.id === id);
+    if (m && !name.trim()) setName(m.name);
+  };
   const [submitting, setSubmitting] = useState(false);
 
   // Mixed Doubles only locks a man with a woman: others are listed but can't be picked.
@@ -49,6 +58,7 @@ export default function PlayerModal({ close, submit, player, players = [], mode 
           try {
             await submit({
               name: name.trim(), skill: +skill, gender, checked,
+              ...(uid ? { uid } : isEdit && player?.uid ? { uid: deleteField() } : {}),
               ...(isEdit ? { lockedWithId: lockedWithId || null } : {}),
             });
           } finally {
@@ -76,6 +86,15 @@ export default function PlayerModal({ close, submit, player, players = [], mode 
             <Select value={gender} onChange={setGender} options={GENDER_OPTIONS} />
           </label>
         </div>
+        {memberChoices.length > 0 && (
+          <label>
+            Club member <small>(optional)</small>
+            <Select
+              value={uid} onChange={pickMember}
+              options={[{ value: "", label: "Not a club member" }, ...memberChoices.map((m) => ({ value: m.id, label: m.name }))]}
+            />
+          </label>
+        )}
         <label className="check">
           <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
           Checked in

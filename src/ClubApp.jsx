@@ -6,7 +6,7 @@ import { useEvents, useEventRequests } from "./hooks/useEvents";
 import { useEventActions } from "./hooks/useEventActions";
 import { useEventPlayers } from "./hooks/useEventPlayers";
 import { useGameActions } from "./hooks/useGameActions";
-import { useJoinRequests } from "./hooks/useMembership";
+import { useJoinRequests, useMembers } from "./hooks/useMembership";
 import { removeMyCopy, useMembershipActions } from "./hooks/useMembershipActions";
 import { useMyClubs } from "./hooks/useMyClubs";
 import { applyDisplayPrefs } from "./utils/format";
@@ -71,6 +71,8 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
   const canSee = ready && (club.visibility === "public" || isMember);
   const { events, fromServer: eventsReady } = useEvents(canSee ? clubId : null);
   const { requests: pendingRequests } = useJoinRequests(ready && canManage ? clubId : null);
+  // The club's members, only while a manager runs a game: the add-player form can tie a player to one.
+  const { members: clubMembers } = useMembers(ready && canManage && route === "club-game" ? clubId : null);
   const personName = acct.account?.name || acct.account?.clubName;
   const membership = useMembershipActions({ uid, name: personName, clubId, club });
   const params = new URLSearchParams(window.location.search);
@@ -160,6 +162,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
         <Game
           clubId={clubId} club={{ ...club, display: { ...club.display, theme: personalTheme } }} event={events.find((e) => e.id === eventId)} ready={eventsReady}
           base={base} navigate={navigate} endGame={endGame} onSetAttendeePaid={actions.setPaid}
+          memberChoices={clubMembers.map((m) => ({ id: m.id, name: m.name }))}
         />
       </Suspense>
     );

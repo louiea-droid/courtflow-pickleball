@@ -38,7 +38,7 @@ import Settings from "./views/Settings";
 // settings, there is no Settings tab, and End game keeps all data.
 export default function QueueApp({
   base, kind = "quick", deriveSession, eyebrow, backLabel, onBack, onHome, onEndSession, onErase,
-  onSetAttendeePaid,
+  onSetAttendeePaid, memberChoices,
 }) {
   const at = (...rest) => doc(db, ...base, ...rest);
   const col = (name) => collection(db, ...base, name);
@@ -721,7 +721,7 @@ export default function QueueApp({
               onSetDefaults={(defaults) => updateSessionSettings({ defaults })}
               rules={rules} costDefaults={costDefaults} live={live} display={display}
               onSetLive={(change) => updateSessionSettings({ live: { ...live, ...change } })}
-              onSetDisplay={(change) => updateSessionSettings({ display: { ...display, ...change } })}
+              onSetDisplay={(change) => updateSessionSettings({ display: { ...savedDisplay, ...change } })}
               onSetRules={(change) => updateSessionSettings({ rules: { ...rules, ...change } })}
               onSetCostDefaults={(change) => updateSessionSettings({ costDefaults: { ...costDefaults, ...change } })}
             />
@@ -732,7 +732,7 @@ export default function QueueApp({
           <PlayerModal
             player={editingPlayer}
             players={players}
-            mode={mode}
+            mode={mode} memberChoices={memberChoices}
             close={() => { setShowPlayer(false); setEditingPlayer(null); }}
             submit={editingPlayer ? (data) => updatePlayerInfo(editingPlayer.id, data) : addPlayer}
           />
