@@ -47,3 +47,37 @@ export const clubPath = (clubId, rest = "") => `/clubs/${encodeURIComponent(club
 
 // Role names as shown on screen (hub cards, club header).
 export const ROLE_LABEL = { owner: "Owner", manager: "Manager", member: "Member" };
+
+// ---- Part B: joining ----
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 characters, so a byte maps evenly; no I, O, 0, 1
+
+// A new invite code. Resetting the link stores a new one, which stops every old link.
+export function newInviteCode() {
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, (b) => CODE_CHARS[b % CODE_CHARS.length]).join("");
+}
+
+export const inviteUrl = (origin, clubId, code) => `${origin}${clubPath(clubId)}?invite=${encodeURIComponent(code)}`;
+
+export const JOIN_MESSAGE_MAX = 200;
+export const validateJoinMessage = (message = "") =>
+  (message.trim().length > JOIN_MESSAGE_MAX ? `The message can be up to ${JOIN_MESSAGE_MAX} characters.` : "");
+
+const personName = (name) => (name || "").trim().slice(0, 60) || "Member";
+
+// The documents the rules accept (see firestore.rules): a pending request, and a plain member record.
+export function joinRequestDoc(name, message, now) {
+  const text = (message || "").trim();
+  return { name: personName(name), ...(text ? { message: text } : {}), status: "pending", createdAt: now };
+}
+export const memberRecord = (name, now, inviteCode) => ({
+  role: "member", name: personName(name), joinedAt: now, ...(inviteCode ? { inviteCode } : {}),
+});
+
+// Directory search: runs on the device over the public clubs already loaded.
+export function filterClubs(clubs, search = "") {
+  const q = search.trim().toLowerCase();
+  const sorted = [...clubs].sort((a, b) => (a.name || "").toLowerCase().localeCompare((b.name || "").toLowerCase()));
+  if (!q) return sorted;
+  return sorted.filter((c) => `${c.name || ""} ${c.location || ""}`.toLowerCase().includes(q));
+}

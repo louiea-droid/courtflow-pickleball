@@ -52,4 +52,13 @@ assert.equal(eventIdOf("/clubs/c1/host"), null);
 assert.equal(eventIdOf("/clubs/c1/event/"), null);
 assert.equal(eventIdOf("/clubs/c1/event/e1/gamex"), null);
 
+// Part B routes. "find" is not a club id.
+assert.equal(routeOf("/clubs/find"), "clubs-find");
+assert.equal(routeOf("/clubs/find/"), "clubs-find");
+assert.equal(routeOf("/clubs/abc/members"), "club-members");
+assert.equal(routeOf("/clubs/abc/members/"), "club-members");
+assert.equal(routeOf("/clubs/abc/members/x"), "hub");
+assert.equal(clubIdOf("/clubs/find"), null);
+assert.equal(clubIdOf("/clubs/abc/members"), "abc");
+
 console.log("route.check: ok");

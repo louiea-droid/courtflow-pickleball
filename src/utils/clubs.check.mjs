@@ -1,6 +1,6 @@
 // Self-check for club helpers. Run: node src/utils/clubs.check.mjs
 import assert from "node:assert";
-import { ROLE_LABEL, clubPath, membershipCopy, newClubDoc, permissions, validateClubInput } from "./clubs.js";
+import { ROLE_LABEL, clubPath, filterClubs, inviteUrl, joinRequestDoc, memberRecord, membershipCopy, newClubDoc, newInviteCode, permissions, validateClubInput, validateJoinMessage } from "./clubs.js";
 
 // Input checks: each failure says what to fix.
 assert.equal(validateClubInput({ name: "Centro", visibility: "public" }), "");
@@ -42,5 +42,38 @@ assert.equal(clubPath("a b", "/settings"), "/clubs/a%20b/settings");
 
 // One set of role names for every screen.
 assert.deepEqual(ROLE_LABEL, { owner: "Owner", manager: "Manager", member: "Member" });
+
+// Part B: invite codes are 8 characters without look-alikes (no I, O, 0, 1) and differ every time.
+const code = newInviteCode();
+assert.match(code, /^[A-HJ-NP-Z2-9]{8}$/);
+assert.notEqual(code, newInviteCode());
+assert.equal(inviteUrl("https://x.test", "abc", "K7M2QXWA"), "https://x.test/clubs/abc?invite=K7M2QXWA");
+assert.equal(inviteUrl("https://x.test", "a b", "c/d"), "https://x.test/clubs/a%20b?invite=c%2Fd");
+
+// Join messages are optional, up to 200 characters.
+assert.equal(validateJoinMessage(""), "");
+assert.equal(validateJoinMessage("x".repeat(200)), "");
+assert.match(validateJoinMessage("x".repeat(201)), /200/);
+
+// The request and member documents the rules accept: trimmed, names capped at 60, no empty message stored.
+assert.deepEqual(joinRequestDoc("  Sam  ", "  hi  ", 7), { name: "Sam", message: "hi", status: "pending", createdAt: 7 });
+assert.deepEqual(joinRequestDoc("Sam", "   ", 7), { name: "Sam", status: "pending", createdAt: 7 });
+assert.equal(joinRequestDoc("x".repeat(80), "", 1).name.length, 60);
+assert.equal(joinRequestDoc("  ", "", 1).name, "Member");
+assert.deepEqual(memberRecord("Sam", 5), { role: "member", name: "Sam", joinedAt: 5 });
+assert.deepEqual(memberRecord("Sam", 5, "K7M2QXWA"), { role: "member", name: "Sam", joinedAt: 5, inviteCode: "K7M2QXWA" });
+assert.equal(memberRecord("", 5).name, "Member");
+
+// Directory search: by name or place, case-insensitive, contains; the list is sorted by name.
+const clubs = [
+  { id: "1", name: "Centro Pickle", location: "Manila" },
+  { id: "2", name: "Aces", location: "Cebu City" },
+  { id: "3", name: "bay smash", location: "Davao" },
+];
+assert.deepEqual(filterClubs(clubs, "").map((c) => c.id), ["2", "3", "1"]);
+assert.deepEqual(filterClubs(clubs, "PICK").map((c) => c.id), ["1"]);
+assert.deepEqual(filterClubs(clubs, " cebu ").map((c) => c.id), ["2"]);
+assert.deepEqual(filterClubs(clubs, "zzz"), []);
+assert.deepEqual(filterClubs([{ id: "9" }], "a"), []); // a club without a name never matches or crashes
 
 console.log("clubs.check: ok");
