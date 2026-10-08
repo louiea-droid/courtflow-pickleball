@@ -3,7 +3,7 @@ import assert from "node:assert";
 import fs from "node:fs";
 import { initializeTestEnvironment } from "@firebase/rules-unit-testing";
 import { collection, doc, getDocs, setDoc } from "firebase/firestore";
-import { deleteAccountData, deleteClubData, deleteEventData } from "../src/utils/accountData.js";
+import { deleteAccountData, deleteClubData, deleteEventData, leaveClub } from "../src/utils/accountData.js";
 
 const env = await initializeTestEnvironment({
   projectId: "cascade-test",
@@ -138,6 +138,19 @@ assert.equal(await count("clubs/c2/members"), 2, "u7 is still listed as a member
 assert.equal(await count("accounts/u7/memberships"), 0);
 await deleteAccountData(real("u8"), "u8"); // a card with no record
 assert.equal(await count("accounts/u8/memberships"), 0);
+
+// Leaving must not hide a failure: if the member record can't be deleted (the owner can't leave a club that
+// still exists) the call rejects and the card stays, so the person is never left as a ghost member.
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  await setDoc(doc(db, "clubs/c9"), { name: "c9", visibility: "public", ownerId: "u9", createdAt: 1 });
+  await setDoc(doc(db, "clubs/c9/members/u9"), { role: "owner", name: "Nine", joinedAt: 1 });
+  await setDoc(doc(db, "accounts/u9"), { name: "Nine" });
+  await setDoc(doc(db, "accounts/u9/memberships/c9"), { clubName: "c9", role: "owner", joinedAt: 1 });
+});
+await assert.rejects(leaveClub(real("u9"), "c9", "u9"), "leaving as the owner must fail, not be swallowed");
+assert.equal(await count("clubs/c9/members"), 1, "the owner's record must still be there");
+assert.equal(await count("accounts/u9/memberships"), 1, "the owner's card must not be deleted when the record couldn't be");
 
 console.log("cascade: ok");
 await env.cleanup();

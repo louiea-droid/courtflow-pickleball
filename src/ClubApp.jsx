@@ -74,14 +74,16 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
   const membership = useMembershipActions({ uid, name: personName, clubId, club });
   const invite = new URLSearchParams(window.location.search).get("invite");
   // A "My clubs" card for a club the person is not in (they were removed, or it was deleted) cleans itself
-  // up. The short wait covers the moment right after joining, when the card can arrive before the record.
+  // up, but only once the server has confirmed the club and the member record: from the cache, or while our
+  // own join is still queued (offline, slow), "not a member" can be wrong and a real card would be deleted.
+  // The short wait covers the moment right after joining, when the card can arrive before the record.
   const { clubs: myClubs } = useMyClubs(uid);
   const hasCard = myClubs.some((c) => c.id === clubId);
   useEffect(() => {
-    if (info.status === "loading" || isMember || !hasCard) return undefined;
+    if (!info.confirmed || isMember || !hasCard) return undefined;
     const t = setTimeout(() => { removeMyCopy(uid, clubId).catch(() => {}); }, 2500);
     return () => clearTimeout(t);
-  }, [info.status, isMember, hasCard, uid, clubId]);
+  }, [info.confirmed, isMember, hasCard, uid, clubId]);
   // Listen for requests only on events still on the calendar (and the one open on screen), and only for managers.
   const watched = canManage ? events.filter((e) => !isOver(e, fallbackZone) || e.id === eventId).map((e) => e.id) : [];
   const requestsByEvent = useEventRequests(ready ? clubId : null, watched);

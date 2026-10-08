@@ -53,12 +53,11 @@ export async function deleteClubData(db, clubId, ownerId) {
 }
 
 // Leaves a club the person only belongs to: their member record, then their "My clubs" card. Safe to
-// run when the record was already removed or the club is gone.
+// run when the record was already removed or the club is gone (a person can always read their own
+// record). A real failure rejects before the card goes, so nobody is left as a ghost member.
 export async function leaveClub(db, clubId, uid) {
   const ref = doc(db, "clubs", clubId, "members", uid);
-  try {
-    if ((await getDoc(ref)).exists()) await deleteDoc(ref);
-  } catch { /* the club is gone or the record was removed: nothing left to leave */ }
+  if ((await getDoc(ref)).exists()) await deleteDoc(ref);
   await deleteDoc(doc(db, "accounts", uid, "memberships", clubId));
 }
 
