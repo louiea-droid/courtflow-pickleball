@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ClubProfileSettings from "../components/ClubProfileSettings";
 import DeleteAccountDialog from "../components/DeleteAccountDialog";
+import PageTitle from "../components/PageTitle";
 import Settings from "./Settings";
 
 // A club's settings: its profile, then the same session defaults, queue rules, cost defaults and
@@ -15,7 +16,8 @@ export default function ClubSettings({ club, isOwner, notify, onUpdate, onDelete
   const display = { ...club.display };
 
   return (
-    <>
+    <div className="page-narrow">
+      <PageTitle title="Settings" sub="These apply to this club only." />
       <ClubProfileSettings club={club} isOwner={isOwner} onSave={save} />
       <Settings
         mode="club" isOwner={isOwner}
@@ -44,6 +46,6 @@ export default function ClubSettings({ club, isOwner, notify, onUpdate, onDelete
           }}
         />
       )}
-    </>
+    </div>
   );
 }

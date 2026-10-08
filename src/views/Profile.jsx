@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, KeyRound, Pencil, Trash2, X } from "lucide-react";
 import ChangePasswordDialog from "../components/ChangePasswordDialog";
+import PageTitle from "../components/PageTitle";
 import Select from "../components/Select";
 import { SettingsRow } from "./Settings";
 
@@ -24,7 +25,9 @@ export default function Profile({ acct, onDelete }) {
   };
 
   return (
-    <div className="account-groups">
+    <div className="page-narrow">
+      <PageTitle title="Profile" sub="Your name, sign-in and appearance." />
+      <div className="account-groups">
       <div className="account-group">
         <div className="eyebrow">Profile</div>
         <div className="panel account-panel">
@@ -82,6 +85,7 @@ export default function Profile({ acct, onDelete }) {
           }}
         />
       )}
+      </div>
     </div>
   );
 }

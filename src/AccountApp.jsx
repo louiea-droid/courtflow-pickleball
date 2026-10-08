@@ -6,7 +6,7 @@ import { useMyClubs } from "./hooks/useMyClubs";
 import { useClubActions } from "./hooks/useClubActions";
 import { applyTheme } from "./utils/theme";
 import AccountLogin from "./components/AccountLogin";
-import AccountMenu from "./components/AccountMenu";
+import AccountBar from "./components/AccountBar";
 import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
@@ -75,21 +75,14 @@ export default function AccountApp() {
     return <ClubApp key={clubId} acct={acct} clubId={clubId} route={route} eventId={eventId} navigate={navigate} />;
   }
 
-  const go = (to) => (e) => { e.preventDefault(); navigate(to); };
   const ownedNames = clubs.filter((c) => c.role === "owner").map((c) => c.clubName);
 
   return (
     <div className="acct-shell">
-      <header className="acct-bar">
-        <a className="acct-brand" href="/" onClick={go("/")}>
-          <img src="/images/courtflow.png" alt="" />
-          <b>CourtFlow</b>
-        </a>
-        <nav aria-label="Account">
-          <a href="/" className={route === "hub" || route === "clubs" ? "active" : ""} onClick={go("/")}>My clubs</a>
-        </nav>
-        <AccountMenu name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} />
-      </header>
+      <AccountBar
+        active={route === "hub" || route === "clubs"} name={name} email={acct.user?.email}
+        onSignOut={acct.signOutUser} navigate={navigate}
+      />
       <main className="acct-main">
         {route === "settings" ? (
           <Profile acct={acct} onDelete={() => setShowDelete(true)} />

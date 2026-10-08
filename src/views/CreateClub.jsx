@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import PageTitle from "../components/PageTitle";
 import Select from "../components/Select";
 
 const VISIBILITY = [
@@ -29,10 +30,9 @@ export default function CreateClub({ onCreate, navigate }) {
   };
 
   return (
-    <>
+    <div className="page-narrow">
       <a className="back-link" href="/" onClick={(e) => { e.preventDefault(); navigate("/"); }}><ArrowLeft size={14} /> My clubs</a>
-      <h1>Create a club</h1>
-      <p>You'll be the owner. You can change everything later in the club's settings.</p>
+      <PageTitle title="Create a club" sub="You'll be the owner. You can change everything later in the club's settings." />
       <form className="panel club-form" onSubmit={submit}>
         <label>
           Club name
@@ -56,6 +56,6 @@ export default function CreateClub({ onCreate, navigate }) {
           <button className="primary" disabled={busy || !form.name.trim()}>{busy ? "Creating…" : "Create club"}</button>
         </div>
       </form>
-    </>
+    </div>
   );
 }
