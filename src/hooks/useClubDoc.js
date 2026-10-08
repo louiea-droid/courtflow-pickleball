@@ -23,9 +23,12 @@ export function useClubDoc(uid, clubId) {
       (s) => { club = s.exists() ? { id: s.id, ...s.data() } : null; clubDone = true; publish(); },
       () => { club = null; clubDone = true; publish(); },
     );
+    // A member record the server hasn't confirmed yet (our own pending write, such as an invite join the
+    // rules may still refuse) doesn't count: the screen must not flip to the member view and back.
     const unsubMember = onSnapshot(
       doc(db, "clubs", clubId, "members", uid),
-      (s) => { member = s.exists() ? s.data() : null; memberDone = true; publish(); },
+      { includeMetadataChanges: true },
+      (s) => { member = s.exists() && !s.metadata.hasPendingWrites ? s.data() : null; memberDone = true; publish(); },
       () => { member = null; memberDone = true; publish(); },
     );
     return () => { unsubClub(); unsubMember(); };

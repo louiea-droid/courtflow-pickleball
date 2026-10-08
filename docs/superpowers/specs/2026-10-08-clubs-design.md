@@ -117,7 +117,7 @@ One batch: the club doc (with defaults for settings), the owner's member record,
 
 ## Parts B and C in outline
 
-- **B:** Directory (`/clubs/find`): searches public clubs by name prefix (a `nameLower` field on the club doc, queried by range). Club page shows **Request to join** (creates `joinRequests/{uid}`); the owner and managers see **Requests** with Approve (creates `members/{uid}` as `member` and the person's membership copy) and Decline. **Invite link** `/clubs/:id?invite=CODE`: signed in, the visitor taps **Join**, which creates their member record carrying the code; the rule compares it to `private/invite`. Members list with Remove, **Leave club**, **Reset invite link**. Private-club behavior for members.
+- **B:** Directory (`/clubs/find`): searches public clubs by name or place (loaded once, filtered on the device; `nameLower` stays on the club doc for a later server-side search). Club page shows **Request to join** (creates `joinRequests/{uid}`); the owner and managers see **Requests** with Approve (creates `members/{uid}` as `member` and the person's membership copy) and Decline. **Invite link** `/clubs/:id?invite=CODE`: signed in, the visitor taps **Join**, which creates their member record carrying the code; the rule compares it to `private/invite`. Members list with Remove, **Leave club**, **Reset invite link**. Private-club behavior for members.
 - **C:** Members list gets **Make manager / Remove manager** (owner only); rules and screens use `isManager` everywhere; manager limits from the roles table are enforced in rules.
 
 ## Risks
@@ -126,4 +126,4 @@ One batch: the club doc (with defaults for settings), the owner's member record,
 - **Rules cost and complexity** (`get` on member records). Mitigation: helper functions, a test matrix, and keeping the member record the single source of truth.
 - **Public booking for public clubs stays unauthenticated**, so phone numbers and request ids keep today's protections (create-only with validated fields, no list).
 - **Old test data** under accounts becomes unreachable. Accepted (start fresh); account delete clears it.
-- **Console actions:** publishing `firestore.rules` is still the owner's step; part B's search needs no extra index (a single-field range query on a field in one collection).
+- **Console actions:** publishing `firestore.rules` is still the owner's step; part B's directory search needs no index: it loads up to 200 public clubs and filters them on the device (see the part B spec).
