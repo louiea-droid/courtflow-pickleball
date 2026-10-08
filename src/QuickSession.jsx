@@ -3,7 +3,7 @@ import { sessionBase } from "./utils/paths";
 import QueueApp from "./QueueApp";
 
 // The quick session at /club: the classic queue app on sessions/{uid}, no booking, no login.
-export default function Club() {
+export default function QuickSession() {
   const { club, error, endSession, eraseSession } = useClub();
   if (!club) {
     return error ? (

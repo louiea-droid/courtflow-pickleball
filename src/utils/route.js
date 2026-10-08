@@ -1,19 +1,33 @@
-// Which page a path belongs to. main.jsx uses it to pick the page; AccountApp
-// uses it for hub vs settings. Unknown paths go to the hub.
+// Which page a path belongs to. main.jsx picks the page from it; AccountApp and ClubApp use it
+// for screens. Unknown paths, and the old pre-club URLs (/host, /event/...), go to the hub.
 export function routeOf(pathname) {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/live") return "live";
   if (path === "/open-play") return "open-play";
-  if (path === "/club") return "club";
+  if (path === "/club") return "quick";
   if (path === "/settings") return "settings";
-  if (path === "/host") return "host";
-  if (/^\/event\/[^/]+$/.test(path)) return "event";
-  if (/^\/event\/[^/]+\/game$/.test(path)) return "game";
+  if (path === "/clubs") return "clubs";
+  if (path === "/clubs/new") return "clubs-new";
+  const m = path.match(/^\/clubs\/[^/]+(\/.*)?$/);
+  if (m) {
+    const rest = m[1] || "";
+    if (rest === "") return "club";
+    if (rest === "/host") return "club-host";
+    if (rest === "/settings") return "club-settings";
+    if (/^\/event\/[^/]+$/.test(rest)) return "club-event";
+    if (/^\/event\/[^/]+\/game$/.test(rest)) return "club-game";
+  }
   return "hub";
 }
 
-// "/event/<id>" -> "<id>" (decoded), else null.
+// "/clubs/<id>/..." -> "<id>" (decoded), else null. "/clubs/new" is not a club.
+export function clubIdOf(pathname) {
+  const m = pathname.replace(/\/+$/, "").match(/^\/clubs\/([^/]+)/);
+  return m && m[1] !== "new" ? decodeURIComponent(m[1]) : null;
+}
+
+// "/clubs/<id>/event/<eventId>[/game]" -> "<eventId>" (decoded), else null.
 export function eventIdOf(pathname) {
-  const m = pathname.replace(/\/+$/, "").match(/^\/event\/([^/]+?)(?:\/game)?$/);
+  const m = pathname.replace(/\/+$/, "").match(/^\/clubs\/[^/]+\/event\/([^/]+?)(?:\/game)?$/);
   return m ? decodeURIComponent(m[1]) : null;
 }

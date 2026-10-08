@@ -1,42 +1,55 @@
-// Self-check for routing. Run: node src/utils/route.check.mjs
+// Self-check for page routing. Run: node src/utils/route.check.mjs
 import assert from "node:assert";
-import { eventIdOf, routeOf } from "./route.js";
+import { clubIdOf, eventIdOf, routeOf } from "./route.js";
 
 assert.equal(routeOf("/"), "hub");
 assert.equal(routeOf(""), "hub");
 assert.equal(routeOf("/settings"), "settings");
 assert.equal(routeOf("/settings/"), "settings");
-assert.equal(routeOf("/club"), "club");
-assert.equal(routeOf("/club/"), "club");
 assert.equal(routeOf("/live"), "live");
 assert.equal(routeOf("/open-play"), "open-play");
 assert.equal(routeOf("/open-play/"), "open-play");
-// Unknown paths fall back to the hub rather than a blank page.
-assert.equal(routeOf("/nope"), "hub");
-assert.equal(routeOf("/settings/extra"), "hub");
+// The quick session keeps its URL; its route is named "quick" so "club" can mean a real club.
+assert.equal(routeOf("/club"), "quick");
+assert.equal(routeOf("/club/"), "quick");
 assert.equal(routeOf("/clubhouse"), "hub");
 
-// Events: /host is the list, /event/<id> is one event, and the id is recoverable.
-assert.equal(routeOf("/host"), "host");
-assert.equal(routeOf("/host/"), "host");
-assert.equal(routeOf("/event/abc123"), "event");
-assert.equal(routeOf("/event/abc123/"), "event");
-assert.equal(routeOf("/event"), "hub");
-assert.equal(routeOf("/event/"), "hub");
-assert.equal(routeOf("/event/a/b"), "hub");
-assert.equal(eventIdOf("/event/abc123"), "abc123");
-assert.equal(eventIdOf("/event/abc%20x/"), "abc x");
-assert.equal(eventIdOf("/host"), null);
-assert.equal(eventIdOf("/event/"), null);
+assert.equal(routeOf("/clubs"), "clubs");
+assert.equal(routeOf("/clubs/"), "clubs");
+assert.equal(routeOf("/clubs/new"), "clubs-new");
+assert.equal(routeOf("/clubs/abc"), "club");
+assert.equal(routeOf("/clubs/abc/"), "club");
+assert.equal(routeOf("/clubs/abc/host"), "club-host");
+assert.equal(routeOf("/clubs/abc/settings"), "club-settings");
+assert.equal(routeOf("/clubs/abc/event/e1"), "club-event");
+assert.equal(routeOf("/clubs/abc/event/e1/"), "club-event");
+assert.equal(routeOf("/clubs/abc/event/e1/game"), "club-game");
+assert.equal(routeOf("/clubs/abc/event/e1/game/"), "club-game");
 
-// Review Focus 5: the game page is /event/<id>/game; anything deeper or lookalike is the hub.
-assert.equal(routeOf("/event/abc123/game"), "game");
-assert.equal(routeOf("/event/abc123/game/"), "game");
-assert.equal(routeOf("/event/abc123/gamex"), "hub");
-assert.equal(routeOf("/event/abc123/game/extra"), "hub");
-assert.equal(routeOf("/event/abc123"), "event");
-assert.equal(eventIdOf("/event/abc123/game"), "abc123");
-assert.equal(eventIdOf("/event/abc%20x/game/"), "abc x");
-assert.equal(eventIdOf("/event/abc123/gamex"), null);
+// Review Focus 5: unknown paths and the old pre-club URLs land on the hub, not a blank page.
+assert.equal(routeOf("/clubs/abc/nope"), "hub");
+assert.equal(routeOf("/clubs/abc/event"), "hub");
+assert.equal(routeOf("/clubs/abc/event/e1/gamex"), "hub");
+assert.equal(routeOf("/clubs/abc/event/e1/game/x"), "hub");
+assert.equal(routeOf("/nope"), "hub");
+assert.equal(routeOf("/host"), "hub");
+assert.equal(routeOf("/event/abc"), "hub");
+assert.equal(routeOf("/settings/extra"), "hub");
+
+assert.equal(clubIdOf("/clubs/abc"), "abc");
+assert.equal(clubIdOf("/clubs/abc/host"), "abc");
+assert.equal(clubIdOf("/clubs/abc/event/e1/game"), "abc");
+assert.equal(clubIdOf("/clubs/a%20b/"), "a b");
+assert.equal(clubIdOf("/clubs"), null);
+assert.equal(clubIdOf("/clubs/new"), null);
+assert.equal(clubIdOf("/club"), null);
+assert.equal(clubIdOf("/"), null);
+
+assert.equal(eventIdOf("/clubs/c1/event/e1"), "e1");
+assert.equal(eventIdOf("/clubs/c1/event/e1/game"), "e1");
+assert.equal(eventIdOf("/clubs/c1/event/abc%20x/game/"), "abc x");
+assert.equal(eventIdOf("/clubs/c1/host"), null);
+assert.equal(eventIdOf("/clubs/c1/event/"), null);
+assert.equal(eventIdOf("/clubs/c1/event/e1/gamex"), null);
 
 console.log("route.check: ok");
