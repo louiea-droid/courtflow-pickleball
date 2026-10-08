@@ -1,6 +1,6 @@
 // Self-check for club helpers. Run: node src/utils/clubs.check.mjs
 import assert from "node:assert";
-import { ROLE_LABEL, clubPath, filterClubs, inviteUrl, joinRequestDoc, memberRecord, membershipCopy, newClubDoc, newInviteCode, permissions, validateClubInput, validateJoinMessage } from "./clubs.js";
+import { ROLE_LABEL, canChangeRole, canRemove, clubPath, filterClubs, inviteUrl, joinRequestDoc, memberRecord, membershipCopy, newClubDoc, newInviteCode, permissions, validateClubInput, validateJoinMessage } from "./clubs.js";
 
 // Input checks: each failure says what to fix.
 assert.equal(validateClubInput({ name: "Centro", visibility: "public" }), "");
@@ -63,6 +63,20 @@ assert.equal(joinRequestDoc("  ", "", 1).name, "Member");
 assert.deepEqual(memberRecord("Sam", 5), { role: "member", name: "Sam", joinedAt: 5 });
 assert.deepEqual(memberRecord("Sam", 5, "K7M2QXWA"), { role: "member", name: "Sam", joinedAt: 5, inviteCode: "K7M2QXWA" });
 assert.equal(memberRecord("", 5).name, "Member");
+// Part C: the owner names managers; a manager link makes a manager record.
+assert.deepEqual(memberRecord("Sam", 5, "K7M2QXWA", "manager"), { role: "manager", name: "Sam", joinedAt: 5, inviteCode: "K7M2QXWA" });
+assert.equal(inviteUrl("https://x.test", "abc", "K7M2QXWA", "manager"), "https://x.test/clubs/abc?manager=K7M2QXWA");
+assert.equal(canChangeRole("owner", "member"), true);
+assert.equal(canChangeRole("owner", "manager"), true);
+assert.equal(canChangeRole("owner", "owner"), false);
+assert.equal(canChangeRole("manager", "member"), false);
+assert.equal(canChangeRole("member", "member"), false);
+assert.equal(canRemove("owner", "manager"), true);
+assert.equal(canRemove("owner", "owner"), false);
+assert.equal(canRemove("manager", "member"), true);
+assert.equal(canRemove("manager", "manager"), false);
+assert.equal(canRemove("manager", "owner"), false);
+assert.equal(canRemove("member", "member"), false);
 
 // Directory search: by name or place, case-insensitive, contains; the list is sorted by name.
 const clubs = [

@@ -5,7 +5,7 @@ import { JOIN_MESSAGE_MAX, validateJoinMessage } from "../utils/clubs";
 
 // What a signed-in person who is not in the club sees: use an invite link, or ask to join a public
 // club. Once they are a member the club page switches to the member view by itself.
-export default function JoinPanel({ uid, clubId, club, invite, actions, notify, onJoined }) {
+export default function JoinPanel({ uid, clubId, club, invite, inviteRole = "member", actions, notify, onJoined }) {
   const { request, ready } = useMyJoinRequest(uid, clubId);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,14 +26,14 @@ export default function JoinPanel({ uid, clubId, club, invite, actions, notify, 
   if (invite) {
     return (
       <div className="panel join-panel">
-        <h2 className="club-section">You're invited to join {club.name}</h2>
-        <p>Joining adds you as a member right away.</p>
+        <h2 className="club-section">You're invited to join {club.name}{inviteRole === "manager" ? " as a manager" : ""}</h2>
+        <p>{inviteRole === "manager" ? "Joining makes you a manager right away: you can run open play and games, and approve requests." : "Joining adds you as a member right away."}</p>
         {error && <p className="join-error" role="alert">{error}</p>}
         <button
           className="primary" disabled={busy}
-          onClick={() => run(async () => { await actions.joinWithInvite(invite); notify(`You joined ${club.name}.`); onJoined(); },
+          onClick={() => run(async () => { await actions.joinWithInvite(invite, inviteRole); notify(`You joined ${club.name}.`); onJoined(); },
             (err) => (err?.code === "permission-denied"
-              ? "This invite link is no longer valid. Ask a manager for a new one."
+              ? `This invite link is no longer valid. Ask ${inviteRole === "manager" ? "the owner" : "a manager"} for a new one.`
               : "Couldn't join. Check your connection and try again."))}
         >
           Join club

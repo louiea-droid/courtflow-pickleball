@@ -26,6 +26,7 @@ const seedClub = async (db, id, ownerId) => {
   await setDoc(doc(db, `clubs/${id}/roster/r1`), { name: "Regular" });
   await setDoc(doc(db, `clubs/${id}/joinRequests/j1`), { name: "J" });
   await setDoc(doc(db, `clubs/${id}/private/invite`), { code: "X" });
+  await setDoc(doc(db, `clubs/${id}/private/managerInvite`), { code: "Y" });
   for (const e of ["e1", "e2"]) {
     await setDoc(doc(db, `clubs/${id}/events/${e}`), { title: e, attendees: [] });
     for (const sub of EVENT_SUBS) await setDoc(doc(db, `clubs/${id}/events/${e}/${sub}/x`), { n: 1 });

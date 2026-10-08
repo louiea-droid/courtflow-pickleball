@@ -74,17 +74,18 @@ export function useMyJoinRequest(uid, clubId) {
   return state;
 }
 
-// The club's current invite code, or null when no link was made yet. Managers only.
-export function useInvite(clubId) {
+// The club's current invite code, or null when no link was made yet. `docId` is "invite" (managers read it)
+// or "managerInvite" (the owner's link that makes managers; only the owner reads it).
+export function useInvite(clubId, docId = "invite") {
   const [state, setState] = useState({ code: null, ready: false });
   useEffect(() => {
     setState({ code: null, ready: false });
     if (!firebaseConfigured || !clubId) return;
     return onSnapshot(
-      doc(db, "clubs", clubId, "private", "invite"),
+      doc(db, "clubs", clubId, "private", docId),
       (s) => setState({ code: s.exists() ? s.data().code : null, ready: true }),
       () => setState({ code: null, ready: true }),
     );
-  }, [clubId]);
+  }, [clubId, docId]);
   return state;
 }

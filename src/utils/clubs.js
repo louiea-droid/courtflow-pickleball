@@ -57,7 +57,9 @@ export function newInviteCode() {
   return Array.from(bytes, (b) => CODE_CHARS[b % CODE_CHARS.length]).join("");
 }
 
-export const inviteUrl = (origin, clubId, code) => `${origin}${clubPath(clubId)}?invite=${encodeURIComponent(code)}`;
+// A manager link (the owner's) uses its own parameter, so the two kinds of link can't be mixed up.
+export const inviteUrl = (origin, clubId, code, role = "member") =>
+  `${origin}${clubPath(clubId)}?${role === "manager" ? "manager" : "invite"}=${encodeURIComponent(code)}`;
 
 export const JOIN_MESSAGE_MAX = 200;
 export const validateJoinMessage = (message = "") =>
@@ -65,14 +67,19 @@ export const validateJoinMessage = (message = "") =>
 
 const personName = (name) => (name || "").trim().slice(0, 60) || "Member";
 
-// The documents the rules accept (see firestore.rules): a pending request, and a plain member record.
+// The documents the rules accept (see firestore.rules): a pending request, and a member record.
 export function joinRequestDoc(name, message, now) {
   const text = (message || "").trim();
   return { name: personName(name), ...(text ? { message: text } : {}), status: "pending", createdAt: now };
 }
-export const memberRecord = (name, now, inviteCode) => ({
-  role: "member", name: personName(name), joinedAt: now, ...(inviteCode ? { inviteCode } : {}),
+export const memberRecord = (name, now, inviteCode, role = "member") => ({
+  role, name: personName(name), joinedAt: now, ...(inviteCode ? { inviteCode } : {}),
 });
+
+// Part C: who may change or remove whom (the rules enforce the same table). Only the owner changes roles;
+// the owner removes anyone else, a manager removes plain members.
+export const canChangeRole = (actor, target) => actor === "owner" && (target === "member" || target === "manager");
+export const canRemove = (actor, target) => (actor === "owner" && target !== "owner") || (actor === "manager" && target === "member");
 
 // Directory search: runs on the device over the public clubs already loaded.
 export function filterClubs(clubs, search = "") {

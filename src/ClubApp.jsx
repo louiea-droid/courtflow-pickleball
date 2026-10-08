@@ -72,7 +72,10 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
   const { requests: pendingRequests } = useJoinRequests(ready && canManage ? clubId : null);
   const personName = acct.account?.name || acct.account?.clubName;
   const membership = useMembershipActions({ uid, name: personName, clubId, club });
-  const invite = new URLSearchParams(window.location.search).get("invite");
+  const params = new URLSearchParams(window.location.search);
+  const managerCode = params.get("manager");
+  const invite = managerCode || params.get("invite");
+  const inviteRole = managerCode ? "manager" : "member";
   // A "My clubs" card for a club the person is not in (they were removed, or it was deleted) cleans itself
   // up, but only once the server has confirmed the club and the member record: from the cache, or while our
   // own join is still queued (offline, slow), "not a member" can be wrong and a real card would be deleted.
@@ -168,7 +171,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
         <>
           {!isMember && (
             <JoinPanel
-              uid={uid} clubId={clubId} club={club} invite={invite} actions={membership} notify={notify}
+              uid={uid} clubId={clubId} club={club} invite={invite} inviteRole={inviteRole} actions={membership} notify={notify}
               onJoined={() => navigate(base)}
             />
           )}

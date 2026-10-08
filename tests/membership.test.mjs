@@ -28,6 +28,7 @@ async function seed() {
         await setDoc(doc(db, `accounts/${uid}/memberships/${id}`), { clubName: id, role, joinedAt: 1 });
       }
       await setDoc(doc(db, `clubs/${id}/private/invite`), { code: "GOODCODE" });
+      await setDoc(doc(db, `clubs/${id}/private/managerInvite`), { code: "MGRCODE1" });
     }
     await setDoc(doc(db, "clubs/noinv"), { name: "noinv", nameLower: "noinv", visibility: "public", ownerId: "own", createdAt: 1 });
     await setDoc(doc(db, "clubs/noinv/members/own"), { role: "owner", name: "own", joinedAt: 1 });
@@ -173,6 +174,53 @@ await assertSucceeds(drop(mem2, "pub", "mem2")); // a member leaves
 await assertSucceeds(drop(own, "pub", "mgr2")); // the owner removes a manager
 await assertSucceeds(drop(mgr, "priv", "mem")); // the same on a private club
 await assertFails(getDoc(doc(real("mem"), "clubs/priv/events/e1"))); // a removed member is a stranger again
+
+// ---- Part C: only the owner changes roles; a manager link (the owner's) joins as a manager
+await seed();
+const setRole = (db, club, uid, role, cardRole = role, extra = {}) => {
+  const b = writeBatch(db);
+  b.update(doc(db, `clubs/${club}/members/${uid}`), { role, ...extra });
+  b.update(doc(db, `accounts/${uid}/memberships/${club}`), { role: cardRole });
+  return b.commit();
+};
+await assertFails(setRole(mgr, "pub", "mem", "manager")); // a manager can't name managers
+await assertFails(setRole(mem, "pub", "mem2", "manager"));
+await assertFails(setRole(mem, "pub", "mem", "manager")); // nor can you promote yourself
+await assertFails(setRole(mgr, "pub", "mgr", "owner"));
+await assertFails(setRole(other, "pub", "mem", "manager"));
+await assertFails(setRole(mgr, "pub", "mgr2", "member")); // a manager can't demote a manager
+await assertFails(setRole(own, "pub", "mem", "owner")); // nobody becomes owner
+await assertFails(setRole(own, "pub", "mem", "admin"));
+await assertFails(setRole(own, "pub", "own", "member")); // the owner never changes
+await assertFails(setRole(own, "pub", "mem", "manager", "member")); // the card must say the same
+await assertFails(setRole(own, "pub", "mem", "manager", "owner"));
+await assertFails(setRole(own, "pub", "mem", "manager", "manager", { name: "Renamed" })); // only the role changes
+await assertFails(updateDoc(doc(own, "accounts/mem/memberships/pub"), { role: "manager" })); // a card alone
+await assertSucceeds(setRole(own, "pub", "mem", "manager"));
+await assertSucceeds(getDoc(doc(mem, "clubs/pub/private/invite"))); // the new manager can manage
+await assertSucceeds(setRole(own, "pub", "mgr", "member")); // and the owner can demote
+await assertFails(getDoc(doc(mgr, "clubs/pub/private/invite")));
+await assertSucceeds(setRole(own, "priv", "mem2", "manager")); // the same on a private club
+// the manager link: its own document, only the owner reads or writes it
+await assertFails(getDoc(doc(mgr, "clubs/priv/private/managerInvite")));
+await assertFails(setDoc(doc(mgr, "clubs/priv/private/managerInvite"), { code: "ABCDEFGH" }));
+await assertFails(setDoc(doc(mem, "clubs/priv/private/managerInvite"), { code: "ABCDEFGH" }));
+await assertSucceeds(getDoc(doc(own, "clubs/priv/private/managerInvite")));
+await assertFails(setDoc(doc(own, "clubs/priv/private/managerInvite"), { code: "short" }));
+const managerDoc = (extra = {}) => memberDoc({ role: "manager", inviteCode: "MGRCODE1", ...extra });
+const managerCard = (club) => ({ clubName: club, role: "manager", joinedAt: now() });
+await assertFails(join(other, "pub", "other", managerDoc({ inviteCode: "GOODCODE" }), managerCard("pub"))); // the member code doesn't make managers
+await assertFails(join(other, "pub", "other", memberDoc({ inviteCode: "MGRCODE1" }))); // and the manager code doesn't make members
+await assertFails(join(other, "pub", "other", managerDoc({ inviteCode: "WRONGONE" }), managerCard("pub")));
+await assertFails(join(other, "noinv", "other", managerDoc(), managerCard("noinv"))); // no manager link was ever made
+await assertFails(join(other, "pub", "other", managerDoc({ role: "owner" }), managerCard("pub")));
+await assertFails(join(anon, "pub", "x", managerDoc(), managerCard("pub")));
+await assertFails(join(quick, "pub", "q1", managerDoc(), managerCard("pub")));
+await assertSucceeds(join(other, "pub", "other", managerDoc(), managerCard("pub")));
+await assertSucceeds(getDoc(doc(other, "clubs/pub/private/invite"))); // a manager now
+await assertSucceeds(setDoc(doc(own, "clubs/pub/private/managerInvite"), { code: "RESETTED" })); // reset: the old manager link stops
+await assertFails(join(req, "pub", "req", managerDoc(), managerCard("pub")));
+await assertSucceeds(join(req, "pub", "req", managerDoc({ inviteCode: "RESETTED" }), managerCard("pub")));
 
 console.log("membership: all assertions passed");
 await env.cleanup();

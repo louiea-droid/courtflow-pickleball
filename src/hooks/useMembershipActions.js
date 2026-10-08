@@ -17,12 +17,13 @@ export function useMembershipActions({ uid, name, clubId, club }) {
   // Withdraw a pending request, or dismiss a declined one.
   const cancelRequest = () => deleteDoc(requestRef(uid));
 
-  // The invite code travels on the new member record; the rules compare it to the club's current code.
-  const joinWithInvite = async (code) => {
+  // The invite code travels on the new member record; the rules compare it to the club's current code
+  // (the member link for role "member", the owner's manager link for role "manager").
+  const joinWithInvite = async (code, role = "member") => {
     const now = Date.now();
     const batch = writeBatch(db);
-    batch.set(memberRef(uid), memberRecord(name, now, code));
-    batch.set(cardRef(uid), membershipCopy(club, "member", now));
+    batch.set(memberRef(uid), memberRecord(name, now, code, role));
+    batch.set(cardRef(uid), membershipCopy(club, role, now));
     batch.delete(requestRef(uid)); // an earlier request of theirs is answered by joining
     await batch.commit();
   };
@@ -55,12 +56,21 @@ export function useMembershipActions({ uid, name, clubId, club }) {
     await batch.commit();
   };
 
-  // Creates the invite link, or replaces it (every old link stops working). Resolves to the new code.
-  const saveInvite = async () => {
+  // The owner makes a member a manager or back: the member record and the person's card change together.
+  const setRole = async (member, role) => {
+    const batch = writeBatch(db);
+    batch.update(memberRef(member.id), { role });
+    batch.update(cardRef(member.id), { role });
+    await batch.commit();
+  };
+
+  // Creates an invite link, or replaces it (every old link stops working). Resolves to the new code.
+  // "manager" is the owner's link that makes managers; the default is the members' link.
+  const saveInvite = async (role = "member") => {
     const code = newInviteCode();
-    await setDoc(doc(db, "clubs", clubId, "private", "invite"), { code });
+    await setDoc(doc(db, "clubs", clubId, "private", role === "manager" ? "managerInvite" : "invite"), { code });
     return code;
   };
 
-  return { requestToJoin, cancelRequest, joinWithInvite, approve, decline, leave, removeMember, saveInvite };
+  return { requestToJoin, cancelRequest, joinWithInvite, approve, decline, leave, removeMember, setRole, saveInvite };
 }

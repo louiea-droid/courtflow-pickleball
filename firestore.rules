@@ -47,6 +47,13 @@ service cloud.firestore {
         && request.resource.data.joinedAt is number
         && !exists(/databases/$(database)/documents/clubs/$(clubId)/members/$(uid))
         && getAfter(/databases/$(database)/documents/clubs/$(clubId)/members/$(uid)).data.role == 'member';
+      // The owner changes a member's role (member / manager) in the same batch as the member record:
+      // the card may only change its role, to the role the member record ends up with.
+      allow update: if isOwner(clubId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+        && request.resource.data.role in ['member', 'manager']
+        && exists(/databases/$(database)/documents/clubs/$(clubId)/members/$(uid))
+        && getAfter(/databases/$(database)/documents/clubs/$(clubId)/members/$(uid)).data.role == request.resource.data.role;
       allow delete: if isManager(clubId)
         && uid != get(clubPath(clubId)).data.ownerId
         && !existsAfter(/databases/$(database)/documents/clubs/$(clubId)/members/$(uid));
@@ -82,6 +89,9 @@ service cloud.firestore {
     function invitePath(clubId) {
       return /databases/$(database)/documents/clubs/$(clubId)/private/invite;
     }
+    function managerInvitePath(clubId) {
+      return /databases/$(database)/documents/clubs/$(clubId)/private/managerInvite;
+    }
     function joinRequestPath(clubId, uid) {
       return /databases/$(database)/documents/clubs/$(clubId)/joinRequests/$(uid);
     }
@@ -104,18 +114,18 @@ service cloud.firestore {
         && isPublicClub(clubId)
         && !exists(memberPath(clubId));
     }
-    // Joining with the club's current invite code. The rules read the invite document even though the
-    // person cannot; resetting the code (a manager) stops every old link at once.
+    // Joining with the club's current invite code: the member link makes a member, the owner's manager link
+    // makes a manager. The rules read the invite document even though the person cannot; resetting the code
+    // stops every old link at once.
     function validInviteJoin(clubId, uid) {
       let d = request.resource.data;
       return request.auth.uid == uid
         && d.keys().hasOnly(['role', 'name', 'joinedAt', 'inviteCode'])
         && d.keys().hasAll(['role', 'name', 'joinedAt', 'inviteCode'])
-        && d.role == 'member'
         && validName(d.name)
         && nearNow(d.joinedAt)
-        && exists(invitePath(clubId))
-        && d.inviteCode == get(invitePath(clubId)).data.code;
+        && ((d.role == 'member' && exists(invitePath(clubId)) && d.inviteCode == get(invitePath(clubId)).data.code)
+          || (d.role == 'manager' && exists(managerInvitePath(clubId)) && d.inviteCode == get(managerInvitePath(clubId)).data.code));
     }
     // A manager approving a pending request: a plain member record, nothing else.
     function validApproval(clubId, uid) {
@@ -186,6 +196,11 @@ service cloud.firestore {
             && getAfter(clubPath(clubId)).data.ownerId == request.auth.uid)
           || validInviteJoin(clubId, uid)
           || validApproval(clubId, uid));
+        // The owner changes a role between member and manager (never the owner's own, never to owner).
+        allow update: if isOwner(clubId) && request.auth.uid != uid
+          && resource.data.role in ['member', 'manager']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+          && request.resource.data.role in ['member', 'manager'];
         // Four ways out: the owner removes anyone else, a manager removes plain members, a member
         // leaves (the owner can't), and anyone's own record once the club is gone.
         allow delete: if isRealUser() && (
@@ -229,10 +244,12 @@ service cloud.firestore {
           && request.resource.data.status == 'declined';
         allow delete: if isRealUser() && (request.auth.uid == reqUid || isManager(clubId));
       }
-      // The invite code: 8 characters, nothing else on the document.
+      // The invite codes: 8 characters, nothing else on the document. The member link is the managers';
+      // the manager link (it makes managers) is the owner's alone.
+      // (One wildcard match, so the owner can still list the folder when deleting the club.)
       match /private/{id} {
-        allow read, delete: if isManager(clubId);
-        allow create, update: if isManager(clubId)
+        allow read, delete: if isOwner(clubId) || (id == 'invite' && isManager(clubId));
+        allow create, update: if (id == 'managerInvite' ? isOwner(clubId) : (id == 'invite' && isManager(clubId)))
           && request.resource.data.keys().hasOnly(['code'])
           && request.resource.data.code is string && request.resource.data.code.size() == 8;
       }
