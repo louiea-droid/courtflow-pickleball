@@ -20,15 +20,15 @@ function Message({ text, to, label, navigate }) {
   );
 }
 
-// /event/:id/game: the queue app on one event. The event doc is the session; the account's
+// /clubs/:id/event/:eventId/game: the queue app on one event. The event doc is the session; the club's
 // settings (rules, cost defaults, display) are merged over it by buildGameSession.
-export default function Game({ uid, account, event, ready, navigate, endGame, onSetAttendeePaid }) {
+export default function Game({ clubId, club, event, ready, base, navigate, endGame, onSetAttendeePaid }) {
   if (!event) {
     return ready ? (
-      <Message text="This open play doesn't exist or was deleted." to="/host" label="Back to open play" navigate={navigate} />
+      <Message text="This open play doesn't exist or was deleted." to={`${base}/host`} label="Back to open play" navigate={navigate} />
     ) : <div className="loading"><span className="spinner" />Loading…</div>;
   }
-  const eventPage = `/event/${event.id}`;
+  const eventPage = `${base}/event/${event.id}`;
   if (event.status === "ended") {
     return <Message text="This game has ended. Reopen it from the event page to keep playing." to={eventPage} label="Back to event" navigate={navigate} />;
   }
@@ -39,8 +39,8 @@ export default function Game({ uid, account, event, ready, navigate, endGame, on
     <QueueApp
       key={event.id}
       kind="event"
-      base={eventBase(uid, event.id)}
-      deriveSession={(raw) => buildGameSession(account, raw)}
+      base={eventBase(clubId, event.id)}
+      deriveSession={(raw) => buildGameSession(club, raw)}
       eyebrow={`${event.title} · ${formatDay(event.date)}`}
       backLabel="Back to event"
       onBack={() => navigate(eventPage)}

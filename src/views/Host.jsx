@@ -4,10 +4,10 @@ import PanelHead from "../components/PanelHead";
 import { bookingTotals, byStart, endHM, isOver, splitAttendees } from "../utils/bookings";
 import { formatHM, money } from "../utils/format";
 
-function EventRow({ e, pending, navigate }) {
+function EventRow({ e, pending, navigate, base }) {
   const { confirmed } = splitAttendees(e);
   const totals = bookingTotals(e);
-  const to = `/event/${e.id}`;
+  const to = `${base}/event/${e.id}`;
   return (
     <a className="booking-head event-row" href={to} onClick={(ev) => { ev.preventDefault(); navigate(to); }}>
       <DateTile date={e.date} />
@@ -40,11 +40,11 @@ function EventRow({ e, pending, navigate }) {
   );
 }
 
-export default function Host({ events, requestsByEvent, fallbackZone, onNew, onPlayNow, onShare, navigate }) {
+export default function Host({ events, requestsByEvent, fallbackZone, onNew, onPlayNow, onShare, navigate, base }) {
   const upcoming = events.filter((e) => !isOver(e, fallbackZone)).sort(byStart);
   const past = events.filter((e) => isOver(e, fallbackZone)).sort((a, b) => byStart(b, a));
   const pendingOf = (e) => (requestsByEvent[e.id] || []).filter((r) => r.status === "pending").length;
-  const row = (e) => <EventRow key={e.id} e={e} pending={pendingOf(e)} navigate={navigate} />;
+  const row = (e) => <EventRow key={e.id} e={e} pending={pendingOf(e)} navigate={navigate} base={base} />;
 
   return (
     <>

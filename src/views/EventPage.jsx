@@ -51,17 +51,17 @@ function AttendeeRow({ a, request, note, eventId, actions }) {
 }
 
 export default function EventPage({
-  event, requests, actions, ready, gamePlayers, gameLoaded, onEdit, onShare, onPickPlayers, onOpenGame, onReopen, navigate,
+  event, requests, actions, ready, gamePlayers, gameLoaded, onEdit, onShare, onPickPlayers, onOpenGame, onReopen, navigate, base,
 }) {
   const [name, setName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const back = (e) => { e.preventDefault(); navigate("/host"); };
+  const back = (e) => { e.preventDefault(); navigate(`${base}/host`); };
 
   if (!event) {
     return ready ? (
       <div className="panel">
         <div className="empty">This open play doesn't exist or was deleted.</div>
-        <a className="outline back-link" href="/host" onClick={back}><ArrowLeft size={14} /> Back to open play</a>
+        <a className="outline back-link" href={`${base}/host`} onClick={back}><ArrowLeft size={14} /> Back to open play</a>
       </div>
     ) : <div className="loading"><span className="spinner" />Loading…</div>;
   }
@@ -84,7 +84,7 @@ export default function EventPage({
 
   return (
     <>
-      <a className="back-link" href="/host" onClick={back}><ArrowLeft size={14} /> Open play</a>
+      <a className="back-link" href={`${base}/host`} onClick={back}><ArrowLeft size={14} /> Open play</a>
       <div className="event-head">
         <DateTile date={event.date} />
         <div>
@@ -176,7 +176,7 @@ export default function EventPage({
           message={`${event.title}, its player list, payment records, join requests and any game (players, matches and costs) will be removed. Players with a pending request will see it's no longer listed.`}
           confirmLabel="Delete"
           onCancel={() => setConfirmDelete(false)}
-          onConfirm={async () => { setConfirmDelete(false); await actions.remove(event.id); navigate("/host"); }}
+          onConfirm={async () => { setConfirmDelete(false); await actions.remove(event.id); navigate(`${base}/host`); }}
         />
       )}
     </>

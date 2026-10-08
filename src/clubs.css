@@ -1,1 +1,9 @@
 /* Styles for clubs: the club shell, overview, create form and settings. Tokens only. */
+.club-title h1{margin:0 0 6px;font:700 30px "Space Grotesk";letter-spacing:-.5px}
+.club-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}
+.club-location{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:13px}
+.club-about{margin:6px 0 16px;color:var(--ink-2);max-width:62ch;line-height:1.55}
+.club-actions{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.club-actions a{display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.club-section{margin:0 0 6px;font:700 15px "Space Grotesk"}
+.club-shell .acct-bar nav a:first-child{font-weight:800}
