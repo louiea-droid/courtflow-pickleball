@@ -75,7 +75,7 @@
 .acct-shell .primary,.acct-shell .outline:not(.tiny){min-height:44px}
 
 /* ---- Cards and panels keep a visible border in dark mode ---- */
-.acct-shell .panel,.acct-shell .hub-card,.acct-shell .hub-row{border-color:var(--card-line)}
+.acct-shell .panel,.acct-shell .hub-card{border-color:var(--card-line)}
 .panel-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:0 0 6px}
 .panel-row .club-section{margin:0}
 .acct-shell .empty{padding:18px 12px}
@@ -103,13 +103,12 @@
 .hub-start b{font:700 17px "Space Grotesk"}
 .hub-start p{margin:0 0 6px;color:var(--muted);max-width:52ch;line-height:1.5}
 .hub-empty{margin:8px 0 0;color:var(--muted);font-size:13.5px}
-.hub-row{display:flex;align-items:center;gap:12px;margin-top:22px;padding:14px 18px;border:1px solid var(--card-line);border-radius:15px;background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s ease,background .15s ease}
-.hub-row:hover{border-color:var(--accent-line);background:var(--hover)}
-.hub-row>svg:first-child{color:var(--accent-2);flex-shrink:0}
-.hub-row>svg:last-child{color:var(--faint);flex-shrink:0}
-.hub-row-copy{display:grid;gap:2px;flex:1}
-.hub-row-copy b{font:700 15px "Space Grotesk"}
-.hub-row-copy span{color:var(--muted);font-size:13px}
+
+/* ---- Home: the "Ready to play?" card ---- */
+.home-ready{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;margin:0 0 6px;padding:20px 22px;border-left:4px solid var(--accent)}
+.home-ready .club-section{margin:0 0 4px;font-size:19px}
+.home-ready p{margin:0;color:var(--muted);font-size:14px}
+.home-ready-actions{display:flex;flex-wrap:wrap;gap:10px}
 
 /* ---- Forms and settings ---- */
 .club-form{display:grid;gap:14px;max-width:560px}
