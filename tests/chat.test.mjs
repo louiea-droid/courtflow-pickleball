@@ -97,6 +97,7 @@ await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "chats/
 await assertSucceeds(updateDoc(doc(mem2, "chats/club_pub"), { lastText: "Message deleted" })); // its author
 await assertSucceeds(updateDoc(doc(mgr, "chats/club_pub"), { lastText: "Message deleted" })); // a manager
 await assertFails(updateDoc(doc(mem, "chats/club_pub"), { lastText: "forged" })); // another plain member
+await assertFails(updateDoc(doc(mgr, "chats/club_pub"), { lastText: "forged by a manager" })); // only the one preview text
 await assertFails(updateDoc(doc(mgr, "chats/club_pub"), { lastText: "x".repeat(101) }));
 await assertFails(updateDoc(doc(stranger, "chats/club_pub"), { lastText: "forged" }));
 await assertFails(updateDoc(doc(mgr, "chats/club_pub"), { lastText: "ok", title: "Mine" })); // only the preview
@@ -207,6 +208,12 @@ await assertFails(setDoc(dmRef(me, "me", "cy"), dm("me", "cy", { names: { me: "m
 await assertFails(setDoc(dmRef(me, "me", "bea"), dm("me", "bea", { viaClub: "pub", names: { me: "me", bea: "Boss" } }))); // not the name on their member record
 await assertFails(setDoc(dmRef(me, "me", "cy"), dm("me", "cy", { names: { me: "Louie", cy: "cy" } }))); // nor a false name for yourself
 for (const [, db] of [["anonymous", anon], ["quick", quick], ["legacy", legacy]]) await assertFails(setDoc(dmRef(db, "me", "cy"), dm("me", "cy")));
+// viaClub goes into a document path: a value with slashes must not reach other collections (here, fake "members" under an event)
+await env.withSecurityRulesDisabled(async (ctx) => {
+  await setDoc(doc(ctx.firestore(), "clubs/pub/events/E/members/dan"), { name: "dan" });
+  await setDoc(doc(ctx.firestore(), "clubs/pub/events/E/members/bea"), { name: "bea" });
+});
+await assertFails(setDoc(dmRef(dan, "dan", "bea"), dm("dan", "bea", { viaClub: "pub/events/E" })));
 
 // Reading: the two people only (not a manager of the shared club, not a stranger)
 await seedDm();
@@ -244,6 +251,7 @@ await assertFails(updateDoc(doc(me, "chats/dm_bea_me"), dmTail("me", { viaClub: 
 await assertFails(updateDoc(doc(cy, "chats/dm_bea_me"), dmTail("cy")));
 await assertFails(updateDoc(doc(mgr, "chats/dm_bea_me"), dmTail("mgr")));
 await assertSucceeds(updateDoc(doc(bea, "chats/dm_bea_me"), { lastText: "Message deleted" })); // the preview after a delete
+await assertFails(updateDoc(doc(me, "chats/dm_bea_me"), { lastText: "I will pay you 5000" })); // no other text, under the other person's name
 
 // Messages: either member writes as themselves, under the name on the conversation
 const dmMsg = (db, id, uid, extra = {}) => setDoc(doc(db, `chats/dm_bea_me/messages/${id}`), { from: uid, name: uid, text: "yo", createdAt: now(), ...extra });

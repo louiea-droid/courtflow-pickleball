@@ -148,7 +148,7 @@ service cloud.firestore {
         && ((friendsNow(d.members[0], d.members[1])
               && friendName(d.members[0], d.members[1], d.members[0]) == d.names[d.members[0]]
               && friendName(d.members[0], d.members[1], d.members[1]) == d.names[d.members[1]])
-          || ('viaClub' in d && d.viaClub is string && sharedClub(d.viaClub, d.members[0], d.members[1])
+          || ('viaClub' in d && d.viaClub is string && d.viaClub.matches('[A-Za-z0-9_-]{1,64}') && sharedClub(d.viaClub, d.members[0], d.members[1])
               && clubMemberName(d.viaClub, d.members[0]) == d.names[d.members[0]]
               && clubMemberName(d.viaClub, d.members[1]) == d.names[d.members[1]]));
     }
@@ -178,7 +178,7 @@ service cloud.firestore {
           // After the newest message is deleted the preview is rewritten (text only): in a club by that line's author or a
           // manager, in a direct conversation by either person.
           || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText'])
-              && request.resource.data.lastText is string && request.resource.data.lastText.size() <= 100
+              && request.resource.data.lastText == 'Message deleted'
               && (resource.data.kind == 'dm' || resource.data.lastBy == request.auth.uid || isManager(resource.data.clubId))));
       allow delete: if isRealUser()
         && (resource.data.kind == 'club' ? isOwner(resource.data.clubId) : request.auth.uid in resource.data.members);
