@@ -372,6 +372,7 @@ button.acct-brand:hover{background:var(--side-hover)}
 .help-toc-label{margin:10px 12px 2px;color:var(--muted);font-size:12px;font-weight:700}
 .help-jump{display:none;width:100%;min-height:44px;padding:0 12px;border:1px solid var(--card-line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-weight:700}
 .help-body{display:grid;gap:18px;min-width:0}
+.help-body [tabindex="-1"]:focus{outline:none}
 .help-section{scroll-margin-top:calc(var(--header-h) + 84px);padding:22px;box-shadow:none}
 .help-section h2{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 6px;font:700 20px "Space Grotesk"}
 .help-section h2 .pill{padding:4px 9px;font-size:10px}

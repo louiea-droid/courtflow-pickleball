@@ -33,29 +33,45 @@ export default function Help({ navigate }) {
   const [active, setActive] = useState((MAJOR.find((s) => s.featured) || MAJOR[0]).id);
   const pageRef = useRef(null);
   const bodyRef = useRef(null);
+  // While a click on the contents list is scrolling to its section, the highlight must not flick through every section on the way.
+  const lockUntil = useRef(0);
+  // Wide screens scroll the guide in its own pane, phones scroll the page; follow the breakpoint if it changes (a tablet turning).
+  const [wide, setWide] = useState(() => (typeof matchMedia === "function" ? matchMedia("(min-width: 861px)").matches : true));
+  useEffect(() => {
+    if (typeof matchMedia !== "function") return undefined;
+    const mq = matchMedia("(min-width: 861px)");
+    const onChange = () => setWide(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   // The contents list follows the section in view.
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined" || !pageRef.current) return undefined;
     const seen = new Map();
     // On a wide screen the guide scrolls inside its own pane; on a phone the page itself scrolls.
-    const root = bodyRef.current && getComputedStyle(bodyRef.current).overflowY === "auto" ? bodyRef.current : null;
+    const root = wide && bodyRef.current ? bodyRef.current : null;
     const obs = new IntersectionObserver((entries) => {
       entries.forEach((e) => seen.set(e.target.id, e.isIntersecting ? e.intersectionRatio : 0));
+      if (Date.now() < lockUntil.current) return;
       const top = [...seen.entries()].filter(([, r]) => r > 0).map(([id]) => id)[0];
       if (top) setActive(top);
     }, { root, rootMargin: root ? "-10px 0px -60% 0px" : "-120px 0px -55% 0px", threshold: [0, 0.1] });
     pageRef.current.querySelectorAll("[data-help]").forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [shownKey]);
+  }, [shownKey, wide]);
 
   // If a search hides the highlighted section, fall back to the first one still shown.
   const visibleIds = shownKey.split("|").join(",").split(",").filter(Boolean);
   const current = visibleIds.includes(active) ? active : visibleIds[0];
 
   const jump = (id) => {
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    lockUntil.current = Date.now() + (reduced ? 100 : 900);
     setActive(id);
-    document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    const el = document.getElementById(id);
+    el?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    el?.focus({ preventScroll: true }); // keyboard users land in the section, not back in the list
   };
   const to = (path) => (e) => {
     if (OWN_PAGE.includes(path) || e.metaKey || e.ctrlKey || e.shiftKey || e.button > 0) return; // let the browser open it (new tab, own page)
@@ -104,7 +120,7 @@ export default function Help({ navigate }) {
 
           <div className="help-body" ref={bodyRef}>
             {major.map((s) => (
-              <section key={s.id} id={s.id} data-help className={`panel help-section${s.featured ? " help-featured" : ""}`} aria-labelledby={`${s.id}-h`}>
+              <section key={s.id} id={s.id} data-help tabIndex={-1} className={`panel help-section${s.featured ? " help-featured" : ""}`} aria-labelledby={`${s.id}-h`}>
                 <h2 id={`${s.id}-h`}>{s.title}{s.featured && <span className="pill">Featured</span>}</h2>
                 <p className="help-summary">{s.summary}</p>
                 <ol className="help-steps">{s.steps.map((step) => <li key={step}>{step}</li>)}</ol>
@@ -124,7 +140,7 @@ export default function Help({ navigate }) {
               <section className="help-minor" aria-label="More">
                 <h2 className="club-section">More</h2>
                 {minor.map((m) => (
-                  <article key={m.id} id={m.id} data-help><h3>{m.title}</h3><p>{m.body}</p></article>
+                  <article key={m.id} id={m.id} data-help tabIndex={-1}><h3>{m.title}</h3><p>{m.body}</p></article>
                 ))}
               </section>
             )}

@@ -11,6 +11,7 @@ const val = (v) => Array.isArray(v) ? { arrayValue: { values: v.map(val) } }
 const put = (path, data) => fetch(`${FS}/${path}`, { method: "PATCH", headers: { Authorization: "Bearer owner", "Content-Type": "application/json" }, body: JSON.stringify({ fields: val(data).mapValue.fields }) })
   .then(async (r) => { if (!r.ok) throw new Error(`${path} ${await r.text()}`); });
 const day = (n) => new Date(Date.now() + n * 86400000).toLocaleDateString("en-CA");
+const weekday = (n) => new Date(Date.now() + n * 86400000).toLocaleDateString("en-US", { weekday: "long" });
 const now = Date.now();
 
 const people = { ann: "Ann Reyes", bea: "Bea Santos", cal: "Cal Mercado", dee: "Dee Cruz", eli: "Eli Navarro" };
@@ -43,16 +44,16 @@ const ev = (club, title, date, start, extra = {}) => ({
 });
 const PUB = { id: "pub", name: "Pub Club", loc: "Manila" }, BETA = { id: "beta", name: "Beta Club", loc: "Cebu" }, RIV = { id: "riverside", name: "Riverside Pickle", loc: "Quezon City" };
 const seats = (n) => Array.from({ length: n }, (_, i) => ({ id: `seat${i}`, name: ["Gus", "Hal", "Ivy", "Jun", "Kai", "Lia", "Mo", "Nia", "Oz", "Pia"][i % 10], paid: i % 3 === 0 ? "paid" : "unpaid", method: "cash", joinedAt: now + i }));
-await put("clubs/pub/events/friday", ev(PUB, "Friday mixer", day(1), "19:00", { attendees: seats(10) }));
-await put("clubs/pub/events/saturday", ev(PUB, "Saturday drills", day(2), "08:00", { level: "Beginner", attendees: seats(4) }));
-await put("clubs/beta/events/b1", ev(BETA, "Beginner drills", day(0), "23:00", { level: "Beginner", attendees: seats(3) }));
-await put("clubs/beta/events/b2", ev(BETA, "Sunday social", day(3), "10:00", { attendees: seats(5) }));
+await put("clubs/pub/events/friday", ev(PUB, `${weekday(1)} mixer`, day(1), "19:00", { attendees: seats(10) }));
+await put("clubs/pub/events/saturday", ev(PUB, `${weekday(2)} drills`, day(2), "08:00", { level: "Beginner", attendees: seats(4) }));
+await put("clubs/beta/events/b1", ev(BETA, "Beginner drills", day(0), "23:30", { durationMins: 150, level: "Beginner", attendees: seats(3) }));
+await put("clubs/beta/events/b2", ev(BETA, `${weekday(3)} social`, day(3), "10:00", { attendees: seats(5) }));
 await put("clubs/riverside/events/r1", ev(RIV, "Riverside night games", day(1), "20:00", { attendees: seats(6) }));
 await put("clubs/riverside/events/r2", ev(RIV, "Weekend round robin", day(4), "09:00", { maxPlayers: 12, attendees: seats(2) }));
 
 // A live game at Pub Club (Eli is waiting: #3 in line)
 const LIVE = "thursday";
-await put(`clubs/pub/events/${LIVE}`, ev(PUB, "Thursday open play", day(0), "20:00", { attendees: seats(10), durationMins: 180, status: "live", startedAt: now - 1800000, courts: 2, format: "Doubles", mode: "Balanced", autoRotate: true }));
+await put(`clubs/pub/events/${LIVE}`, ev(PUB, `${weekday(0)} open play`, day(0), "20:00", { attendees: seats(10), durationMins: 180, status: "live", startedAt: now - 1800000, courts: 2, format: "Doubles", mode: "Balanced", autoRotate: true }));
 const roster = [
   ["p1", "Gus Lim", 3, "M", 2, 1, "g"], ["p2", "Hal Ramos", 4, "M", 2, 1, "g"], ["p3", "Ivy Tan", 3, "F", 2, 1, "g"], ["p4", "Jun Co", 4, "M", 2, 0, "g"],
   ["p5", "Kai Uy", 2, "M", 1, 1, "g"], ["p6", "Lia Go", 3, "F", 1, 0, "g"], ["p7", "Mo Sy", 4, "M", 1, 0, "g"], ["p8", "Nia Ong", 5, "F", 1, 1, "g"],
