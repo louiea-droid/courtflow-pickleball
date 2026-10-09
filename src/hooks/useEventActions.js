@@ -2,6 +2,7 @@ import { addDoc, collection, doc, getDoc, updateDoc, writeBatch } from "firebase
 import { db } from "../firebase";
 import { addAttendee, attendeeFromRequest, splitAttendees } from "../utils/bookings";
 import { deleteEventData } from "../utils/accountData";
+import { sessionMeta } from "../utils/sessions";
 
 const norm = (s) => s.trim().toLowerCase();
 
@@ -10,7 +11,9 @@ const norm = (s) => s.trim().toLowerCase();
 // ponytail: attendees is one array updated read-modify-write, so two tabs editing the
 // same event at once can overwrite each other. Fine for one host; move to per-attendee
 // docs if staff accounts arrive.
-export function useEventActions({ clubId, events, hostName, timeZone, notify }) {
+export function useEventActions({ clubId, club, events, hostName, timeZone, notify }) {
+  // The club copy every event carries (Find session reads it); see utils/sessions.js.
+  const meta = () => (club ? sessionMeta(clubId, club) : {});
   const eventsCol = () => collection(db, "clubs", clubId, "events");
   const eventRef = (id) => doc(db, "clubs", clubId, "events", id);
   const requestRef = (eventId, requestId) => doc(db, "clubs", clubId, "events", eventId, "requests", requestId);
@@ -21,12 +24,12 @@ export function useEventActions({ clubId, events, hostName, timeZone, notify }) 
   // without reading the private account doc. Renaming the club later doesn't rewrite old events.
   const save = async (id, data) => {
     if (id) {
-      await updateDoc(eventRef(id), data);
+      await updateDoc(eventRef(id), { ...data, ...meta() });
       notify("Open play updated.");
       return id;
     }
     const created = await addDoc(eventsCol(), {
-      ...data, attendees: [], status: "scheduled", hostName, timeZone, createdAt: Date.now(),
+      ...data, attendees: [], status: "scheduled", hostName, timeZone, createdAt: Date.now(), ...meta(),
     });
     notify("Open play created.");
     return created.id;

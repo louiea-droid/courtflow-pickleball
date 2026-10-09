@@ -4,6 +4,7 @@ import { useClubDoc } from "./hooks/useClubDoc";
 import { useClubActions } from "./hooks/useClubActions";
 import { useEvents, useEventRequests } from "./hooks/useEvents";
 import { useEventActions } from "./hooks/useEventActions";
+import { useSessionSync } from "./hooks/useSessionSync";
 import { useEventPlayers } from "./hooks/useEventPlayers";
 import { useGameActions } from "./hooks/useGameActions";
 import { useJoinRequests, useMembers } from "./hooks/useMembership";
@@ -103,7 +104,8 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox 
   const { players: gamePlayers, loaded: gameLoaded } = useEventPlayers(ready && canManage ? clubId : null, route === "club-event" ? eventId : null);
 
   const hostName = club?.name || "";
-  const actions = useEventActions({ clubId, events, hostName, timeZone: display.timeZone, notify });
+  useSessionSync({ clubId, club, events, canManage });
+  const actions = useEventActions({ clubId, club, events, hostName, timeZone: display.timeZone, notify });
   const gameActions = useGameActions({ clubId, club, hostName, timeZone: display.timeZone, notify });
   const clubActions = useClubActions({ uid, name: acct.account?.name || acct.account?.clubName, notify });
   const openEvent = events.find((e) => e.id === eventId);

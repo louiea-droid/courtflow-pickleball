@@ -2,6 +2,7 @@ import { collection, deleteField, doc, getDoc, getDocs, updateDoc, writeBatch } 
 import { db } from "../firebase";
 import { eventBase } from "../utils/paths";
 import { nowIn } from "../utils/bookings";
+import { sessionMeta } from "../utils/sessions";
 import {
   bookingCostEntry, courtDocs, gameStartFields, playersToAdd, playNowEvent,
 } from "../utils/gameSession";
@@ -50,7 +51,7 @@ export function useGameActions({ clubId, club, hostName, timeZone, notify }) {
     const ref = doc(collection(db, "clubs", clubId, "events"));
     const event = playNowEvent({ account: acct, today: date, hm, timeZone, hostName, now });
     const batch = writeBatch(db);
-    batch.set(ref, event);
+    batch.set(ref, { ...event, ...sessionMeta(clubId, club) });
     courtDocs(event.courts, now).forEach((c) => batch.set(doc(ref, "courts", c.id), c.data));
     await batch.commit();
     return ref.id;
