@@ -4,12 +4,13 @@ import { endHM } from "../utils/bookings";
 import { formatHM, money } from "../utils/format";
 import { spotsLabel } from "../utils/sessions";
 
-// One open-play session of a public club, as a link to its event page (where a person books).
-export default function SessionCard({ session: s, mine, navigate }) {
-  const to = `/clubs/${encodeURIComponent(s.clubId)}/event/${encodeURIComponent(s.id)}`;
+// One open-play session of a public club. It links to the club's public booking page (/open-play), where anyone can send a
+// booking request; that page is its own screen, so this is a normal link (a full page load), not an in-app navigation.
+export default function SessionCard({ session: s, mine }) {
+  const to = `/open-play?club=${encodeURIComponent(s.clubId)}`;
   const full = spotsLabel(s).startsWith("Full");
   return (
-    <a className="session-card" href={to} onClick={(e) => { e.preventDefault(); navigate(to); }}>
+    <a className="session-card" href={to}>
       <DateTile date={s.date} />
       <span className="session-main">
         <b>{s.title || "Open play"}</b>

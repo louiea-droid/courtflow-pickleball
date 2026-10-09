@@ -18,6 +18,6 @@ export function useSessionSync({ clubId, club, events, canManage }) {
         stale.slice(i, i + 400).forEach((e) => batch.update(doc(db, "clubs", clubId, "events", e.id), meta));
         await batch.commit();
       }
-    })().catch(() => {}); // ponytail: a failed repair is retried the next time the page loads
+    })().catch((err) => console.warn("session sync failed", err)); // ponytail: a failed repair is retried the next time the page loads
   }, [clubId, canManage, key, events]); // eslint-disable-line react-hooks/exhaustive-deps
 }

@@ -110,7 +110,7 @@ export default function AccountApp() {
         ) : route === "clubs-find" ? (
           <FindClubs myClubs={clubs} navigate={navigate} />
         ) : (
-          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} navigate={navigate} />
+          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} friendships={friendships} inbox={inbox} navigate={navigate} />
         )}
       </main>
       {showDelete && (

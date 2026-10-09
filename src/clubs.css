@@ -111,7 +111,11 @@
 .home-ready-actions{display:flex;flex-wrap:wrap;gap:10px}
 
 /* ---- Home: your active session (hidden while there is no card) ---- */
-.home-active:not(:has(.queue-card)){display:none}
+.home-active,.home-upcoming{margin:24px 0 0}
+.home-active .club-section,.home-upcoming .club-section{margin:0 0 10px}
+.home-active-empty,.home-active-note{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:16px 20px;box-shadow:none}
+.home-active-empty p,.home-active-note p{margin:0;color:var(--muted);font-size:14.5px}
+.home-active:has(.queue-card) .home-active-empty{display:none}
 .queue-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin:0 0 10px;padding:18px 20px;border:1px solid var(--accent-line);border-left:4px solid var(--accent);border-radius:15px;background:color-mix(in srgb,var(--accent) 7%,var(--panel))}
 .queue-card-club{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:0 0 6px;font:700 16px "Space Grotesk"}
 .queue-live{display:inline-flex;align-items:center;gap:7px;font:700 12.5px "DM Sans";color:var(--accent-ink)}
@@ -301,3 +305,26 @@
   .session-card{grid-template-columns:auto minmax(0,1fr)}
   .session-side{grid-column:1 / -1;justify-items:start;text-align:left;flex-direction:row}
 }
+
+/* ---- Home: coming up, friends and inbox tiles, club list ---- */
+.home-day{margin:0 0 8px;color:var(--ink-2);font:700 13.5px "DM Sans"}
+.home-upcoming .session-group{margin:0 0 14px}
+.home-see-all{margin:2px 0 0}
+.session-skeleton{height:84px;border-radius:15px;background:linear-gradient(90deg,var(--soft),var(--soft-2),var(--soft));background-size:200% 100%;animation:session-shimmer 1.4s ease-in-out infinite}
+@keyframes session-shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.session-skeleton{animation:none}}
+.home-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:24px 0 24px}
+.home-tile{display:flex;align-items:center;gap:12px;min-height:60px;padding:10px 16px;border:1px solid var(--card-line);border-radius:15px;background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s ease,background .15s ease}
+.home-tile:hover{border-color:var(--accent-line);background:var(--hover)}
+.home-tile svg{flex-shrink:0;color:var(--accent-ink)}
+.home-tile span:not(.count-badge){display:grid;flex:1;min-width:0}
+.home-tile small{color:var(--muted);font-size:12.5px;font-weight:700}
+.home-tile .count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;padding:2px 7px;background:var(--accent);color:var(--on-accent,#fff)}
+.club-list{display:grid;gap:8px;margin:0 0 28px}
+.club-row{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 16px;border:1px solid var(--card-line);border-radius:13px;background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s ease,background .15s ease}
+.club-row:hover{border-color:var(--accent-line);background:var(--hover)}
+.club-row svg{flex-shrink:0;color:var(--accent-ink)}
+.club-row b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.club-row .pill{padding:3px 8px;font-size:10px}
+.club-row-new{justify-self:start;margin-top:2px}
+@media (max-width:560px){.home-tiles{grid-template-columns:minmax(0,1fr)}}

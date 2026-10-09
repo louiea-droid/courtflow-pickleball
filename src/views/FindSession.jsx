@@ -49,7 +49,7 @@ export default function FindSession({ clubs, navigate }) {
         <section className="session-group" key={g.date}>
           <h2 className="club-section">{dayHeading(g.date, today)}</h2>
           <div className="find-list">
-            {g.events.map((s) => <SessionCard key={`${s.clubId}/${s.id}`} session={s} mine={mine.has(s.clubId)} navigate={navigate} />)}
+            {g.events.map((s) => <SessionCard key={`${s.clubId}/${s.id}`} session={s} mine={mine.has(s.clubId)} />)}
           </div>
         </section>
       ))}
