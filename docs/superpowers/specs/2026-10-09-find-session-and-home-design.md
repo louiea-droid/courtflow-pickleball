@@ -22,7 +22,7 @@ Events live at `clubs/{clubId}/events/{eventId}`. A query across all clubs is a 
 
 - Title "Find session", sub "Open play and bookings from clubs near you, joined or not."
 - A date strip: Any day, Today, Tomorrow, then the next days that have sessions (up to 7 chips). A search box filters by club, title or place on the device.
-- Session cards grouped under a date heading ("Today, Fri Oct 9"): time and length, title, club name, spots left or "Full, waitlist open", fee, level. A card is a link to `/clubs/{clubId}/event/{eventId}` (public clubs show it to anyone signed in, where the person can book). A badge "Your club" when they are a member.
+- Session cards grouped under a date heading ("Today, Fri Oct 9"): time and length, title, club name, spots left or "Full, waitlist open", fee, level. A card is a plain link to the club's public booking page `/open-play?club={clubId}` (the in-app `/clubs/:id/event/:id` page is the managers' page), where anyone can send a booking request. Decision made while building; the booking page lists the whole club, not one event. A badge "Your club" when they are a member.
 - Empty states say what to do ("No sessions on this day. Try another day or Any day.").
 - Sidebar: "Find session" replaces the first Play entry; "Find a club" stays a second entry and a link on the page.
 

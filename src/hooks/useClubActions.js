@@ -1,4 +1,4 @@
-import { collection, doc, updateDoc, writeBatch } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
 import { membershipCopy, newClubDoc, validateClubInput } from "../utils/clubs";
 import { deleteClubData } from "../utils/accountData";
@@ -30,7 +30,20 @@ export function useClubActions({ uid, name, notify }) {
   const updateClub = async (clubId, patch) => {
     const next = { ...patch };
     if (typeof next.name === "string") next.nameLower = next.name.trim().toLowerCase();
-    await updateDoc(doc(db, "clubs", clubId), next);
+    if (typeof next.visibility === "string") {
+      // Public <-> private also flips the copy on the club's events (what Find session lists by) in the SAME batch, so the
+      // events can't stay public after the club goes private. If it fails, the whole save fails visibly.
+      // ponytail: one batch holds 500 writes; events past the first 499 are flipped by the managers' sync on the next page load.
+      const pub = next.visibility === "public";
+      const events = await getDocs(collection(db, "clubs", clubId, "events"));
+      const flips = events.docs.filter((e) => e.data().clubPublic !== (pub && !e.data().walkIn));
+      const batch = writeBatch(db);
+      batch.update(doc(db, "clubs", clubId), next);
+      flips.slice(0, 499).forEach((e) => batch.update(e.ref, { clubPublic: pub && !e.data().walkIn }));
+      await batch.commit();
+    } else {
+      await updateDoc(doc(db, "clubs", clubId), next);
+    }
     if (typeof next.name === "string") {
       try {
         await updateDoc(doc(db, "accounts", uid, "memberships", clubId), { clubName: next.name.trim() });

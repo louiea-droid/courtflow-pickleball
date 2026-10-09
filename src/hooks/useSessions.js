@@ -13,7 +13,8 @@ export function useSessions() {
     return onSnapshot(
       query(collectionGroup(db, "events"), where("clubPublic", "==", true), where("date", ">=", queryFromDate()), orderBy("date"), limit(100)),
       (s) => setState({
-        sessions: listedSessions(s.docs.map((d) => ({ ...d.data(), id: d.id, clubId: d.ref.parent.parent.id }))),
+        // Only events that live under a club (the query also sees any other `events` collection); the club id is the path's.
+        sessions: listedSessions(s.docs.filter((d) => d.ref.parent.parent?.parent?.id === "clubs").map((d) => ({ ...d.data(), id: d.id, clubId: d.ref.parent.parent.id }))),
         ready: true, error: false,
       }),
       () => setState({ sessions: [], ready: true, error: true }),

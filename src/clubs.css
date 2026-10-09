@@ -116,6 +116,9 @@
 .home-active-empty,.home-active-note{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:16px 20px;box-shadow:none}
 .home-active-empty p,.home-active-note p{margin:0;color:var(--muted);font-size:14.5px}
 .home-active:has(.queue-card) .home-active-empty{display:none}
+/* ponytail: the empty note waits ~1.2 s so it can't flash before the live queue cards have loaded; ActiveQueue could report "loaded" instead */
+.home-active-empty{animation:home-empty-in .25s ease 1.2s backwards}
+@keyframes home-empty-in{from{opacity:0}to{opacity:1}}
 .queue-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin:0 0 10px;padding:18px 20px;border:1px solid var(--accent-line);border-left:4px solid var(--accent);border-radius:15px;background:color-mix(in srgb,var(--accent) 7%,var(--panel))}
 .queue-card-club{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:0 0 6px;font:700 16px "Space Grotesk"}
 .queue-live{display:inline-flex;align-items:center;gap:7px;font:700 12.5px "DM Sans";color:var(--accent-ink)}
@@ -303,7 +306,7 @@
 .session-card .pill.live{background:var(--danger-soft);color:var(--danger-ink)}
 @media (max-width:560px){
   .session-card{grid-template-columns:auto minmax(0,1fr)}
-  .session-side{grid-column:1 / -1;justify-items:start;text-align:left;flex-direction:row}
+  .session-side{grid-column:1 / -1;justify-items:start;text-align:left}
 }
 
 /* ---- Home: coming up, friends and inbox tiles, club list ---- */

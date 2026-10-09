@@ -11,10 +11,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isClub(sessionId);
 
-      // Everything under a quick session is public to read, except leftover bookingRequests.
+      // Everything under a quick session is public to read, except leftover bookingRequests. `events` is never written here:
+      // the collection-group rule below would list it as a club's session.
       match /{coll}/{docId} {
         allow read: if coll != 'bookingRequests' || isClub(sessionId);
-        allow write: if isClub(sessionId);
+        allow write: if coll != 'events' && isClub(sessionId);
       }
     }
 
@@ -30,7 +31,10 @@ service cloud.firestore {
     match /accounts/{uid} {
       allow read, write: if isRealUser() && request.auth.uid == uid;
       match /{document=**} {
-        allow read, write: if isRealUser() && request.auth.uid == uid;
+        allow read, delete: if isRealUser() && request.auth.uid == uid;
+        // `events` under an account is old data from before clubs: it can be read and deleted, never written
+        // (the collection-group rule below would list it as a club's session).
+        allow create, update: if isRealUser() && request.auth.uid == uid && document[0] != 'events';
       }
     }
 
@@ -369,7 +373,15 @@ service cloud.firestore {
 
       match /events/{eventId} {
         allow read: if canSeeClub(clubId);
-        allow write: if isManager(clubId);
+        // clubPublic (the copy Find session lists by) must match the club, so a manager can't make a private club's events public.
+        // getAfter: switching the club in the same batch as its events is allowed. An update that leaves the flag alone is never blocked.
+        allow create: if isManager(clubId)
+          && (!('clubPublic' in request.resource.data)
+            || request.resource.data.clubPublic == (getAfter(clubPath(clubId)).data.visibility == 'public'));
+        allow update: if isManager(clubId)
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['clubPublic'])
+            || request.resource.data.clubPublic == (getAfter(clubPath(clubId)).data.visibility == 'public'));
+        allow delete: if isManager(clubId);
 
         match /requests/{requestId} {
           // The request id is a random UUID the player keeps, so a single get works as "my booking"

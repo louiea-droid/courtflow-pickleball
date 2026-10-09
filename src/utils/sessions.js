@@ -15,16 +15,37 @@ export const sessionMeta = (clubId, club) => ({
   clubLocation: club.location || "",
 });
 
+// A walk-in ("Play now") is never listed, so it is never public, whatever the club is.
+export const metaFor = (event, meta) => (event.walkIn ? { ...meta, clubPublic: false } : meta);
+
 // True when an event's copy differs from the club (a missing field differs, so old events get repaired).
-export const needsSync = (event, meta) => Object.keys(meta).some((k) => event[k] !== meta[k]);
+export const needsSync = (event, meta) => {
+  const want = metaFor(event, meta);
+  return Object.keys(want).some((k) => event[k] !== want[k]);
+};
+
+// Events are writable by every club manager, and the query also returns whatever else is stored under an `events`
+// collection, so nothing is trusted: a bad shape is dropped here instead of crashing a screen later.
+const optional = (v, type) => v === undefined || typeof v === type;
+function zoneOk(zone) {
+  if (zone === undefined) return true;
+  try { new Intl.DateTimeFormat("en-US", { timeZone: zone }); return typeof zone === "string"; } catch { return false; }
+}
+export const validSession = (e) => Boolean(e) && typeof e === "object"
+  && typeof e.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(e.date)
+  && typeof e.startTime === "string" && /^\d{2}:\d{2}$/.test(e.startTime)
+  && optional(e.durationMins, "number") && optional(e.fee, "number") && optional(e.maxPlayers, "number")
+  && optional(e.title, "string") && optional(e.level, "string") && optional(e.clubName, "string") && optional(e.clubLocation, "string")
+  && (e.attendees === undefined || Array.isArray(e.attendees)) && zoneOk(e.timeZone);
 
 // The query's lower bound: yesterday in UTC, so no time zone is cut off. Exact filtering is listedSessions.
 export const queryFromDate = (now = new Date()) => new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
 
-// Not a walk-in, not ended, and its scheduled time not past in its own zone; a live game stays listed. Soonest first.
+// Well formed, not a walk-in, not ended, and its scheduled time not past in its own zone (the same rule as the club's
+// public booking page, so a card never leads to a page that doesn't list it; a live game shows while it is within its time). Soonest first.
 export const listedSessions = (events, now = new Date()) =>
   events
-    .filter((e) => !e.walkIn && e.status !== "ended" && (e.status === "live" || !hasEnded(e, nowIn(e.timeZone || FALLBACK_ZONE, now))))
+    .filter((e) => validSession(e) && !e.walkIn && e.status !== "ended" && !hasEnded(e, nowIn(e.timeZone || FALLBACK_ZONE, now)))
     .sort(byStart);
 
 export function spotsLabel(event) {

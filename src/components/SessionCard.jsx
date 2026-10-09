@@ -1,7 +1,7 @@
 import { Clock, MapPin } from "lucide-react";
 import DateTile from "./DateTile";
 import { endHM } from "../utils/bookings";
-import { formatHM, money } from "../utils/format";
+import { formatDay, formatHM, money } from "../utils/format";
 import { spotsLabel } from "../utils/sessions";
 
 // One open-play session of a public club. It links to the club's public booking page (/open-play), where anyone can send a
@@ -13,7 +13,7 @@ export default function SessionCard({ session: s, mine }) {
     <a className="session-card" href={to}>
       <DateTile date={s.date} />
       <span className="session-main">
-        <b>{s.title || "Open play"}</b>
+        <b>{s.title || "Open play"}<span className="sr-only">, {formatDay(s.date)}</span></b>
         <small className="session-club">
           {s.clubName}
           {mine && <span className="pill">Your club</span>}

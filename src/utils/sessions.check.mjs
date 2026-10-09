@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { dateChips, dayHeading, filterSessions, groupByDate, listedSessions, needsSync, queryFromDate, sessionMeta, spotsLabel } from "./sessions.js";
+import { dateChips, dayHeading, filterSessions, groupByDate, listedSessions, metaFor, needsSync, queryFromDate, sessionMeta, spotsLabel } from "./sessions.js";
 
 const club = { name: "Ace Club", visibility: "public", location: "Manila" };
 assert.deepEqual(sessionMeta("c1", club), { clubPublic: true, clubId: "c1", clubName: "Ace Club", clubLocation: "Manila" });
@@ -20,10 +20,26 @@ const now = new Date("2026-10-09T10:30:00Z");
 const listed = listedSessions([
   ev("past", "2026-10-09", "08:00"), ev("later", "2026-10-09", "15:00"), ev("tomorrow", "2026-10-10", "09:00"),
   ev("walk", "2026-10-09", "16:00", { walkIn: true }), ev("ended", "2026-10-11", "09:00", { status: "ended" }),
-  ev("live", "2026-10-09", "09:00", { status: "live" }), // started earlier but still live: listed
+  ev("live", "2026-10-09", "09:00", { status: "live", durationMins: 120 }), // live and still within its time: listed
+  ev("forgotten", "2026-10-09", "07:00", { status: "live" }), // live but its time is long past: not listed (the booking page agrees)
 ], now);
 assert.deepEqual(listed.map((e) => e.id), ["live", "later", "tomorrow"]);
 assert.equal(listedSessions([ev("tz", "2026-10-09", "09:00", { timeZone: "Asia/Manila" })], now).length, 0); // 17:30 in Manila: over
+
+// Anything malformed (events are writable by every club manager) is dropped, never thrown on
+const junk = [
+  { id: "n1", date: "2026-10-09" }, { id: "n2", date: 20261009, startTime: "15:00" }, { id: "n3", date: "2026-10-09", startTime: "3pm" },
+  ev("n4", "2026-10-09", "15:00", { fee: "free" }), ev("n5", "2026-10-09", "15:00", { title: { a: 1 } }),
+  ev("n6", "2026-10-09", "15:00", { timeZone: "Mars/Base" }), ev("n7", "2026-10-09", "15:00", { attendees: "x" }), ev("n8", "2026-10-09", "15:00", { durationMins: "9" }),
+  null, "text",
+];
+assert.deepEqual(listedSessions([...junk, ev("ok", "2026-10-09", "15:00")], now).map((e) => e.id), ["ok"]);
+
+// A walk-in is never public, whatever the club is
+assert.equal(metaFor({ walkIn: true }, meta).clubPublic, false);
+assert.equal(metaFor({}, meta).clubPublic, true);
+assert.equal(needsSync({ walkIn: true, ...meta, clubPublic: false }, meta), false);
+assert.equal(needsSync({ walkIn: true, ...meta }, meta), true); // a walk-in flagged public is repaired
 
 assert.equal(spotsLabel({ maxPlayers: 0, attendees: [] }), "Open");
 assert.equal(spotsLabel(ev("a", "d", "t", { attendees: [{}, {}, {}, {}] })), "Full, waitlist open");
