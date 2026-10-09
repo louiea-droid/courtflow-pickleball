@@ -1,15 +1,25 @@
 import { useEffect, useState } from "react";
-import { Building2, CalendarSearch, House, Menu, MessageSquare, UserPlus, Users, X } from "lucide-react";
+import { Building2, CalendarSearch, House, Menu, MessageSquare, PanelLeft, UserPlus, Users, X } from "lucide-react";
 import AccountMenu from "./AccountMenu";
 import { clubPath } from "../utils/clubs";
 
 // The one sidebar for every signed-in screen in the hub and club area (a drawer behind a menu button on
 // phones). Home, Play (find a club, friends with a count of requests waiting, the inbox with a count of unread chats), My clubs (a link to the page of all your clubs, with the clubs listed under
 // it; the open club expands in place to its screens: `club` = { id, name, tabs: [{ to, label, Icon, current,
-// badge, badgeText }] }), and the account menu at the bottom. Creating a club and the quick session live on
+// badge, badgeText }] }). The account menu lives in the sticky header across the top (with the button that collapses the
+// sidebar to an icon rail on a wide screen; the choice is remembered). Creating a club and the quick session live on
 // Home. `active` highlights a place: "hub" | "sessions" | "find" | "friends" | "inbox" | "clubs".
 export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null, friendRequests = 0, inboxUnread = 0 }) {
   const [open, setOpen] = useState(false);
+  // Wide screens: the sidebar is a fixed rail that can collapse to icons. A data attribute on <html> carries the state to the CSS.
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem("courtflow.sideCollapsed") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    document.documentElement.dataset.acctSide = collapsed ? "collapsed" : "";
+    try { localStorage.setItem("courtflow.sideCollapsed", collapsed ? "1" : "0"); } catch { /* private mode: it just won't be remembered */ }
+    return () => { delete document.documentElement.dataset.acctSide; };
+  }, [collapsed]);
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
@@ -19,7 +29,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
 
   const go = (to) => (e) => { e.preventDefault(); setOpen(false); navigate(to); };
   const link = (to, label, Icon, current, extra) => (
-    <a key={to} className="acct-link" href={to} aria-current={current ? "page" : undefined} onClick={go(to)}>
+    <a key={to} className="acct-link" href={to} title={label} aria-current={current ? "page" : undefined} onClick={go(to)}>
       {Icon && <Icon size={17} />}<span>{label}</span>{extra}
     </a>
   );
@@ -30,10 +40,14 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
   return (
     <>
       <header className="acct-topbar">
-        <button className="acct-menu-btn" type="button" aria-label="Open menu" aria-expanded={open} aria-controls="acct-side" onClick={() => setOpen(true)}>
+        <button className="acct-menu-btn acct-open" type="button" aria-label="Open menu" aria-expanded={open} aria-controls="acct-side" onClick={() => setOpen(true)}>
           <Menu size={20} />
         </button>
+        <button className="acct-collapse" type="button" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} aria-pressed={collapsed} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((c) => !c)}>
+          <PanelLeft size={18} />
+        </button>
         <a className="acct-brand" href="/" onClick={go("/")}><img src="/images/courtflow.png" alt="" /><b>CourtFlow</b></a>
+        <AccountMenu name={name} email={email} onSignOut={onSignOut} navigate={navigate} />
       </header>
       <div className={`overlay${open ? " show" : ""}`} onClick={() => setOpen(false)} />
       <aside className={`acct-side${open ? " open" : ""}`} id="acct-side">
@@ -81,7 +95,6 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
           </nav>
           )}
         </div>
-        <AccountMenu name={name} email={email} onSignOut={onSignOut} navigate={navigate} />
       </aside>
     </>
   );

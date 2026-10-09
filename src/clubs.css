@@ -12,8 +12,8 @@
 .acct-brand b{font:700 17px "Space Grotesk"}
 .acct-menu-btn{display:inline-grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--side-ink)}
 .acct-menu-btn:hover{background:var(--side-hover)}
-.acct-side-close,.acct-topbar{display:none}
-.acct-side-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:6px 0 12px;border-bottom:1px solid var(--side-line);scrollbar-width:thin;scrollbar-color:var(--side-line) transparent}
+.acct-side-close{display:none}
+.acct-side-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:6px 0 12px;scrollbar-width:thin;scrollbar-color:var(--side-line) transparent}
 .acct-link{display:flex;align-items:center;gap:10px;min-height:44px;margin:2px 0;padding:0 12px;border-radius:10px;color:var(--side-muted);font-weight:700;font-size:13.5px;text-decoration:none;transition:background .15s ease,color .15s ease}
 .acct-link svg{flex-shrink:0}
 .acct-link span:first-of-type{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -27,26 +27,36 @@
 .acct-side-sub{margin:0 0 6px 20px;padding-left:6px;border-left:1px solid var(--side-line)}
 .acct-side-sub .acct-side-sub{margin-left:8px}
 .acct-side-label{margin:0 0 2px;padding:0 12px;color:var(--side-muted);font-size:12px;font-weight:700}
-/* the account menu, dark and opening upward */
-.acct-side .account-menu{width:100%}
-.acct-side .account-menu-trigger{width:100%;padding:6px 10px 6px 6px;border-radius:12px;border-color:#29362e;background:#141d18;color:var(--side-ink)}
-.acct-side .account-menu-trigger:hover{border-color:#3a4a3f;background:#1a251f}
-.acct-side .account-menu-trigger-copy{flex:1}
-.acct-side .account-menu-trigger-copy b{max-width:none}
-.acct-side .account-menu-trigger-copy small,.acct-side .account-menu-chevron{color:var(--side-muted)}
-.acct-side .account-menu-avatar{background:color-mix(in srgb,var(--accent) 24%,transparent);color:var(--accent-bright)}
-.acct-side .account-menu-panel{top:auto;bottom:calc(100% + 8px);left:0;right:auto;width:100%;border-color:#29362e;background:#141d18;box-shadow:0 -16px 40px #0009}
-.acct-side .account-menu-identity{border-bottom-color:#29362e}
-.acct-side .account-menu-identity b{color:var(--side-ink)}
-.acct-side .account-menu-identity span{color:var(--side-muted)}
-.acct-side .account-menu-item{color:#c9d2cc}
-.acct-side .account-menu-item:hover{background:var(--side-hover);color:#fff}
-.acct-side .account-menu-item svg{color:var(--side-muted)}
+/* ---- Header: sticky across the top of every page (collapse button left, account menu in the corner) ---- */
+.acct-shell{--header-h:56px;--side-w:248px}
+[data-acct-side="collapsed"] .acct-shell{--side-w:68px}
+.acct-side{width:var(--side-w);transition:width .2s ease}
+.acct-topbar{position:fixed;top:0;left:var(--side-w);right:0;z-index:30;display:flex;align-items:center;gap:8px;height:var(--header-h);padding:0 var(--page-gutter);background:var(--bg);border-bottom:1px solid var(--card-line);transition:left .2s ease}
+.acct-topbar .account-menu{margin-left:auto}
+.acct-topbar .acct-brand,.acct-topbar .acct-open{display:none}
+.acct-collapse{display:inline-grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--ink-2);cursor:pointer}
+.acct-collapse:hover{background:var(--soft);color:var(--ink)}
+.acct-collapse:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+/* the rail: icons only, labels in the tooltip */
+@media (min-width:861px){
+  .acct-main{padding-top:calc(var(--header-h) + 22px)}
+  [data-acct-side="collapsed"] .acct-side{padding:14px 8px}
+  [data-acct-side="collapsed"] .acct-link span:first-of-type,[data-acct-side="collapsed"] .acct-side-label,[data-acct-side="collapsed"] .acct-side-sub,[data-acct-side="collapsed"] .acct-brand b{display:none}
+  [data-acct-side="collapsed"] .acct-link{justify-content:center;padding:0;position:relative}
+  [data-acct-side="collapsed"] .acct-link .count-badge{position:absolute;top:4px;right:4px;padding:1px 5px;font-size:9px}
+  [data-acct-side="collapsed"] .acct-side-top{justify-content:center}
+  [data-acct-side="collapsed"] .acct-brand{padding:0}
+}
 .acct-main{flex:1 1 0;min-width:0;max-width:var(--page-max);padding-left:var(--page-gutter);padding-right:var(--page-gutter)}
 @media (max-width:860px){
   .acct-shell{display:block}
-  .acct-topbar{display:flex;align-items:center;gap:4px;position:sticky;top:0;z-index:30;padding:4px 10px;background:var(--nav)}
+  .acct-topbar{position:sticky;left:auto;right:auto;height:auto;gap:4px;padding:4px 10px;background:var(--nav);border-bottom:0}
+  .acct-topbar .acct-brand{display:flex}
+  .acct-topbar .acct-open{display:inline-grid}
+  .acct-collapse{display:none}
   .acct-topbar .acct-brand{padding:0 4px}
+  .acct-topbar .account-menu-trigger{padding:4px;border-color:#29362e;background:#141d18}
+  .acct-topbar .account-menu-trigger-copy,.acct-topbar .account-menu-chevron{display:none}
   .acct-side{position:fixed;left:0;top:0;bottom:0;width:min(280px,86vw);transform:translateX(-100%);visibility:hidden;transition:transform .3s var(--ease),visibility 0s .3s}
   .acct-side.open{transform:none;visibility:visible;transition-delay:0s;box-shadow:20px 0 50px #0004}
   .acct-side-close{display:inline-grid}
