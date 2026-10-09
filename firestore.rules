@@ -119,8 +119,14 @@ service cloud.firestore {
     function inChat(chatId) {
       return chatData(chatId).kind == 'club' ? isMember(chatData(chatId).clubId) : request.auth.uid in chatData(chatId).members;
     }
-    function validTail(d) {
-      return d.lastText is string && d.lastText.size() <= 100 && d.lastBy == request.auth.uid && nearNow(d.lastAt);
+    // The chat's last line must point (lastId) at a message written in the same request or before, by the same person,
+    // at the same time: nobody can bump a chat's last line or unread dot without really writing a message.
+    function validTail(chatId, d) {
+      return d.lastText is string && d.lastText.size() <= 100 && d.lastBy == request.auth.uid && nearNow(d.lastAt)
+        && d.lastId is string && d.lastId.matches('[A-Za-z0-9_-]{1,64}')
+        && existsAfter(/databases/$(database)/documents/chats/$(chatId)/messages/$(d.lastId))
+        && getAfter(/databases/$(database)/documents/chats/$(chatId)/messages/$(d.lastId)).data.from == request.auth.uid
+        && getAfter(/databases/$(database)/documents/chats/$(chatId)/messages/$(d.lastId)).data.createdAt == d.lastAt;
     }
     function friendsNow(a, b) {
       return exists(/databases/$(database)/documents/friendships/$(a + '_' + b))
@@ -156,7 +162,7 @@ service cloud.firestore {
       // A person may "get" a chat that doesn't exist yet (a club's, or a direct one with their own id in its name): a refused
       // read ends a listener for good, and startDm looks before it creates. Nothing is revealed: it just isn't there.
       allow get: if isRealUser() && (resource == null
-        ? ((chatId.matches('club_.+') && isMember(chatId.replace('club_', '')))
+        ? ((chatId.matches('club_.+') && isMember(chatId.replace('^club_', '')))
             || chatId.matches('dm_' + request.auth.uid + '_.+') || chatId.matches('dm_.+_' + request.auth.uid))
         : (resource.data.kind == 'club' ? isMember(resource.data.clubId) : request.auth.uid in resource.data.members));
       // A person lists their direct conversations with where('members', 'array-contains', uid).
@@ -173,8 +179,8 @@ service cloud.firestore {
           && nearNow(request.resource.data.createdAt)));
       allow update: if isRealUser() && request.resource.data.kind == resource.data.kind
         && (resource.data.kind == 'club' ? isMember(resource.data.clubId) : request.auth.uid in resource.data.members)
-        && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText', 'lastAt', 'lastBy'])
-              && validTail(request.resource.data))
+        && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText', 'lastAt', 'lastBy', 'lastId'])
+              && validTail(chatId, request.resource.data))
           // After the newest message is deleted the preview is rewritten (text only): in a club by that line's author or a
           // manager, in a direct conversation by either person.
           || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText'])
@@ -183,6 +189,8 @@ service cloud.firestore {
       allow delete: if isRealUser()
         && (resource.data.kind == 'club' ? isOwner(resource.data.clubId) : request.auth.uid in resource.data.members);
 
+      // ponytail: if a chat document is ever deleted on its own (no screen does it) its messages can't be reached any more, because
+      // every message rule reads the chat; deleteClubData / deleteDirectChats wipe the messages first for that reason.
       match /messages/{id} {
         allow read: if isRealUser() && inChat(chatId);
         allow create: if isRealUser() && inChat(chatId)
@@ -193,7 +201,7 @@ service cloud.firestore {
           && request.resource.data.name == (chatData(chatId).kind == 'club'
             ? get(memberPath(chatData(chatId).clubId)).data.name
             : chatData(chatId).names[request.auth.uid])
-          && request.resource.data.text is string && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 1000
+          && request.resource.data.text is string && request.resource.data.text.trim().size() >= 1 && request.resource.data.text.size() <= 1000
           && nearNow(request.resource.data.createdAt);
         allow delete: if isRealUser() && inChat(chatId)
           && (chatData(chatId).kind == 'dm' || resource.data.from == request.auth.uid || isManager(chatData(chatId).clubId));

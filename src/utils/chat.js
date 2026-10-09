@@ -24,7 +24,8 @@ export const messageDoc = (uid, name, text, now) => ({
 });
 
 export const chatPreview = (text = "") => text.replace(/\s+/g, " ").trim().slice(0, PREVIEW_MAX);
-export const chatTail = (uid, text, now) => ({ lastText: chatPreview(text), lastAt: now, lastBy: uid });
+// `lastId` is the message this line comes from; the rules check it is a real message by the same person at the same time.
+export const chatTail = (uid, text, now, lastId) => ({ lastText: chatPreview(text), lastAt: now, lastBy: uid, lastId });
 
 // Unread = a line newer than the person's read position that someone else wrote.
 export const isUnread = (chat, readAt, uid) => chat.lastAt > (readAt || 0) && chat.lastBy !== uid;

@@ -10,7 +10,6 @@ import { useJoinRequests, useMembers } from "./hooks/useMembership";
 import { removeMyCopy, useMembershipActions } from "./hooks/useMembershipActions";
 import { useMyClubs } from "./hooks/useMyClubs";
 import { useFriendships } from "./hooks/useFriends";
-import { useInbox } from "./hooks/useChats";
 import { useChatActions } from "./hooks/useChatActions";
 import { clubChatId } from "./utils/chat";
 import { friendBuckets } from "./utils/friends";
@@ -52,7 +51,7 @@ const MembersOnly = (props) => <Restricted text="This page is for the club's mem
 
 // Everything under /clubs/:id. It loads the club and this person's role, applies the club's theme
 // and time zone, and routes to the screens. Managers get the open play and settings screens.
-export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
+export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox }) {
   const uid = acct.user.uid;
   const info = useClubDoc(uid, clubId);
   const { club, role, isMember, canManage, isOwner } = info;
@@ -91,7 +90,6 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
   // The short wait covers the moment right after joining, when the card can arrive before the record.
   const { clubs: myClubs } = useMyClubs(uid);
   const { friendships } = useFriendships(uid);
-  const inbox = useInbox(uid, myClubs);
   const chatActions = useChatActions({ uid, name: personName });
   const hasCard = myClubs.some((c) => c.id === clubId);
   useEffect(() => {

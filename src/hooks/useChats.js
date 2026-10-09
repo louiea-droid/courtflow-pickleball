@@ -84,18 +84,18 @@ export function useInbox(uid, clubs) {
 // The latest messages of a chat, oldest first, live: 100 at first, 100 more each time "Load earlier" is used
 // (the same query with a bigger limit, so the newest stay live too).
 const PAGE = 100;
+// The caller keys the screen by chat id, so a new chat starts again at one page.
 export function useMessages(chatId) {
-  const [state, setState] = useState({ messages: [], ready: false });
+  const [state, setState] = useState({ messages: [], ready: false, max: PAGE });
   const [max, setMax] = useState(PAGE);
-  useEffect(() => { setMax(PAGE); }, [chatId]);
   useEffect(() => {
-    setState((s) => (s.chatId === chatId ? s : { messages: [], ready: false, chatId }));
     if (!firebaseConfigured || !chatId) return undefined;
     return onSnapshot(
       query(collection(db, "chats", chatId, "messages"), orderBy("createdAt", "desc"), limit(max)),
-      (s) => setState({ messages: s.docs.map((d) => ({ id: d.id, ...d.data() })).reverse(), ready: true, chatId }),
-      () => setState({ messages: [], ready: true, chatId }),
+      (s) => setState({ messages: s.docs.map((d) => ({ id: d.id, ...d.data() })).reverse(), ready: true, max }),
+      () => setState({ messages: [], ready: true, max }),
     );
   }, [chatId, max]);
-  return { messages: state.messages, ready: state.ready, hasMore: state.messages.length >= max, loadMore: () => setMax((m) => m + PAGE) };
+  // hasMore compares with the limit the shown messages were loaded under, so the button doesn't blink while a page loads.
+  return { messages: state.messages, ready: state.ready, hasMore: state.messages.length >= state.max, loadMore: () => setMax((m) => m + PAGE) };
 }

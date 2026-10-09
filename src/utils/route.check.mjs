@@ -79,4 +79,9 @@ assert.equal(chatIdOf("/inbox"), null);
 assert.equal(chatIdOf("/inbox/a%20b/"), "a b");
 assert.equal(chatIdOf("/friends"), null);
 
+// A malformed %-escape in the address must not throw (it would blank the whole app)
+assert.equal(chatIdOf("/inbox/%E0"), "%E0");
+assert.equal(clubIdOf("/clubs/%E0/members"), "%E0");
+assert.equal(eventIdOf("/clubs/abc/event/%E0"), "%E0");
+
 console.log("route.check: ok");

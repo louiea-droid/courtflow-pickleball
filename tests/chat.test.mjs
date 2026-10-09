@@ -13,6 +13,7 @@ const quick = env.authenticatedContext("q1", { firebase: { sign_in_provider: "an
 const legacy = env.authenticatedContext("c1", { email: "club1@courtflow.local", firebase: { sign_in_provider: "password" } }).firestore();
 const own = real("own"), mgr = real("mgr"), mem = real("mem"), mem2 = real("mem2"), stranger = real("stranger");
 const now = () => Date.now();
+const T0 = now(); // the time of the 't_*' messages that chat last-line updates point at
 const DAY = 86400000;
 
 // Clubs "pub" and "priv": owner, a manager, two members. A chat already exists on "pub" with one message from mem2.
@@ -28,6 +29,7 @@ async function seed({ chat = true } = {}) {
     if (chat) {
       for (const id of ["pub", "priv"]) await setDoc(doc(db, `chats/club_${id}`), { kind: "club", clubId: id, title: id, lastText: "", lastAt: 0, lastBy: "", createdAt: 1 });
       await setDoc(doc(db, "chats/club_pub/messages/m2"), { from: "mem2", name: "mem2", text: "hello", createdAt: now() });
+      for (const uid of ["own", "mgr", "mem", "mem2"]) await setDoc(doc(db, `chats/club_pub/messages/t_${uid}`), { from: uid, name: uid, text: "hi there", createdAt: T0 });
     }
   });
 }
@@ -59,6 +61,7 @@ await seed({ chat: false });
 for (const db of [mem, mgr, own]) await assertSucceeds(getDoc(doc(db, "chats/club_pub")));
 for (const [, db] of outsiders) await assertFails(getDoc(doc(db, "chats/club_pub")));
 await assertFails(getDoc(doc(mem, "chats/club_nosuchclub")));
+await assertFails(getDoc(doc(mem, "chats/club_club_pub"))); // "club_" is only taken off the front
 await assertFails(getDoc(doc(mem, "chats/dm_a_b")));
 
 // ---- Reading: members only, and only their own club's chat
@@ -79,11 +82,16 @@ await assertFails(getDocs(collection(mem, "chats/club_priv/messages")));
 
 // ---- The last line on the chat: tail fields only, as yourself, at about the current time
 await seed();
-const tail = (uid, extra = {}) => ({ lastText: "hi there", lastAt: now(), lastBy: uid, ...extra });
+// The last line must point (lastId) at a real message by the same person, with the same time: nobody can bump a chat without writing.
+const tail = (uid, extra = {}) => ({ lastText: "hi there", lastAt: T0, lastBy: uid, lastId: `t_${uid}`, ...extra });
 await assertSucceeds(updateDoc(doc(mem, "chats/club_pub"), tail("mem")));
 await assertSucceeds(updateDoc(doc(mgr, "chats/club_pub"), tail("mgr")));
 await assertFails(updateDoc(doc(mem, "chats/club_pub"), tail("mem2"))); // as someone else
 await assertFails(updateDoc(doc(mem, "chats/club_pub"), tail("mem", { lastAt: now() - DAY }))); // stale
+await assertFails(updateDoc(doc(mem, "chats/club_pub"), tail("mem", { lastId: "t_mem2" }))); // someone else's message
+await assertFails(updateDoc(doc(mem, "chats/club_pub"), tail("mem", { lastId: "nope" }))); // no such message
+await assertFails(updateDoc(doc(mem, "chats/club_pub"), { lastText: "hi there", lastAt: T0, lastBy: "mem" })); // no lastId
+await assertFails(updateDoc(doc(mem, "chats/club_pub"), tail("mem", { lastAt: T0 + 1000 }))); // not the message's time
 await assertFails(updateDoc(doc(mem, "chats/club_pub"), tail("mem", { lastText: "x".repeat(101) })));
 await assertFails(updateDoc(doc(mem, "chats/club_pub"), tail("mem", { title: "Mine now" })));
 await assertFails(updateDoc(doc(mem, "chats/club_pub"), tail("mem", { clubId: "priv" })));
@@ -113,6 +121,7 @@ await assertFails(setDoc(m(mem, "b3"), msg("mem", { name: "" })));
 await assertFails(setDoc(m(mem, "b3b"), msg("mem", { name: "Club owner" }))); // someone else's name (or any name that isn't yours)
 await assertFails(setDoc(m(mem, "b3c"), msg("mem", { name: "mem2" })));
 await assertFails(setDoc(m(mem, "b4"), msg("mem", { text: "" })));
+await assertFails(setDoc(m(mem, "b4b"), msg("mem", { text: "   " }))); // only spaces
 await assertFails(setDoc(m(mem, "b5"), msg("mem", { text: "x".repeat(1001) })));
 await assertFails(setDoc(m(mem, "b6"), msg("mem", { extra: 1 })));
 await assertFails(setDoc(m(mem, "b7"), msg("mem", { createdAt: now() - DAY }))); // back-dated
@@ -121,8 +130,8 @@ await assertFails(setDoc(m(mem, "b9"), msg("mem", { text: 5 })));
 for (const [, db] of outsiders) await assertFails(setDoc(m(db, "c1"), msg("stranger")));
 // ...and the pair of writes the app sends: the message plus the chat's last line, in one batch
 const batch = writeBatch(mem);
-batch.set(m(mem, "d1"), msg("mem"));
-batch.update(doc(mem, "chats/club_pub"), tail("mem"));
+batch.set(m(mem, "d1"), msg("mem", { createdAt: T0 }));
+batch.update(doc(mem, "chats/club_pub"), tail("mem", { lastId: "d1" }));
 await assertSucceeds(batch.commit());
 
 // A removed member loses the chat on the next request
@@ -221,6 +230,7 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   const db = ctx.firestore();
   await setDoc(dmRef(db, "me", "bea"), dm("me", "bea", { viaClub: "pub" }));
   await setDoc(doc(db, "chats/dm_bea_me/messages/x1"), { from: "bea", name: "bea", text: "hi", createdAt: now() });
+  for (const uid of ["me", "bea"]) await setDoc(doc(db, `chats/dm_bea_me/messages/t_${uid}`), { from: uid, name: uid, text: "hey", createdAt: T0 });
 });
 const mine = (db, uid) => query(collection(db, "chats"), where("members", "array-contains", uid));
 for (const db of [me, bea]) {
@@ -241,7 +251,7 @@ await assertFails(getDoc(doc(me, "chats/dm_bea_cy")));
 await assertFails(getDoc(doc(cy, "chats/dm_bea_me")));
 
 // Updating the last line: either member, tail only, as yourself
-const dmTail = (uid, extra = {}) => ({ lastText: "hey", lastAt: now(), lastBy: uid, ...extra });
+const dmTail = (uid, extra = {}) => ({ lastText: "hey", lastAt: T0, lastBy: uid, lastId: `t_${uid}`, ...extra });
 await assertSucceeds(updateDoc(doc(me, "chats/dm_bea_me"), dmTail("me")));
 await assertSucceeds(updateDoc(doc(bea, "chats/dm_bea_me"), dmTail("bea")));
 await assertFails(updateDoc(doc(me, "chats/dm_bea_me"), dmTail("bea"))); // as the other person
@@ -283,6 +293,7 @@ await seedDm();
 await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(dmRef(ctx.firestore(), "me", "cy"), dm("me", "cy"));
   await setDoc(dmRef(ctx.firestore(), "me", "bea"), dm("me", "bea", { viaClub: "pub" }));
+  await setDoc(doc(ctx.firestore(), "chats/dm_bea_me/messages/t_me"), { from: "me", name: "me", text: "hey", createdAt: T0 });
   await deleteDoc(doc(ctx.firestore(), "friendships/cy_me"));
   await deleteDoc(doc(ctx.firestore(), "clubs/pub/members/bea"));
 });

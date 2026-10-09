@@ -43,7 +43,7 @@ export default function Inbox({ uid, name, clubs, clubsReady, inbox, chatId, nav
         <div className="inbox-main">
           {chat ? (
             <ChatPane
-              chat={chat} uid={uid} canModerate={canModerate} actions={actions} onBack={() => navigate("/inbox")}
+              key={chat.id} chat={chat} uid={uid} canModerate={canModerate} actions={actions} onBack={() => navigate("/inbox")}
               unread={isUnread(chat, reads[chat.id]?.at, uid)}
             />
           ) : chatId && ready ? (

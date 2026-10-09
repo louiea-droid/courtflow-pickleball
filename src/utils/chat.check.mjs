@@ -20,7 +20,7 @@ assert.equal(messageDoc("u1", "n".repeat(80), "x", 1).name.length, 60);
 
 assert.equal(chatPreview("a\nb\n\nc"), "a b c");
 assert.equal(chatPreview("x".repeat(150)).length, 100);
-assert.deepEqual(chatTail("u1", "hi there", 9), { lastText: "hi there", lastAt: 9, lastBy: "u1" });
+assert.deepEqual(chatTail("u1", "hi there", 9, "m1"), { lastText: "hi there", lastAt: 9, lastBy: "u1", lastId: "m1" });
 
 assert.equal(isUnread({ lastAt: 10, lastBy: "u2" }, 5, "u1"), true);
 assert.equal(isUnread({ lastAt: 10, lastBy: "u2" }, 10, "u1"), false);   // read at the same moment

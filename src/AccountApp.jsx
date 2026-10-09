@@ -81,7 +81,7 @@ export default function AccountApp() {
   }
 
   if (clubId && route.startsWith("club")) {
-    return <ClubApp key={clubId} acct={acct} clubId={clubId} route={route} eventId={eventId} navigate={navigate} />;
+    return <ClubApp key={clubId} acct={acct} clubId={clubId} route={route} eventId={eventId} navigate={navigate} inbox={inbox} />;
   }
 
   const ownedNames = clubs.filter((c) => c.role === "owner").map((c) => c.clubName);

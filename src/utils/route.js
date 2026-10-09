@@ -1,5 +1,8 @@
 // Which page a path belongs to. main.jsx picks the page from it; AccountApp and ClubApp use it
 // for screens. Unknown paths, and the old pre-club URLs (/host, /event/...), go to the hub.
+// decodeURIComponent throws on a bad %-escape, which would blank the whole app: keep the raw text instead.
+const decode = (s) => { try { return decodeURIComponent(s); } catch { return s; } };
+
 export function routeOf(pathname) {
   const path = pathname.replace(/\/+$/, "") || "/";
   if (path === "/live") return "live";
@@ -28,17 +31,17 @@ export function routeOf(pathname) {
 // "/clubs/<id>/..." -> "<id>" (decoded), else null. "/clubs/new" and "/clubs/find" are not clubs.
 export function clubIdOf(pathname) {
   const m = pathname.replace(/\/+$/, "").match(/^\/clubs\/([^/]+)/);
-  return m && !["new", "find"].includes(m[1]) ? decodeURIComponent(m[1]) : null;
+  return m && !["new", "find"].includes(m[1]) ? decode(m[1]) : null;
 }
 
 // "/inbox/<chatId>" -> "<chatId>" (decoded), else null. The open chat is a parameter of the one inbox screen.
 export function chatIdOf(pathname) {
   const m = pathname.replace(/\/+$/, "").match(/^\/inbox\/([^/]+)$/);
-  return m ? decodeURIComponent(m[1]) : null;
+  return m ? decode(m[1]) : null;
 }
 
 // "/clubs/<id>/event/<eventId>[/game | /queue]" -> "<eventId>" (decoded), else null.
 export function eventIdOf(pathname) {
   const m = pathname.replace(/\/+$/, "").match(/^\/clubs\/[^/]+\/event\/([^/]+?)(?:\/(?:game|queue))?$/);
-  return m ? decodeURIComponent(m[1]) : null;
+  return m ? decode(m[1]) : null;
 }

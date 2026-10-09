@@ -51,7 +51,7 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
     setBusy(true);
     setError("");
     try {
-      await actions.sendMessage(chat.id, text);
+      await actions.sendMessage(chat, text);
       stick.current = true; // your own message always scrolls into view
       setText("");
     } catch {
