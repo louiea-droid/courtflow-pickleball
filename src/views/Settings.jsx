@@ -20,9 +20,6 @@ const AFTER_GAME_OPTIONS = [
 const STREAK_OPTIONS = [2, 3, 4, 5].map((n) => ({ value: n, label: `${n} wins in a row` }));
 const ON_OFF = [{ value: "off", label: "Off" }, { value: "on", label: "On" }];
 const SHOW_HIDE = [{ value: "show", label: "Shown" }, { value: "hide", label: "Hidden" }];
-const THEME_OPTIONS = [
-  { value: "light", label: "Light" }, { value: "dark", label: "Dark" }, { value: "system", label: "Match device" },
-];
 const CLOCK_OPTIONS = [{ value: "12", label: "12-hour" }, { value: "24", label: "24-hour" }];
 const TIME_ZONES = [
   ["Asia/Manila", "Philippines"], ["Asia/Singapore", "Singapore / Malaysia"], ["Asia/Hong_Kong", "Hong Kong"],
@@ -305,16 +302,6 @@ export default function Settings({
       <div className="account-group">
         <div className="eyebrow">Display</div>
         <div className="panel account-panel">
-          <SettingsRow
-            title={isClub ? "Booking page and Live Board theme" : "Theme"}
-            body={isClub
-              ? "What players and TV screens see. In the app you always use your own Light or Dark choice from Profile."
-              : "Match device follows each phone or TV’s own light or dark setting."}
-          >
-            <div className="account-select">
-              <Select value={display.theme} onChange={(theme) => onSetDisplay({ theme })} options={THEME_OPTIONS} />
-            </div>
-          </SettingsRow>
           <SettingsRow title="Theme color" body="Buttons, highlights, and active tabs. Pick a preset or your own.">
             <ColorSwatches label="Theme color" cssVar="--accent" presets={ACCENT_PRESETS} value={display.accent} onChange={(accent) => onSetDisplay({ accent })} />
           </SettingsRow>

@@ -22,6 +22,8 @@ assert.equal(club.ownerId, "u1");
 assert.equal(club.createdAt, 99);
 assert.deepEqual(club.defaults, { courts: 2, format: "Doubles", mode: "Balanced" });
 assert.equal(club.rules.maxWinStreak, 2);
+assert.equal(club.rules.avoidRepeatPartners, true);
+assert.equal(club.ruleDefaultsVersion, 1);
 assert.equal(club.display.timeZone, "Asia/Manila");
 assert.equal(newClubDoc({ name: "A" }, "u1", 1).visibility, "public");
 // Settings are copies, so editing one club never changes another.

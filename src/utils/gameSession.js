@@ -2,6 +2,7 @@
 // so everything below is covered by gameSession.check.mjs.
 import { normalizeMode, seedSession } from "../data/constants.js";
 import { splitAttendees } from "./bookings.js";
+import { isValidSkillLevel } from "./courtLevels.js";
 import { matchCount } from "./stats.js";
 
 // What the queue app sees as `session`: the event doc (its game settings and title) with the
@@ -29,6 +30,13 @@ export function gameStartFields(account = {}, now) {
     mode: normalizeMode(d.mode) || seedSession.mode,
     autoRotate: true,
   };
+}
+
+export function checkInFields(skill, now) {
+  if (!isValidSkillLevel(skill)) {
+    throw new RangeError("Choose a valid skill level before checking in.");
+  }
+  return { checked: true, checkedAt: now, skill };
 }
 
 export const courtDocs = (count, now) => Array.from({ length: count }, (_, i) => ({

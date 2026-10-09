@@ -41,7 +41,6 @@ export default function AccountLogin({ onSignIn, onSignUp, onGoogle, onReset }) 
     return () => { window.removeEventListener("pointermove", move); cancelAnimationFrame(raf); };
   }, []);
 
-
   const go = (next) => { setMode(next); setError(""); setInfo(""); setShowPassword(false); };
 
   // Every action resolves to "" or a message; busy blocks double submits.
@@ -146,7 +145,10 @@ export default function AccountLogin({ onSignIn, onSignUp, onGoogle, onReset }) 
 
         {mode !== "reset" && (
           <p className="clublogin-foot">
-            Just trying it out? <a href="/club">Start a quick session</a>. No account needed.
+            <a href="/club" className="clublogin-quick-link">
+              <span>Start a quick session</span>
+              <span className="clublogin-quick-note">No account needed</span>
+            </a>
           </p>
         )}
       </div>

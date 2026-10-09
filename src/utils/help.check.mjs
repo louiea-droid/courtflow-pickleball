@@ -31,6 +31,7 @@ assert.ok(queueText.includes("since their last game"), "the tie-break is who has
 assert.ok(queueText.includes("moved you back"), "the host can move a player back");
 assert.ok(queueText.includes("Quick session") && queueText.includes("Club games don't have one yet"), "the Live Board belongs to the Quick session");
 assert.ok(queueText.includes("member of the club"), "the active session card is for club members");
+assert.ok(queueText.includes("Back to game") && queueText.includes("Not Checked In by player name"), "the active game shortcut and player search are documented");
 assert.ok(queueText.includes("New arrivals"), "Winners / Losers groups new arrivals");
 assert.ok(queueText.includes("Auto-rotation"), "Auto-rotation is explained");
 assert.ok(!queueText.includes("the one who checked in earlier goes first"), "the old tie-break sentence is gone");

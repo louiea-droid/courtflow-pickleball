@@ -23,6 +23,7 @@ export function routeOf(pathname) {
     if (rest === "/host") return "club-host";
     if (rest === "/settings") return "club-settings";
     if (rest === "/members") return "club-members";
+    if (rest === "/announcements") return "club-announcements";
     if (/^\/event\/[^/]+$/.test(rest)) return "club-event";
     if (/^\/event\/[^/]+\/game$/.test(rest)) return "club-game";
     if (/^\/event\/[^/]+\/queue$/.test(rest)) return "club-queue";

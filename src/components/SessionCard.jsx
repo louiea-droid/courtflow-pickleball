@@ -6,12 +6,12 @@ import { spotsLabel } from "../utils/sessions";
 
 // One open-play session of a public club. It links to the club's public booking page (/open-play), where anyone can send a
 // booking request; that page is its own screen, so this is a normal link (a full page load), not an in-app navigation.
-export default function SessionCard({ session: s, mine }) {
+export default function SessionCard({ session: s, mine, compact = false }) {
   const to = `/open-play?club=${encodeURIComponent(s.clubId)}`;
   const full = spotsLabel(s).startsWith("Full");
   return (
-    <a className="session-card" href={to}>
-      <DateTile date={s.date} />
+    <a className={`session-card${compact ? " home-session-card" : ""}`} href={to}>
+      {compact ? <span className="session-date"><DateTile date={s.date} /></span> : <DateTile date={s.date} />}
       <span className="session-main">
         <b>{s.title || "Open play"}<span className="sr-only">, {formatDay(s.date)}</span></b>
         <small className="session-club">

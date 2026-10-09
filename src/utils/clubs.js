@@ -1,6 +1,6 @@
 // Pure rules for clubs: input checks, the documents a new club starts with, what each role may do,
 // and club URLs. No Firestore here (that is useClubActions), so all of it is covered by clubs.check.mjs.
-import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES, seedSession } from "../data/constants.js";
+import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES, RULE_DEFAULTS_VERSION, seedSession } from "../data/constants.js";
 
 export const VISIBILITIES = ["public", "private"];
 
@@ -26,6 +26,7 @@ export function newClubDoc({ name, description = "", location = "", visibility =
     createdAt: now,
     defaults: { courts: seedSession.courts, format: seedSession.format, mode: seedSession.mode },
     rules: { ...DEFAULT_RULES },
+    ruleDefaultsVersion: RULE_DEFAULTS_VERSION,
     costDefaults: { ...DEFAULT_COST },
     live: { ...DEFAULT_LIVE },
     display: { ...DEFAULT_DISPLAY },

@@ -9,7 +9,7 @@ export const MAJOR = [
     summary: "Where you land after signing in: what to do next, the session you are in, and what is coming up.",
     steps: [
       "Use Find session to look for open play, or Quick session to start a game with no setup.",
-      "Your active session shows a live game you are checked in to: whether you are playing, up next, or your place in line. It appears when you belong to that club and the host has linked your account (you booked while signed in, or the host picked you).",
+      "Your active session shows a live game you are checked in to: whether you are playing, up next, or your place in line. It appears when you belong to that club and the host has linked your account (you booked while signed in, or the host picked you). Use View queue on the card to see the live list.",
       "Coming up lists the next open play from public clubs by date, with your own clubs first within a day. Tap one to open that club's booking page.",
       "The Friends and Inbox tiles show how many friends and chats you have, with a badge when something is waiting.",
       "My clubs lists the clubs you belong to. Create a club from there if you host.",
@@ -70,7 +70,7 @@ export const MAJOR = [
     summary: "A manager turns a booking into a live game: check players in, run the courts and record every result.",
     steps: [
       "On an event, choose Proceed to game and tick the players who came (nothing is ticked for you). The event goes live, the courts come from the club's defaults, and a booking-fee entry is added to Cost when the session has a fee.",
-      "Check players in as they arrive. Only checked-in players can be picked for a court.",
+      "Check players in as they arrive and ask them to choose the skill level that best fits their game. You can adjust a self-rating later from Players. Only checked-in players can be picked for a court.",
       "Start the next match for a free court, or let Auto-fill seat open courts from the queue. With Auto-rotation on, a court refills by itself after each result; turn it off to place every match yourself.",
       "When a match ends, record the winner. Everyone rotates back through the queue. If you tap the wrong team, Undo is offered for 10 seconds.",
       "Late arrival? Use Add players to game. Walk-ins with no booking: use Play now, which makes a four-hour game with no seats.",
@@ -91,7 +91,8 @@ export const MAJOR = [
       "Quick session: open it from Home or the sign-in page. No account is needed. Your session lives in this browser, so it is still there when you come back, and clearing the browser's site data starts a fresh one. (If you are signed in, it follows your account instead.)",
       "Add players and set their skill level, check them in as they arrive, and start matches from the dashboard.",
       "End Session archives the day's stats and resets everyone's game count for next time.",
-      "Playing in a club's game as a member of the club? Your active session on Home shows your place, and View queue opens the live list for the club's members.",
+      "Playing in a club's game as a member of the club? Your active session on Home shows your place, and View queue opens the live list for the club's members. Back to game appears in the top header while your live game is active.",
+      "On the Queue tab, search Not Checked In by player name to find someone quickly. Clear the search to show everyone again.",
     ],
     shots: [
       { src: "/help/quick-session.png", w: 1280, h: 900, alt: "The Quick session dashboard with two courts and a waiting queue.", caption: "Quick session: courts and the waiting queue." },
@@ -111,7 +112,7 @@ export const MAJOR = [
       },
       {
         title: "Seeing where you stand",
-        body: "On Home, Your active session says you are playing on a court, that you are up next, or \"You're #3 in line\" with how many players are ahead and about how many minutes to wait. The wait assumes a game lasts about 15 minutes and that games on the busy courts end around halfway through; it says \"about\" because some modes pick by other rules. View queue shows the same list live for the club's members, and in a Quick session the Live Board shows it on a TV.",
+        body: "On Home, Your active session says you are playing on a court, that you are up next, or \"You're #3 in line\" with how many players are ahead and about how many minutes to wait. The wait assumes a game lasts about 15 minutes and that games on the busy courts end around halfway through; it says \"about\" because some modes pick by other rules. Back to game in the top header opens your live game from any screen; View queue on the Home card shows the live list for the club's members, and in a Quick session the Live Board shows it on a TV.",
       },
       {
         title: "The modes",
@@ -131,7 +132,7 @@ export const MAJOR = [
       },
       {
         title: "Game alerts and repeat partners",
-        body: "The club can switch on a game-length alert, which warns the host when a match runs long, and an avoid-repeat-partners rule for Skill Separated and Winners / Losers (Balanced does it by itself).",
+        body: "The club can switch on a game-length alert, which warns the host when a match runs long. Avoid repeat partners starts on for Skill Separated and Winners / Losers; Balanced always does it.",
       },
       {
         title: "The Live Board",

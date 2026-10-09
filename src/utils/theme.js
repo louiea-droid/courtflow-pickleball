@@ -1,9 +1,11 @@
 import { DEFAULT_DISPLAY } from "../data/constants.js";
 
-// Applies the club's theme (Settings > Display) to <html>. styles.css does the
-// rest: data-theme sets color-scheme, and every color derives from these vars.
+// Applies theme and club color tokens to <html>. The global theme preference
+// is separate from club colors so display settings cannot override appearance.
 // Cached in localStorage so index.html can apply it before first paint.
 const THEME_CACHE_KEY = "courtflow-theme";
+const GLOBAL_THEME_KEY = "courtflow-global-theme";
+const THEMES = new Set(["light", "dark", "system"]);
 let applied = "";
 
 // Text color for a solid background: white unless white would fall under 3:1
@@ -17,10 +19,21 @@ export function readableOn(hex) {
   return 1.05 / (luminance + 0.05) >= 3 ? "#fff" : "#0f1b15";
 }
 
-// `persist: false` (the public booking page) applies the colors without touching the host's
-// cached theme, so a host previewing their page on their own device keeps their own look.
-export function applyTheme(display = {}, { persist = true } = {}) {
+// `persist: false` applies colors without replacing the last globally cached theme.
+export function getGlobalTheme(fallback = "system") {
+  try {
+    const theme = localStorage.getItem(GLOBAL_THEME_KEY);
+    return THEMES.has(theme) ? theme : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function applyTheme(display = {}, { persist = true, global = false } = {}) {
   const { theme, accent, team1, team2 } = { ...DEFAULT_DISPLAY, ...display };
+  if (global) {
+    try { localStorage.setItem(GLOBAL_THEME_KEY, theme); } catch { /* private mode */ }
+  }
   const vars = {
     "--accent": accent, "--team1": team1, "--team2": team2,
     "--on-accent": readableOn(accent), "--on-team1": readableOn(team1), "--on-team2": readableOn(team2),
@@ -35,14 +48,26 @@ export function applyTheme(display = {}, { persist = true } = {}) {
   try { localStorage.setItem(THEME_CACHE_KEY, key); } catch { /* private mode */ }
 }
 
+export function applyGlobalTheme(display = {}, options) {
+  return applyTheme({ ...display, theme: getGlobalTheme() }, options);
+}
+
+export function setGlobalTheme(theme) {
+  const css = (name, fallback) => document.documentElement.style.getPropertyValue(name) || fallback;
+  applyTheme({
+    theme,
+    accent: css("--accent", DEFAULT_DISPLAY.accent),
+    team1: css("--team1", DEFAULT_DISPLAY.team1),
+    team2: css("--team2", DEFAULT_DISPLAY.team2),
+  }, { global: true });
+}
+
 export function isDarkTheme() {
   const t = document.documentElement.dataset.theme;
   return t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
 }
 
-// Device-only switch for screens with no club loaded (login). Keeps the
-// cached colors; the club’s saved theme takes over once it loads.
+// Theme switch for screens without account settings. Keeps the current colors.
 export function setDeviceTheme(theme) {
-  const css = (name) => document.documentElement.style.getPropertyValue(name) || undefined;
-  applyTheme({ theme, accent: css("--accent"), team1: css("--team1"), team2: css("--team2") });
+  setGlobalTheme(theme);
 }

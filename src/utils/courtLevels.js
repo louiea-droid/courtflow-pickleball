@@ -9,6 +9,10 @@ export const SKILL_LEVELS = [
 
 export const COURT_LEVEL_OPTIONS = ["Any Level", ...SKILL_LEVELS.map((t) => t.key)];
 
+export function isValidSkillLevel(skill) {
+  return SKILL_LEVELS.some((level) => level.stars === skill);
+}
+
 export function skillLevelLabel(skill) {
   const tier = SKILL_LEVELS.find((t) => t.stars === skill);
   return tier ? tier.key : "Unrated";

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy, KeyRound, Pencil, Trash2, X } from "lucide-react";
 import ChangePasswordDialog from "../components/ChangePasswordDialog";
 import PageTitle from "../components/PageTitle";
 import Select from "../components/Select";
+import { setGlobalTheme } from "../utils/theme";
 import { SettingsRow } from "./Settings";
 
 const THEMES = [
@@ -33,9 +34,11 @@ function FriendCode({ code }) {
 export default function Profile({ acct, onDelete }) {
   const account = acct.account;
   const name = account.name || account.clubName || "";
+  const [theme, setTheme] = useState(account.display?.theme || "light");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
   const [showPassword, setShowPassword] = useState(false);
+  useEffect(() => setTheme(account.display?.theme || "light"), [account.display?.theme]);
   const save = () => {
     const trimmed = draft.trim();
     if (trimmed && trimmed !== name) acct.updateAccount({ name: trimmed });
@@ -83,11 +86,15 @@ export default function Profile({ acct, onDelete }) {
           <SettingsRow hidden={!acct.hasPassword} title="Password" body="Can't be looked up or displayed, only changed.">
             <button className="outline" onClick={() => setShowPassword(true)}><KeyRound size={14} /> Change password</button>
           </SettingsRow>
-          <SettingsRow title="Appearance" body="Light, dark, or follow your device. Clubs use their own colors inside the club.">
+          <SettingsRow title="Appearance" body="Choose light, dark, or match your device. This applies throughout CourtFlow.">
             <div className="account-select">
               <Select
-                value={account.display?.theme || "light"}
-                onChange={(theme) => acct.updateAccount({ display: { ...account.display, theme } })}
+                value={theme}
+                onChange={(nextTheme) => {
+                  setTheme(nextTheme);
+                  setGlobalTheme(nextTheme);
+                  acct.updateAccount({ display: { ...account.display, theme: nextTheme } });
+                }}
                 options={THEMES}
               />
             </div>

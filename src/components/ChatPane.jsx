@@ -13,7 +13,7 @@ export const whenLabel = (ms) => (sameDay(ms) ? formatTime(ms) : formatDate(ms))
 
 // One conversation: the messages (plain text, never HTML) and the box to write in. `unread` is whether this
 // chat has a line the person hasn't seen; showing it marks it read. `canModerate`: a manager of the club.
-export default function ChatPane({ chat, uid, unread, canModerate, actions, onBack }) {
+export default function ChatPane({ chat, uid, unread, canModerate, actions, onBack, backLabel = "Back to all chats" }) {
   const { messages, ready, hasMore, loadMore } = useMessages(chat.id);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -75,7 +75,7 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
   return (
     <section className="chat-pane" aria-label={`Chat: ${title}`}>
       <header className="chat-head">
-        <button className="outline chat-back" type="button" onClick={onBack} aria-label="Back to all chats"><ArrowLeft size={16} /></button>
+        <button className="outline chat-back" type="button" onClick={onBack} aria-label={backLabel}><ArrowLeft size={16} /></button>
         <div>
           <h2>{title}</h2>
           {!direct && <p>Only members of this club can read and write here.</p>}

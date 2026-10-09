@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { ArrowLeft, CalendarDays, LayoutDashboard, MapPin, Settings as SettingsIcon, Users } from "lucide-react";
+import { ArrowLeft, CalendarDays, LayoutDashboard, MapPin, Megaphone, Play, Users } from "lucide-react";
 import { useClubDoc } from "./hooks/useClubDoc";
 import { useClubActions } from "./hooks/useClubActions";
 import { useEvents, useEventRequests } from "./hooks/useEvents";
@@ -12,22 +12,24 @@ import { removeMyCopy, useMembershipActions } from "./hooks/useMembershipActions
 import { useMyClubs } from "./hooks/useMyClubs";
 import { useFriendships } from "./hooks/useFriends";
 import { useChatActions } from "./hooks/useChatActions";
-import { clubChatId } from "./utils/chat";
+import { useAnnouncementActions, useAnnouncements } from "./hooks/useAnnouncements";
 import { friendBuckets } from "./utils/friends";
 import { applyDisplayPrefs } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import { isOver } from "./utils/bookings";
 import { uidBySeat } from "./utils/gameSession";
 import { ROLE_LABEL, clubPath } from "./utils/clubs";
-import { DEFAULT_DISPLAY } from "./data/constants";
+import { DEFAULT_DISPLAY, DEFAULT_RULES, RULE_DEFAULTS_VERSION } from "./data/constants";
 import ClubHome from "./views/ClubHome";
 import ClubMembers from "./views/ClubMembers";
 import ClubSettings from "./views/ClubSettings";
 import QueueView from "./views/QueueView";
 import Host from "./views/Host";
 import EventPage from "./views/EventPage";
+import ClubAnnouncements from "./views/ClubAnnouncements";
 import BookingModal from "./components/BookingModal";
 import ShareModal from "./components/ShareModal";
+import ClubHeaderActions from "./components/ClubHeaderActions";
 import GamePickModal from "./components/GamePickModal";
 import AccountSidebar from "./components/AccountSidebar";
 import JoinPanel from "./components/JoinPanel";
@@ -52,7 +54,7 @@ const MembersOnly = (props) => <Restricted text="This page is for the club's mem
 
 // Everything under /clubs/:id. It loads the club and this person's role, applies the club's theme
 // and time zone, and routes to the screens. Managers get the open play and settings screens.
-export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox }) {
+export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox, activeGame }) {
   const uid = acct.user.uid;
   const info = useClubDoc(uid, clubId);
   const { club, role, isMember, canManage, isOwner } = info;
@@ -64,13 +66,13 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox 
   const [gamePick, setGamePick] = useState(false);
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
+  const partnerRuleMigration = useRef("");
   const notify = (message, ms = 2200) => {
     clearTimeout(toastTimer.current);
     setToast({ message, action: null });
     toastTimer.current = setTimeout(() => setToast(null), ms);
   };
   const dismissToast = () => { clearTimeout(toastTimer.current); setToast(null); };
-
   const display = { ...DEFAULT_DISPLAY, ...club?.display };
   const fallbackZone = display.timeZone;
   // Public clubs show open play to everyone, private ones to members only (no listener for anyone else).
@@ -92,6 +94,8 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox 
   const { clubs: myClubs } = useMyClubs(uid);
   const { friendships } = useFriendships(uid);
   const chatActions = useChatActions({ uid, name: personName });
+  const { announcements, ready: announcementsReady, error: announcementsError } = useAnnouncements(ready && isMember ? clubId : null);
+  const announcementActions = useAnnouncementActions({ clubId, uid });
   const hasCard = myClubs.some((c) => c.id === clubId);
   useEffect(() => {
     if (!info.confirmed || isMember || !hasCard) return undefined;
@@ -108,9 +112,28 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox 
   const actions = useEventActions({ clubId, club, events, hostName, timeZone: display.timeZone, notify });
   const gameActions = useGameActions({ clubId, club, hostName, timeZone: display.timeZone, notify });
   const clubActions = useClubActions({ uid, name: acct.account?.name || acct.account?.clubName, notify });
+  useEffect(() => {
+    if (
+      !ready || !canManage || club.ruleDefaultsVersion === RULE_DEFAULTS_VERSION
+      || partnerRuleMigration.current === clubId
+    ) return;
+    partnerRuleMigration.current = clubId;
+    clubActions.updateClub(clubId, {
+      rules: { ...DEFAULT_RULES, ...club.rules, avoidRepeatPartners: true },
+      ruleDefaultsVersion: RULE_DEFAULTS_VERSION,
+    }).catch(() => notify("Couldn't enable repeat-partner avoidance for this club. Try again in Settings.", 4000));
+  }, [ready, canManage, clubId, club?.rules?.avoidRepeatPartners]);
   const openEvent = events.find((e) => e.id === eventId);
   const latestPayInfo = [...events].filter((e) => !e.walkIn).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]?.payInfo;
   const todayYmd = new Intl.DateTimeFormat("en-CA", { timeZone: display.timeZone }).format(new Date());
+  const publishAnnouncement = async (text) => {
+    await announcementActions.publish(text);
+    notify("Announcement posted.");
+  };
+  const removeAnnouncement = async (id) => {
+    await announcementActions.remove(id);
+    notify("Announcement deleted.");
+  };
 
   const playNow = async () => {
     try {
@@ -139,17 +162,18 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox 
   // Light or dark is always the person's own choice (Profile); the club only brings its accent and team
   // colors. persist: false keeps the person's cached theme for the hub.
   const personalTheme = acct.account?.display?.theme || "light";
-  if (ready) applyTheme({ ...display, theme: personalTheme }, { persist: false });
+  if (ready) applyTheme({ ...display, theme: personalTheme }, { persist: false, global: true });
 
   const toHub = (e) => { e.preventDefault(); navigate("/"); };
 
   // The same bar stays on screen while the club loads or when it can't be opened, so going from the hub
   // into a club never blanks the page.
-  const sidebar = (sideClub) => (
+  const sidebar = (sideClub, headerAction = null) => (
     <AccountSidebar
       active={null} name={acct.account?.name || acct.account?.clubName} email={acct.user?.email}
       onSignOut={acct.signOutUser} navigate={navigate} clubs={myClubs} club={sideClub}
       friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
+      headerAction={headerAction}
     />
   );
   const inShell = (content) => <div className="acct-shell">{sidebar(null)}<main className="acct-main">{content}</main></div>;
@@ -188,7 +212,13 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox 
               onJoined={() => navigate(base)}
             />
           )}
-          {canSee && <ClubHome canManage={canManage} events={events} fallbackZone={fallbackZone} base={base} navigate={navigate} onNew={() => setEventModal("new")} />}
+          {canSee && (
+            <ClubHome
+              canManage={canManage} isMember={isMember} events={events} fallbackZone={fallbackZone} base={base} navigate={navigate}
+              onNew={() => setEventModal("new")} announcements={announcements} announcementsReady={announcementsReady}
+              announcementsError={announcementsError} onViewAnnouncements={() => navigate(`${base}/announcements`)}
+            />
+          )}
         </>
       );
     }
@@ -197,10 +227,13 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox 
       return (
         <ClubMembers
           clubId={clubId} club={club} uid={uid} canManage={canManage} isOwner={isOwner}
-          requests={pendingRequests} actions={membership} navigate={navigate} notify={notify}
-          chat={{ ready: inbox.ready, exists: inbox.chats.some((c) => c.id === clubChatId(clubId)) }} chatActions={chatActions}
+          requests={pendingRequests} actions={membership} navigate={navigate} notify={notify} chatActions={chatActions}
         />
       );
+    }
+    if (route === "club-announcements") {
+      if (!isMember) return <MembersOnly base={base} navigate={navigate} />;
+      return <ClubAnnouncements announcements={announcements} ready={announcementsReady} error={announcementsError} canManage={canManage} onPublish={publishAnnouncement} onRemove={removeAnnouncement} />;
     }
     if (route === "club-queue") {
       if (!isMember) return <MembersOnly base={base} navigate={navigate} />;
@@ -211,7 +244,6 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox 
       return (
         <Host
           events={events} requestsByEvent={requestsByEvent} fallbackZone={fallbackZone} base={base} navigate={navigate}
-          onNew={() => setEventModal("new")} onPlayNow={playNow} onShare={() => setShowShare(true)}
         />
       );
     }
@@ -234,21 +266,34 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox 
     );
   };
 
-  // One sidebar entry per club screen; the event page keeps "Open play" active.
-  const tab = (to, label, Icon, routes, extra) => ({ to, label, Icon, current: routes.includes(route), ...extra });
-  const sideClub = {
-    id: clubId, name: club.name,
-    tabs: !isMember ? [] : [
-      tab(base, "Overview", LayoutDashboard, ["club"]),
-      ...(canManage ? [tab(`${base}/host`, "Open play", CalendarDays, ["club-host", "club-event"])] : []),
-      tab(`${base}/members`, "Members", Users, ["club-members"], canManage && pendingRequests.length > 0 ? { badge: pendingRequests.length, badgeText: "join requests waiting" } : {}),
-      ...(canManage ? [tab(`${base}/settings`, "Settings", SettingsIcon, ["club-settings"])] : []),
-    ],
-  };
+  // Club destinations live under the club name in the page header; the sidebar remains the club switcher.
+  const navTab = (to, label, Icon, routes, extra) => ({ to, label, Icon, current: routes.includes(route), ...extra });
+  const clubTabs = !isMember ? [] : [
+    navTab(base, "Overview", LayoutDashboard, ["club"]),
+    ...(canManage ? [navTab(`${base}/host`, "Open play", CalendarDays, ["club-host", "club-event", "club-game"])] : []),
+    navTab(`${base}/members`, "Members", Users, ["club-members"], canManage && pendingRequests.length > 0 ? { badge: pendingRequests.length, badgeText: "join requests waiting" } : {}),
+    navTab(`${base}/announcements`, "Announcements", Megaphone, ["club-announcements"]),
+  ];
+  const sideClub = { id: clubId, name: club.name, current: route === "club" };
+  const gamePath = activeGame?.gamePath || (route === "club-event" && openEvent?.status === "live"
+    ? `${base}/event/${eventId}/game`
+    : null);
+  const gameShortcut = gamePath ? (
+    <a
+      className="acct-header-game"
+      href={gamePath}
+      aria-label="Back to game"
+      title="Back to game"
+      onClick={(e) => { e.preventDefault(); navigate(gamePath); }}
+    >
+      <Play size={15} fill="currentColor" aria-hidden="true" />
+      <span>Back to game</span>
+    </a>
+  ) : null;
 
   return (
     <div className="acct-shell">
-      {sidebar(sideClub)}
+      {sidebar(sideClub, gameShortcut)}
       <main className="acct-main">
         <section className={`club-head${isMember ? "" : " solo"}`}>
           <div className="club-head-top">
@@ -258,7 +303,39 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox 
               {ROLE_LABEL[role] && <span className="pill">{ROLE_LABEL[role]}</span>}
               <span className="pill off">{club.visibility === "public" ? "Public club" : "Private club"}</span>
             </div>
+            {isMember && (
+              <ClubHeaderActions
+                clubId={clubId} canManage={canManage}
+                actions={membership} navigate={navigate} notify={notify}
+                onStartNew={() => setEventModal("new")} onPlayNow={playNow} onShareBookingPage={() => setShowShare(true)}
+              />
+            )}
           </div>
+          {clubTabs.length > 0 && (
+            <nav className="club-page-nav" aria-label={`${club.name} navigation`}>
+              {clubTabs.map((t) => (
+                <a
+                  key={t.to}
+                  className="club-page-nav-link"
+                  href={t.to}
+                  aria-current={t.current ? "page" : undefined}
+                  onClick={(e) => {
+                    if (t.onClick) t.onClick(e);
+                    else { e.preventDefault(); navigate(t.to); }
+                  }}
+                >
+                  <t.Icon size={16} />
+                  <span>{t.label}</span>
+                  {t.badge > 0 && (
+                    <>
+                      <span className="count-badge">{t.badge}</span>
+                      <span className="sr-only">{t.badgeText}</span>
+                    </>
+                  )}
+                </a>
+              ))}
+            </nav>
+          )}
           {route === "club" && club.location && <p className="club-location"><MapPin size={13} /> {club.location}</p>}
           {route === "club" && club.description && <p className="club-about">{club.description}</p>}
         </section>

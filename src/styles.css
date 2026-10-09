@@ -67,7 +67,7 @@ input:focus,select:focus{
 }
 
 /* ---------- App shell ---------- */
-.app{min-height:100vh;display:flex}
+.app{height:100vh;height:100dvh;min-height:0;display:flex;overflow:hidden}
 .loading{
   min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:14px;font:700 18px "Space Grotesk";color:var(--muted)
@@ -86,32 +86,36 @@ input:focus,select:focus{
 .overlay.show{opacity:1;pointer-events:auto}
 
 .sidebar{
-  width:var(--sidebar-w);background:var(--nav);border-right:1px solid light-dark(transparent,#1a241e);color:#eef6f0;min-height:100vh;min-height:100dvh;
-  padding:21px 15px;display:flex;flex-direction:column;
-  position:sticky;top:0;align-self:flex-start;height:100vh;height:100dvh;flex-shrink:0;
+  width:var(--sidebar-w);background:var(--nav);border-right:1px solid light-dark(transparent,#1a241e);color:#eef6f0;min-height:0;
+  padding:14px 13px;display:flex;flex-direction:column;
+  position:relative;align-self:stretch;height:100%;flex-shrink:0;overflow:hidden;
   transition:transform .3s var(--ease)
 }
+.app main::-webkit-scrollbar{width:6px}
+.app main::-webkit-scrollbar-track{background:transparent}
+.app main::-webkit-scrollbar-thumb{background:#405047;border:1px solid transparent;border-radius:99px;background-clip:padding-box}
+.app main::-webkit-scrollbar-thumb:hover{background:#66786c;background-clip:padding-box}
 .sidebar-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .sidebar-top .sidebar-close{display:none}
 
-.brand{display:flex;align-items:center;padding:3px 8px 15px}
-.mark{width:60px;height:60px;border-radius:0;background:transparent;color:#247943;display:grid;place-items:center;font:700 22px "Space Grotesk";transition:transform .3s var(--ease);object-fit:contain}
+.brand{display:flex;align-items:center;padding:0 6px 8px}
+.mark{width:48px;height:48px;border-radius:0;background:transparent;color:#247943;display:grid;place-items:center;font:700 22px "Space Grotesk";transition:transform .3s var(--ease);object-fit:contain}
 .brand:hover .mark{transform:rotate(-8deg) scale(1.15)}
 .brand b{font:700 18px "Space Grotesk";display:block}
 .wordmark-whole{display:block;height:38px;width:auto;mix-blend-mode:screen}
 .brand small,.session small{color:#909d94;font-size:11px}
 
 .session{
-  border:1px solid #29362e;background:#19231d;border-radius:14px;padding:11px;
-  display:flex;align-items:flex-start;gap:8px;color:var(--accent-bright);margin-bottom:16px
+  border:1px solid #29362e;background:#19231d;border-radius:14px;padding:9px;
+  display:flex;align-items:flex-start;gap:8px;color:var(--accent-bright);margin-bottom:10px
 }
 .session>svg{flex-shrink:0;margin-top:2px;animation:pulseDot 2.2s ease-in-out infinite}
 .session b{color:#eff7f0;font-size:12px;display:block}
 
-.mode-select{position:relative;margin-bottom:16px}
+.mode-select{position:relative;margin-bottom:10px}
 .mode-select-trigger{
   width:100%;display:flex;align-items:center;gap:8px;background:#141d18;border:1px solid #29362e;
-  border-radius:12px;padding:10px 12px;color:#eef6f0;cursor:pointer;
+  border-radius:12px;padding:8px 10px;color:#eef6f0;cursor:pointer;
   transition:background .15s ease,border-color .15s ease
 }
 .mode-select-trigger:hover{background:#1a251f;border-color:#3a4a3f}
@@ -136,8 +140,8 @@ input:focus,select:focus{
 
 nav{display:flex;flex-direction:column}
 .nav{
-  width:100%;border:0;background:transparent;color:#b8c4bc;padding:11px 12px;border-radius:10px;
-  display:flex;align-items:center;gap:10px;font-weight:700;text-align:left;margin:2px 0;
+  width:100%;border:0;background:transparent;color:#b8c4bc;padding:9px 12px;border-radius:10px;
+  display:flex;align-items:center;gap:10px;font-weight:700;text-align:left;margin:1px 0;
   transition:background .18s ease,color .18s ease,box-shadow .18s ease
 }
 .nav svg{width:16px;transition:transform .18s ease}
@@ -146,13 +150,15 @@ nav{display:flex;flex-direction:column}
 .nav:hover svg{transform:translateX(1px)}
 .nav:active{transform:scale(.98)}
 
-.sidebar-bottom{margin-top:auto;display:flex;flex-direction:column}
-.sidefoot{margin-top:16px;display:grid;gap:7px}
+.sidebar-bottom{margin-top:auto;display:flex;flex-direction:column;flex-shrink:0}
+.sidefoot{margin-top:10px;display:grid;gap:5px}
 .outline.dark{border-color:#3b493f;color:#eef6f0;background:transparent;transition:background .18s ease,border-color .18s ease}
 .outline.dark:hover{background:#1c2620;border-color:#4a5a4e}
 .sidebar-collapse-btn{color:#8a958e}
+.sidefoot .outline.dark,.sidebar-endsession{min-height:40px;padding:7px 10px;font-size:12px}
+.sidefoot .outline.dark svg,.sidebar-endsession svg{width:16px;height:16px;flex-shrink:0}
 .sidebar-endsession{
-  width:100%;border:0;border-radius:10px;padding:10px 14px;font-weight:800;
+  width:100%;border:0;border-radius:10px;font-weight:800;
   display:inline-flex;gap:8px;align-items:center;justify-content:center;
   color:#fff;background:linear-gradient(135deg,#ef5a4c,#c22a1f);
   box-shadow:0 6px 14px #c22a1f3d;
@@ -174,6 +180,12 @@ nav{display:flex;flex-direction:column}
 .sidebar.collapsed .outline.dark{justify-content:center;padding-left:0;padding-right:0}
 
 /* ---------- Main / topbar ---------- */
+.app main{
+  flex:1 1 0;width:100%;max-width:1480px;height:100%;min-width:0;min-height:0;
+  overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent
+}
+.app main::-webkit-scrollbar-thumb{background:var(--line-strong);border:1px solid transparent;border-radius:99px;background-clip:padding-box}
+.app main::-webkit-scrollbar-thumb:hover{background:var(--muted);background-clip:padding-box}
 main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .topbar{
   display:flex;justify-content:space-between;gap:18px;align-items:flex-start;
@@ -474,6 +486,37 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 
 /* Not-checked-in list: a quick check-in strip, deliberately lighter than the
    queue table above it — no stats columns, since Players already owns those. */
+.checkin-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:26px 0 10px}
+.checkin-heading .section-title{margin:0}
+.checkin-heading+.section-hint{margin:-2px 0 12px}
+.checkin-search{
+  width:min(100%,220px);min-height:38px;display:flex;align-items:center;gap:8px;
+  padding:0 8px 0 11px;border:1px solid var(--line);border-radius:10px;
+  color:var(--muted);background:var(--panel);transition:border-color .15s ease,box-shadow .15s ease
+}
+.checkin-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
+.checkin-search>svg{flex-shrink:0}
+.checkin-search input{
+  width:100%;height:36px;min-width:0;padding:0;border:0;border-radius:0;
+  color:var(--ink);background:transparent;font:500 12px "DM Sans",system-ui,sans-serif;
+  outline:none;box-shadow:none;appearance:none
+}
+.checkin-search input:focus{border-color:transparent;box-shadow:none}
+.checkin-search input::placeholder{color:var(--faint)}
+.checkin-search input[type="search"]::-webkit-search-cancel-button,
+.checkin-search input[type="search"]::-webkit-search-decoration,
+.checkin-search input[type="search"]::-webkit-search-results-button,
+.checkin-search input[type="search"]::-webkit-search-results-decoration{-webkit-appearance:none;appearance:none;display:none}
+.checkin-search-clear{
+  width:28px;height:28px;display:grid;place-items:center;flex-shrink:0;
+  padding:0;border:0;border-radius:7px;color:var(--muted);background:transparent
+}
+.checkin-search-clear:hover{color:var(--ink);background:var(--soft)}
+@media(max-width:560px){
+  .checkin-heading{align-items:stretch;flex-direction:column;gap:8px}
+  .checkin-search{width:100%;min-height:42px}
+  .checkin-search input{height:40px}
+}
 .checkin-list{display:flex;flex-wrap:wrap;gap:9px;padding:12px}
 .checkin-item{
   display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:99px;
@@ -669,6 +712,23 @@ form.confirm-modal .modalactions{margin-top:4px}
 .check{display:flex;gap:7px;align-items:center}
 .check input{width:auto;margin:0}
 .modalactions{display:flex;justify-content:flex-end;gap:8px}
+.modal.checkin-skill-modal{width:min(390px,100%);padding:20px}
+.checkin-skill-modal .modaltop{margin-bottom:10px}
+.checkin-skill-modal .modaltop h3{font-size:22px}
+.modal .checkin-skill-form{display:grid;gap:13px}
+.checkin-skill-form .checkin-skill-question{margin:0;color:var(--ink-2);font-size:14px;line-height:1.5}
+.checkin-skill-question b{color:var(--ink)}
+.checkin-skill-choice{display:grid;gap:2px}
+.checkin-skill-choice>span{color:var(--muted);font-size:12px;font-weight:700}
+.checkin-skill-form .star-rating{gap:3px;margin:2px 0 0}
+.checkin-skill-form .star-btn{min-width:40px;min-height:40px;justify-content:center}
+.checkin-skill-form .star-btn svg{width:19px;height:19px}
+.checkin-skill-form .star-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.checkin-skill-form .star-rating-value{font-size:12px}
+.checkin-skill-note{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.checkin-skill-form .modalactions{margin-top:2px}
+.checkin-skill-form .modalactions button{min-height:44px}
+.checkin-skill-form .modalactions .primary{flex:1}
 
 .share-linkbox{display:flex;gap:8px;margin-bottom:15px}
 .share-linkbox input{
@@ -890,11 +950,12 @@ form.confirm-modal .modalactions{margin-top:4px}
   .stat-leaderboard{grid-column:1/-1}
 }
 
-@media(max-width:760px){
+@media(max-width:860px){
   .sidebar{
-    position:fixed;top:0;left:0;width:min(280px,84vw);z-index:36;
-    transform:translateX(-100%);height:100vh;height:100dvh;overflow-y:auto
+    position:fixed;top:0;bottom:0;left:0;width:min(280px,84vw);height:100vh;height:100dvh;
+    z-index:36;transform:translateX(-100%);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none
   }
+  .sidebar::-webkit-scrollbar{display:none}
   .sidebar.open{transform:translateX(0);box-shadow:20px 0 50px #0004}
   .sidebar-top .sidebar-close{display:inline-flex;background:#1c2620;color:#eef6f0}
   .sidebar-close:hover{background:#26312a}
@@ -905,6 +966,14 @@ form.confirm-modal .modalactions{margin-top:4px}
   .sidebar.collapsed .nav span,.sidebar.collapsed .sidefoot span{display:inline}
   .sidebar.collapsed .brand,.sidebar.collapsed .nav,.sidebar.collapsed .outline.dark{justify-content:flex-start}
   .sidebar-collapse-btn{display:none}
+  .app main{width:100%}
+  .topbar .hamburger{display:inline-flex}
+}
+
+@media(max-width:760px){
+  .sidebar{
+    width:min(280px,84vw)
+  }
 
   /* Bottom room so the floating + button (52px at bottom:22px) never covers the last row. */
   main{padding:18px 18px 92px}
@@ -1127,6 +1196,14 @@ form.confirm-modal .modalactions{margin-top:4px}
 .attendee-name b{display:block;font-size:13.5px}
 .attendee-name small{color:var(--muted);font-size:11.5px}
 .pay-controls{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
+.pay-controls .pay-control{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 11px;border:1px solid var(--line);border-radius:99px;background:var(--panel);color:var(--ink-2);font:700 12px "DM Sans",system-ui,sans-serif;white-space:nowrap;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.pay-controls .pay-control:hover{background:var(--hover);border-color:var(--line-strong);color:var(--ink)}
+.pay-controls .pay-control:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pay-controls .pay-status.is-unpaid{background:var(--soft);color:var(--ink-2)}
+.pay-controls .pay-status.is-paid{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent-ink)}
+.pay-controls .pay-status.is-refunded{border-style:dashed;background:var(--soft);color:var(--ink-2)}
+.pay-controls .pay-method{color:var(--ink-2)}
+.pay-controls .pay-method svg:last-child{margin-left:1px;color:var(--muted)}
 .ref-input{
   width:130px;border:1px solid var(--line);border-radius:99px;padding:6px 10px;background:var(--panel);
   color:var(--ink);font:600 11.5px "DM Sans",system-ui,sans-serif
@@ -1260,17 +1337,102 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .event-head h1{margin:0 0 4px;font:700 28px "Space Grotesk";letter-spacing:-.5px}
 .event-head p{margin:0;color:var(--muted);font-size:13.5px}
 .event-head .date-tile{width:56px;height:62px}
-.pick-help{margin:0 0 10px;color:var(--muted);font-size:13px}
-.pick-tools{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
-.pick-list{display:flex;flex-direction:column;max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
-.pick-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.event-management{padding:20px}
+.event-game-status{margin:0 0 16px;padding:10px 12px;border:1px solid var(--accent-line);border-radius:11px;background:var(--accent-soft)}
+.event-game-status .booking-money{margin:0;color:var(--accent-ink)}
+.event-game-status .booking-money b{color:inherit;font-size:13px}
+.event-game-status.is-ended{border-color:var(--line);background:var(--soft)}
+.event-game-status.is-ended .booking-money{color:var(--ink-2)}
+.event-management-grid{display:grid;grid-template-areas:"roster" "tools";gap:20px}
+.event-roster{grid-area:roster;min-width:0}
+.event-tools{grid-area:tools;min-width:0;display:grid;align-content:start;gap:14px}
+.event-section-heading{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.event-section-heading h4{margin:0;font:700 15px "Space Grotesk"}
+.event-management .booking-block{margin-bottom:18px}
+.event-management .booking-block:last-child{margin-bottom:0}
+.event-management .booking-add{margin:0 0 10px}
+.event-management .booking-add input{min-height:44px}
+.event-management .booking-add button{min-height:44px}
+.event-empty{display:grid;gap:3px;padding:14px 2px 4px;color:var(--muted);font-size:12.5px}
+.event-empty b{color:var(--ink-2);font-size:13px}
+.event-fee-summary{display:grid;gap:9px;padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.event-fee-summary h3{margin:0 0 2px;font:700 14px "Space Grotesk"}
+.event-fee-summary>div{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px}
+.event-fee-summary>div b{color:var(--ink);font:700 15px "Space Grotesk";font-variant-numeric:tabular-nums}
+.event-game-tools{display:grid;gap:8px}
+.event-main-action,.event-secondary-action{width:100%;min-height:44px;justify-content:flex-start}
+.event-delete-action{display:inline-flex;align-items:center;justify-content:flex-start;gap:7px;min-height:40px;padding:7px 2px;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;color:var(--danger-ink);font:700 12px "DM Sans",system-ui,sans-serif;cursor:pointer}
+.event-delete-action:hover{color:var(--danger-ink);text-decoration:underline}
+.event-delete-action:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:5px}
+.event-management-walk-in .event-management-grid{display:block}
+@media(min-width:860px){
+  .event-management-grid{grid-template-areas:"roster tools";grid-template-columns:minmax(0,1fr) minmax(225px,260px);gap:24px}
+  .event-tools{position:sticky;top:20px;border-left:1px solid var(--line);padding-left:22px}
+  .event-management-walk-in .event-tools{border-left:0;padding-left:0}
+}
+@media(max-width:760px){
+  .event-management{padding:14px}
+  .event-management .booking-add{flex-direction:column}
+  .event-management .booking-add button{width:100%}
+}
+.modal.game-pick-modal{
+  display:flex;flex-direction:column;width:min(560px,100%);max-height:calc(100vh - 36px);max-height:calc(100dvh - 36px);
+  overflow:hidden;padding:20px
+}
+.game-pick-modal .modaltop{align-items:flex-start;margin-bottom:12px}
+.game-pick-modal .modaltop>div{min-width:0}
+.game-pick-modal .modaltop h3{font-size:23px;line-height:1.2}
+.game-pick-modal .modaltop .icon{width:44px;height:44px;flex-shrink:0}
+.game-pick-content{display:flex;flex:1 1 auto;flex-direction:column;gap:12px;min-height:0}
+.pick-help{margin:0;color:var(--muted);font-size:13px;line-height:1.45;max-width:58ch}
+.pick-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pick-toolbar-label{flex-shrink:0;color:var(--ink-2);font-size:12px;font-weight:700}
+.pick-tools{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.game-pick-modal .pick-tools .tiny{min-height:40px;padding:6px 10px;font-size:11px}
+.game-pick-modal .pick-tools .outline:focus-visible,
+.game-pick-modal .modalactions button:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px
+}
+.pick-list-heading{display:flex;align-items:center;gap:9px;margin:1px 0 -7px}
+.pick-list-heading h4{margin:0;font:700 15px "Space Grotesk"}
+.pick-list-heading>span{color:var(--muted);font-size:11px;font-weight:700}
+.pick-list{display:flex;flex:1 1 auto;flex-direction:column;min-height:0;max-height:min(46vh,380px);max-height:min(46dvh,380px);overflow:auto;border:1px solid var(--line);border-radius:13px;background:var(--panel);scrollbar-width:thin;scrollbar-color:var(--line-strong) var(--soft);overscroll-behavior:contain}
+.pick-row{position:relative;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:58px;padding:8px 11px;border-bottom:1px solid var(--line-soft);border-left:3px solid transparent;background:var(--panel);color:var(--ink);font-size:13px;font-weight:500;letter-spacing:normal;text-transform:none;cursor:pointer;transition:background .15s ease,border-color .15s ease}
 .pick-row:last-child{border-bottom:0}
 .pick-row:hover{background:var(--hover)}
-.pick-row.in{opacity:.55;cursor:default}
-.pick-row input{width:18px;height:18px;accent-color:var(--accent);flex-shrink:0}
-.pick-row b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:14px}
-.pick-tags{display:flex;gap:6px;flex-shrink:0}
-.pick-head{padding:8px 12px;border-bottom:1px solid var(--line);font:700 12px "Space Grotesk";color:var(--muted)}
+.pick-row:focus-within{z-index:1;outline:2px solid var(--accent);outline-offset:-2px}
+.pick-row.is-selected{border-left-color:var(--accent);background:var(--accent-soft)}
+.pick-row.in{background:var(--soft);cursor:default}
+.game-pick-modal .pick-row input[type="checkbox"]{
+  width:20px;height:20px;flex-shrink:0;margin:0;padding:0;border:0;border-radius:4px;background:transparent;
+  accent-color:var(--accent);appearance:auto;cursor:pointer;box-shadow:none
+}
+.game-pick-modal .pick-row input[type="checkbox"]:disabled{cursor:default}
+.pick-row>b{min-width:0;color:var(--ink);font-size:14px;font-weight:700;letter-spacing:normal;line-height:1.3;text-transform:none;overflow-wrap:anywhere}
+.pick-row.in>b{color:var(--ink-2)}
+.pick-tags{display:flex;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;gap:5px}
+.pick-status{display:inline-flex;align-items:center;min-height:26px;padding:4px 8px;border:1px solid transparent;border-radius:99px;font-size:10px;font-weight:800;letter-spacing:normal;line-height:1.1;text-transform:none;white-space:nowrap}
+.pick-status.is-paid{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent-ink)}
+.pick-status.is-unpaid{border-color:var(--warn-line);background:var(--warn-soft);color:var(--warn-ink)}
+.pick-status.is-refunded,.pick-status.is-in-game{border-color:var(--line);background:var(--soft);color:var(--ink-2)}
+.pick-status.is-waitlist{border-color:var(--info-line);background:var(--info-soft);color:var(--info-ink)}
+.pick-head{position:sticky;top:0;z-index:2;padding:9px 12px;border-bottom:1px solid var(--line);border-top:1px solid var(--line);background:var(--panel);font:700 12px "Space Grotesk";color:var(--muted)}
+.pick-empty{display:grid;gap:4px;padding:17px 14px;border:1px dashed var(--line-strong);border-radius:12px;background:var(--soft);color:var(--muted);font-size:12.5px;line-height:1.45}
+.pick-empty b{color:var(--ink-2);font-size:13px}
+.game-pick-modal .modalactions{flex-shrink:0;align-items:center;gap:9px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.game-pick-modal .modalactions button{min-height:44px}
+.game-pick-modal .modalactions .primary{min-width:145px}
+@media(max-width:520px){
+  .modal.game-pick-modal{max-height:calc(100vh - 20px);max-height:calc(100dvh - 20px);padding:16px}
+  .game-pick-modal .modaltop h3{font-size:21px}
+  .pick-toolbar{align-items:stretch;flex-direction:column;gap:6px}
+  .pick-tools{justify-content:stretch}
+  .game-pick-modal .pick-tools .tiny{flex:1 1 auto;padding:6px 8px}
+  .pick-row{grid-template-columns:20px minmax(0,1fr) auto;gap:8px;padding:8px}
+  .pick-tags{gap:4px}
+  .pick-status{min-height:24px;padding:4px 7px;font-size:9.5px}
+  .game-pick-modal .modalactions .primary{min-width:0;flex:1}
+}
 .gender-warn{display:inline-flex;vertical-align:-2px;margin-left:5px;color:var(--warn)}
 .lock-chip.bad{color:var(--warn-ink)}
 .playercard em.locked.bad{background:var(--warn-soft);color:var(--warn-ink)}

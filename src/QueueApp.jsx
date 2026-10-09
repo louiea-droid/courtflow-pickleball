@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  addDoc, collection, doc, setDoc, updateDoc, deleteDoc, deleteField, writeBatch, getDocs,
-} from "firebase/firestore";
+import { addDoc, collection, doc, setDoc, updateDoc, deleteDoc, deleteField, writeBatch, getDocs, } from "firebase/firestore";
 import { db, firebaseConfigured } from "./firebase";
 import { applyDisplayPrefs, splitCost, winPct } from "./utils/format";
-import { applyTheme } from "./utils/theme";
+import { applyTheme, getGlobalTheme } from "./utils/theme";
 import { matchCount } from "./utils/stats";
 import { matchesCourtLevel } from "./utils/courtLevels";
+import { checkInFields } from "./utils/gameSession";
 import {
   hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, selectToJoin,
   shouldWinnersStay, splitTeams,
@@ -20,6 +19,7 @@ import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import Toast from "./components/Toast";
 import PlayerModal from "./components/PlayerModal";
+import CheckInModal from "./components/CheckInModal";
 import SessionModal from "./components/SessionModal";
 import ShareModal from "./components/ShareModal";
 import ConfirmDialog from "./components/ConfirmDialog";
@@ -51,6 +51,7 @@ export default function QueueApp({
   const matchLog = useMatchLog(base);
   const [showPlayer, setShowPlayer] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null);
+  const [checkingInPlayer, setCheckingInPlayer] = useState(null);
   const [showSession, setShowSession] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showEndSession, setShowEndSession] = useState(false);
@@ -74,17 +75,18 @@ export default function QueueApp({
   const rules = { ...DEFAULT_RULES, ...session.rules };
   const costDefaults = { ...DEFAULT_COST, ...session.costDefaults };
   const live = { ...DEFAULT_LIVE, ...session.live };
-  const display = { ...DEFAULT_DISPLAY, ...session.display };
+  const savedDisplay = { ...DEFAULT_DISPLAY, ...session.display };
+  const display = { ...savedDisplay, theme: getGlobalTheme() };
   applyDisplayPrefs(display);
   // Still loading, display is just the defaults; applying it would
   // flip the loading screen to Light and overwrite the cached theme.
   if (!busy) applyTheme(display);
 
   useEffect(() => {
-    const locked = showPlayer || Boolean(editingPlayer) || showSession || menuOpen;
+    const locked = showPlayer || Boolean(editingPlayer) || Boolean(checkingInPlayer) || showSession || menuOpen;
     document.body.style.overflow = locked ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [showPlayer, editingPlayer, showSession, menuOpen]);
+  }, [showPlayer, editingPlayer, checkingInPlayer, showSession, menuOpen]);
 
   const selectTab = (t) => { setTab(t); setMenuOpen(false); };
 
@@ -162,11 +164,18 @@ export default function QueueApp({
     notify(`${p?.name || "Player"} removed.`);
   }
 
-  async function checkInPlayer(id) {
-    await updateDoc(at("players", id), {
-      checked: true, checkedAt: Date.now(),
-    });
-    notify(`${players.find((p) => p.id === id)?.name || "Player"} checked in.`);
+  async function checkInPlayer(id, skill) {
+    const player = players.find((p) => p.id === id);
+    if (!player) return;
+    if (isEventGame && skill === undefined) {
+      setCheckingInPlayer(player);
+      return;
+    }
+    const now = Date.now();
+    const fields = isEventGame ? checkInFields(skill, now) : { checked: true, checkedAt: now };
+    await updateDoc(at("players", id), fields);
+    setCheckingInPlayer(null);
+    notify(`${player.name} checked in.`);
   }
 
   async function checkOutPlayer(id) {
@@ -710,6 +719,13 @@ export default function QueueApp({
               onSetAttendeePaid={isEventGame ? onSetAttendeePaid : undefined}
             />
           )}
+          {isEventGame && checkingInPlayer && (
+            <CheckInModal
+              player={checkingInPlayer}
+              close={() => setCheckingInPlayer(null)}
+              submit={(skill) => checkInPlayer(checkingInPlayer.id, skill)}
+            />
+          )}
           {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={kind === "quick" ? base[1] : null} format={session.format} />}
           {tab === "guide" && <Guide />}
           {tab === "settings" && kind === "quick" && (
@@ -722,7 +738,7 @@ export default function QueueApp({
               onSetDefaults={(defaults) => updateSessionSettings({ defaults })}
               rules={rules} costDefaults={costDefaults} live={live} display={display}
               onSetLive={(change) => updateSessionSettings({ live: { ...live, ...change } })}
-              onSetDisplay={(change) => updateSessionSettings({ display: { ...display, ...change } })}
+              onSetDisplay={(change) => updateSessionSettings({ display: { ...savedDisplay, ...change } })}
               onSetRules={(change) => updateSessionSettings({ rules: { ...rules, ...change } })}
               onSetCostDefaults={(change) => updateSessionSettings({ costDefaults: { ...costDefaults, ...change } })}
             />
@@ -733,7 +749,7 @@ export default function QueueApp({
           <PlayerModal
             player={editingPlayer}
             players={players}
-            mode={mode} memberChoices={memberChoices}
+            mode={mode} memberChoices={memberChoices} requireSkillOnCheckIn={isEventGame}
             close={() => { setShowPlayer(false); setEditingPlayer(null); }}
             submit={editingPlayer ? (data) => updatePlayerInfo(editingPlayer.id, data) : addPlayer}
           />

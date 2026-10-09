@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, Play } from "lucide-react";
 import { useAccount } from "./hooks/useAccount";
 import { useRoute } from "./hooks/useRoute";
 import { useMyClubs } from "./hooks/useMyClubs";
@@ -11,6 +11,7 @@ import { useClubActions } from "./hooks/useClubActions";
 import { applyTheme } from "./utils/theme";
 import AccountLogin from "./components/AccountLogin";
 import AccountSidebar from "./components/AccountSidebar";
+import { useActiveGames } from "./components/ActiveQueue";
 import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
@@ -31,6 +32,7 @@ export default function AccountApp() {
   const uid = acct.user?.uid;
   const name = acct.account?.name || acct.account?.clubName || "";
   const { clubs, ready: clubsReady } = useMyClubs(uid);
+  const activeGames = useActiveGames(uid, clubs);
   const { friendships, ready: friendsReady } = useFriendships(uid);
   const inbox = useInbox(uid, clubs);
   // One Find session query shared by Home and the Find session page; off on every other screen.
@@ -47,6 +49,19 @@ export default function AccountApp() {
   };
   const dismissToast = () => { clearTimeout(toastTimer.current); setToast(null); };
   const clubActions = useClubActions({ uid, name, notify });
+  const activeGame = activeGames[0];
+  const gameShortcut = activeGame ? (
+    <a
+      className="acct-header-game"
+      href={activeGame.gamePath}
+      aria-label="Back to game"
+      title="Back to game"
+      onClick={(e) => { e.preventDefault(); navigate(activeGame.gamePath); }}
+    >
+      <Play size={15} fill="currentColor" aria-hidden="true" />
+      <span>Back to game</span>
+    </a>
+  ) : null;
 
   // Success signs the user out (deleteUser). This shell stays mounted behind the
   // sign-in screen, so close the dialog or the next sign-in opens on it.
@@ -64,7 +79,9 @@ export default function AccountApp() {
   };
 
   // Not before the account loads: defaults would flash Light over the cached theme. Clubs apply their own colors inside ClubApp.
-  if (acct.status === "in" && !clubId) applyTheme({ theme: acct.account.display?.theme || "light" });
+  if (acct.status === "in" && !clubId) {
+    applyTheme({ theme: acct.account.display?.theme || "light" }, { global: true });
+  }
 
   if (acct.status === "loading") {
     return <div className="loading"><span className="spinner" />Loading…</div>;
@@ -86,7 +103,7 @@ export default function AccountApp() {
   }
 
   if (clubId && route.startsWith("club")) {
-    return <ClubApp key={clubId} acct={acct} clubId={clubId} route={route} eventId={eventId} navigate={navigate} inbox={inbox} />;
+    return <ClubApp key={clubId} acct={acct} clubId={clubId} route={route} eventId={eventId} navigate={navigate} inbox={inbox} activeGame={activeGame} />;
   }
 
   const ownedNames = clubs.filter((c) => c.role === "owner").map((c) => c.clubName);
@@ -97,6 +114,7 @@ export default function AccountApp() {
         active={{ "clubs-find": "find", clubs: "clubs", friends: "friends", inbox: "inbox", sessions: "sessions", help: "help", hub: "hub" }[route] || null}
         name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} clubs={clubs}
         friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
+        headerAction={gameShortcut}
       />
       <main className="acct-main">
         {route === "settings" ? (
@@ -116,7 +134,7 @@ export default function AccountApp() {
         ) : route === "clubs-find" ? (
           <FindClubs myClubs={clubs} navigate={navigate} />
         ) : (
-          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} friendships={friendships} inbox={inbox} sessions={sessions} navigate={navigate} />
+          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} friendships={friendships} inbox={inbox} sessions={sessions} activeGames={activeGames} navigate={navigate} />
         )}
       </main>
       {showDelete && (

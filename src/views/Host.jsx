@@ -1,4 +1,4 @@
-import { CalendarPlus, ChevronRight, Play, Share2 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import DateTile from "../components/DateTile";
 import PanelHead from "../components/PanelHead";
 import { bookingTotals, byStart, endHM, isOver, splitAttendees } from "../utils/bookings";
@@ -41,7 +41,7 @@ function EventRow({ e, pending, navigate, base }) {
   );
 }
 
-export default function Host({ events, requestsByEvent, fallbackZone, onNew, onPlayNow, onShare, navigate, base }) {
+export default function Host({ events, requestsByEvent, fallbackZone, navigate, base }) {
   const upcoming = events.filter((e) => !isOver(e, fallbackZone)).sort(byStart);
   const past = events.filter((e) => isOver(e, fallbackZone)).sort((a, b) => byStart(b, a));
   const pendingOf = (e) => (requestsByEvent[e.id] || []).filter((r) => r.status === "pending").length;
@@ -49,15 +49,11 @@ export default function Host({ events, requestsByEvent, fallbackZone, onNew, onP
 
   return (
     <>
-      <PageTitle title="Open play" sub="Schedule a session, take bookings, and record who has paid.">
-        <button className="outline" onClick={onPlayNow}><Play size={15} /> Play now</button>
-        <button className="outline" onClick={onShare}><Share2 size={15} /> Share booking page</button>
-        <button className="primary" onClick={onNew}><CalendarPlus size={15} /> New open play</button>
-      </PageTitle>
+      <PageTitle title="Open play" sub="Schedule a session, take bookings, and record who has paid." />
       <div className="panel">
         <PanelHead title="Upcoming" sub="Open an event to manage players, payments and join requests." />
         {upcoming.map(row)}
-        {!upcoming.length && <div className="empty">No open play scheduled. Use New open play to start taking bookings.</div>}
+        {!upcoming.length && <div className="empty">No open play scheduled. Select Start new to schedule a session.</div>}
       </div>
       {past.length > 0 && (
         <details className="panel history-panel booking-past">

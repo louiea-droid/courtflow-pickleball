@@ -1,21 +1,113 @@
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db, firebaseConfigured } from "../firebase";
-import { docsOf, useDocs } from "../hooks/useLiveDocs";
+import { docsOf } from "../hooks/useLiveDocs";
 import { queueStatus } from "../utils/queueStatus";
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-// One live game: shows a card only when this person is a checked-in player in it.
-function EventQueueCard({ uid, club, event, navigate }) {
-  const base = ["clubs", club.id, "events", event.id];
-  const players = useDocs([...base, "players"]);
-  const courts = useDocs([...base, "courts"]);
-  const status = queueStatus({ players, courts, uid, format: event.format });
-  if (!status) return null;
-  const to = `/clubs/${encodeURIComponent(club.id)}/event/${encodeURIComponent(event.id)}/queue`;
-  return (
-    <article className="queue-card">
+// Track the signed-in player's live games so the same result powers Home and the global header.
+export function useActiveGames(uid, clubs) {
+  const [games, setGames] = useState([]);
+  const clubsKey = JSON.stringify(clubs.map(({ id, clubName }) => [id, clubName]));
+
+  useEffect(() => {
+    const watchedClubs = JSON.parse(clubsKey);
+    setGames([]);
+    if (!uid || !firebaseConfigured || !watchedClubs.length) return undefined;
+
+    const liveGames = new Map();
+    const eventStops = new Map();
+    const clubEvents = new Map();
+    const stopAll = [];
+    const publish = () => {
+      const next = [];
+      watchedClubs.forEach(([clubId, clubName]) => {
+        (clubEvents.get(clubId) || []).forEach((eventId) => {
+          const game = liveGames.get(`${clubId}/${eventId}`);
+          if (!game) return;
+          const status = queueStatus({ players: game.players, courts: game.courts, uid, format: game.event.format });
+          if (!status) return;
+          const clubPath = `/clubs/${encodeURIComponent(clubId)}/event/${encodeURIComponent(eventId)}`;
+          next.push({
+            club: { id: clubId, clubName },
+            event: game.event,
+            status,
+            gamePath: `${clubPath}/game`,
+            queuePath: `${clubPath}/queue`,
+          });
+        });
+      });
+      setGames(next);
+    };
+    const removeEvent = (clubId, eventId) => {
+      const key = `${clubId}/${eventId}`;
+      eventStops.get(key)?.forEach((stop) => stop());
+      eventStops.delete(key);
+      liveGames.delete(key);
+    };
+
+    watchedClubs.forEach(([clubId, clubName]) => {
+      const stopClub = onSnapshot(
+        query(collection(db, "clubs", clubId, "events"), where("status", "==", "live")),
+        (snapshot) => {
+          const events = docsOf(snapshot);
+          const nextIds = events.map((event) => event.id);
+          (clubEvents.get(clubId) || []).filter((id) => !nextIds.includes(id)).forEach((id) => removeEvent(clubId, id));
+          clubEvents.set(clubId, nextIds);
+
+          events.forEach((event) => {
+            const key = `${clubId}/${event.id}`;
+            const existing = liveGames.get(key);
+            if (existing) {
+              existing.event = event;
+              return;
+            }
+
+            liveGames.set(key, { event, players: [], courts: [] });
+            const setCollection = (field, path) => onSnapshot(
+              collection(db, "clubs", clubId, "events", event.id, path),
+              (s) => {
+                const current = liveGames.get(key);
+                if (!current) return;
+                current[field] = docsOf(s);
+                publish();
+              },
+              () => {
+                const current = liveGames.get(key);
+                if (!current) return;
+                current[field] = [];
+                publish();
+              },
+            );
+            eventStops.set(key, [
+              setCollection("players", "players"),
+              setCollection("courts", "courts"),
+            ]);
+          });
+          publish();
+        },
+        () => {
+          (clubEvents.get(clubId) || []).forEach((id) => removeEvent(clubId, id));
+          clubEvents.set(clubId, []);
+          publish();
+        },
+      );
+      stopAll.push(stopClub);
+    });
+
+    return () => {
+      stopAll.forEach((stop) => stop());
+      eventStops.forEach((stops) => stops.forEach((stop) => stop()));
+    };
+  }, [uid, clubsKey]);
+
+  return games;
+}
+
+export default function ActiveQueue({ games, navigate }) {
+  return games.map(({ club, event, status, queuePath }) => (
+    <article className="queue-card" key={`${club.id}/${event.id}`}>
       <div>
         <p className="queue-card-club">
           {club.clubName}
@@ -27,28 +119,7 @@ function EventQueueCard({ uid, club, event, navigate }) {
               : <><b>You're #{status.position} in line</b> · {plural(status.ahead, "player")} ahead · about {status.waitMins} min</>}
         </p>
       </div>
-      <a className="outline" href={to} onClick={(e) => { e.preventDefault(); navigate(to); }}>View queue</a>
+      <a className="outline" href={queuePath} onClick={(e) => { e.preventDefault(); navigate(queuePath); }}>View queue</a>
     </article>
-  );
-}
-
-// A club's live games (one single-field query, no index).
-function ClubLive({ uid, club, navigate }) {
-  const [events, setEvents] = useState([]);
-  useEffect(() => {
-    setEvents([]);
-    if (!firebaseConfigured) return undefined;
-    return onSnapshot(
-      query(collection(db, "clubs", club.id, "events"), where("status", "==", "live")),
-      (s) => setEvents(docsOf(s)),
-      () => setEvents([]),
-    );
-  }, [club.id]);
-  return events.map((e) => <EventQueueCard key={e.id} uid={uid} club={club} event={e} navigate={navigate} />);
-}
-
-// Cards for every live game the person is waiting in or playing in, across their clubs. Renders nothing
-// when there are none (the section around it hides itself, see .home-active).
-export default function ActiveQueue({ uid, clubs, navigate }) {
-  return clubs.map((c) => <ClubLive key={c.id} uid={uid} club={c} navigate={navigate} />);
+  ));
 }

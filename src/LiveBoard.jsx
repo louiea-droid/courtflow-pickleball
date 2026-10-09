@@ -9,7 +9,7 @@ import PhClock from "./components/PhClock";
 import StarDisplay from "./components/StarDisplay";
 import ElapsedTimer from "./components/ElapsedTimer";
 import { applyDisplayPrefs, money } from "./utils/format";
-import { applyTheme } from "./utils/theme";
+import { applyGlobalTheme } from "./utils/theme";
 import { DEFAULT_LIVE } from "./data/constants";
 
 function LiveTeam({ label, color, ids, players, showSkill }) {
@@ -133,7 +133,7 @@ export default function LiveBoard() {
   // session data stays readable by anyone with the club id (Firestore rules).
   const live = { ...DEFAULT_LIVE, ...session.live };
   applyDisplayPrefs(session.display);
-  applyTheme(session.display);
+  applyGlobalTheme(session.display);
   if (!live.enabled) {
     return <div className="loading">This Live Board is turned off. Ask the club to switch it back on.</div>;
   }

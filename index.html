@@ -20,9 +20,11 @@
     try {
       var t = JSON.parse(localStorage.getItem("courtflow-theme"));
       if (t) {
-        document.documentElement.dataset.theme = t.theme;
         for (var k in t.vars) document.documentElement.style.setProperty(k, t.vars[k]);
       }
+      var preferredTheme = localStorage.getItem("courtflow-global-theme");
+      document.documentElement.dataset.theme =
+        ["light", "dark", "system"].includes(preferredTheme) ? preferredTheme : "system";
     } catch (e) {}
   </script>
 </head>

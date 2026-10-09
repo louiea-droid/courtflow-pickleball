@@ -373,14 +373,20 @@ service cloud.firestore {
 
       match /events/{eventId} {
         allow read: if canSeeClub(clubId);
-        // clubPublic (the copy Find session lists by) must match the club, so a manager can't make a private club's events public.
+        // clubPublic (the copy Find session lists by) must match the club, except walk-ins are never listed.
         // getAfter: switching the club in the same batch as its events is allowed. An update that leaves the flag alone is never blocked.
         allow create: if isManager(clubId)
           && (!('clubPublic' in request.resource.data)
-            || request.resource.data.clubPublic == (getAfter(clubPath(clubId)).data.visibility == 'public'));
+            || request.resource.data.clubPublic == (
+              getAfter(clubPath(clubId)).data.visibility == 'public'
+              && (!('walkIn' in request.resource.data) || request.resource.data.walkIn != true)
+            ));
         allow update: if isManager(clubId)
-          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['clubPublic'])
-            || request.resource.data.clubPublic == (getAfter(clubPath(clubId)).data.visibility == 'public'));
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['clubPublic', 'walkIn'])
+            || request.resource.data.clubPublic == (
+              getAfter(clubPath(clubId)).data.visibility == 'public'
+              && (!('walkIn' in request.resource.data) || request.resource.data.walkIn != true)
+            ));
         allow delete: if isManager(clubId);
 
         match /requests/{requestId} {
@@ -399,6 +405,21 @@ service cloud.firestore {
           allow write: if isManager(clubId);
           allow read: if isManager(clubId) || (sub in ['players', 'courts'] && isMember(clubId));
         }
+      }
+
+      match /announcements/{announcementId} {
+        allow read: if isMember(clubId);
+        allow create: if isManager(clubId)
+          && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'text', 'createdAt'])
+          && request.resource.data.keys().hasAll(['authorId', 'authorName', 'text', 'createdAt'])
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.authorName == get(memberPath(clubId)).data.name
+          && validName(request.resource.data.authorName)
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && nearNow(request.resource.data.createdAt);
+        allow delete: if isManager(clubId);
       }
 
       match /roster/{id} {

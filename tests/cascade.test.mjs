@@ -27,6 +27,7 @@ const seedClub = async (db, id, ownerId) => {
   await setDoc(doc(db, `clubs/${id}/joinRequests/j1`), { name: "J" });
   await setDoc(doc(db, `clubs/${id}/private/invite`), { code: "X" });
   await setDoc(doc(db, `clubs/${id}/private/managerInvite`), { code: "Y" });
+  await setDoc(doc(db, `clubs/${id}/announcements/a1`), { authorId: ownerId, authorName: ownerId, text: "Club update", createdAt: 1 });
   for (const e of ["e1", "e2"]) {
     await setDoc(doc(db, `clubs/${id}/events/${e}`), { title: e, attendees: [] });
     for (const sub of EVENT_SUBS) await setDoc(doc(db, `clubs/${id}/events/${e}/${sub}/x`), { n: 1 });
@@ -65,7 +66,7 @@ for (const sub of EVENT_SUBS) {
 // Review Focus 2: deleting a club, run as its owner, leaves nothing.
 await deleteClubData(real("u3"), "c3", "u3");
 assert.equal(await count("accounts/helper/memberships"), 2, "helper's c3 card left behind"); // c1 and c2 remain
-for (const sub of ["events", "members", "roster", "joinRequests", "private"]) {
+for (const sub of ["events", "members", "roster", "joinRequests", "private", "announcements"]) {
   assert.equal(await count(`clubs/c3/${sub}`), 0, `c3/${sub} left behind`);
 }
 for (const e of ["e1", "e2"]) {
@@ -82,7 +83,7 @@ assert.equal(await count("chats/club_c2/messages"), 2, "c2's chat was touched");
 
 // Deleting an account removes the clubs it owns, its copies, and the pre-club data; clubs it only belongs to stay.
 await deleteAccountData(real("u1"), "u1");
-for (const sub of ["events", "members", "roster", "joinRequests", "private"]) {
+for (const sub of ["events", "members", "roster", "joinRequests", "private", "announcements"]) {
   assert.equal(await count(`clubs/c1/${sub}`), 0, `c1/${sub} left behind`);
 }
 for (const e of ["e1", "e2"]) {

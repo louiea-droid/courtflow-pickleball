@@ -1,45 +1,19 @@
 import { useState } from "react";
-import { LogOut, Link2, MessageSquare, RefreshCw, Share2 } from "lucide-react";
+import { LogOut, MessageSquare } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageTitle from "../components/PageTitle";
-import ShareModal from "../components/ShareModal";
-import { useInvite, useMembers } from "../hooks/useMembership";
+import { useMembers } from "../hooks/useMembership";
 import { formatDate } from "../utils/format";
-import { ROLE_LABEL, canChangeRole, canRemove, inviteUrl } from "../utils/clubs";
-import { clubChatId } from "../utils/chat";
-
-// One invite link: share it, reset it, or make it the first time.
-function LinkBlock({ title, help, code, ready, busy, role, onShare, onReset, onCreate }) {
-  const noun = role === "manager" ? "manager link" : "invite link";
-  return (
-    <div className="panel members-block">
-      <h2 className="club-section">{title}</h2>
-      <p className="members-help">{help}</p>
-      {!ready ? (
-        <p className="hub-empty">Loading…</p>
-      ) : code ? (
-        <div className="member-actions">
-          <button className="primary" onClick={onShare}><Share2 size={15} /> Share {noun}</button>
-          <button className="outline" disabled={busy} onClick={onReset}><RefreshCw size={15} /> Reset link</button>
-        </div>
-      ) : (
-        <button className="primary" disabled={busy} onClick={onCreate}><Link2 size={15} /> Create {noun}</button>
-      )}
-    </div>
-  );
-}
+import { ROLE_LABEL, canChangeRole, canRemove } from "../utils/clubs";
 
 // Everyone in the club sees who is in it. Plain members can leave; managers also review join requests,
 // manage the invite link and remove plain members. `chat` = { ready, exists } for the club's group chat: a manager
 // turns it on, then everyone opens it from here. Only the owner names managers (by hand or with the
 // manager link) and can remove a manager.
-export default function ClubMembers({ clubId, club, uid, canManage, isOwner, requests, actions, chat, chatActions, navigate, notify }) {
+export default function ClubMembers({ clubId, club, uid, canManage, isOwner, requests, actions, chatActions, navigate, notify }) {
   const { members, ready } = useMembers(clubId);
-  const { code, ready: inviteReady } = useInvite(canManage ? clubId : null);
-  const { code: managerCode, ready: managerReady } = useInvite(isOwner ? clubId : null, "managerInvite");
-  // { kind: "remove" | "demote", member } | { kind: "leave" } | { kind: "reset", role }
+  // { kind: "remove" | "demote", member } | { kind: "leave" }
   const [confirm, setConfirm] = useState(null);
-  const [showShare, setShowShare] = useState(null); // null | "member" | "manager"
   const myRole = isOwner ? "owner" : canManage ? "manager" : "member";
   const [busy, setBusy] = useState(false);
 
@@ -83,37 +57,6 @@ export default function ClubMembers({ clubId, club, uid, canManage, isOwner, req
         </div>
       )}
 
-      {chat.ready && (chat.exists || canManage) && (
-        <div className="panel members-block">
-          <h2 className="club-section">Club chat</h2>
-          <p className="members-help">
-            {chat.exists ? "A group chat for everyone in this club." : "Start a group chat that every member of this club can read and write. You can delete any message in it."}
-          </p>
-          {chat.exists ? (
-            <a className="outline" href={`/inbox/${clubChatId(clubId)}`} onClick={(e) => { e.preventDefault(); navigate(`/inbox/${clubChatId(clubId)}`); }}><MessageSquare size={15} /> Open club chat</a>
-          ) : (
-            <button className="primary" disabled={busy} onClick={() => act(async () => { await chatActions.startClubChat({ id: clubId, name: club.name }); navigate(`/inbox/${clubChatId(clubId)}`); }, null, "Couldn't start the chat. Check your connection and try again.")}><MessageSquare size={15} /> Start club chat</button>
-          )}
-        </div>
-      )}
-
-      {canManage && (
-        <LinkBlock
-          title="Invite link" role="member" code={code} ready={inviteReady} busy={busy}
-          help="Anyone signed in with this link joins right away, even a private club. Reset it to stop old links."
-          onShare={() => setShowShare("member")} onReset={() => setConfirm({ kind: "reset", role: "member" })}
-          onCreate={() => act(() => actions.saveInvite("member"), "Invite link created.", "Couldn't create the link. Try again.")}
-        />
-      )}
-      {isOwner && (
-        <LinkBlock
-          title="Manager link" role="manager" code={managerCode} ready={managerReady} busy={busy}
-          help="Anyone signed in with this link joins as a manager: they run open play and games and approve requests. Only you can see it. Share it carefully, and reset it to stop old links."
-          onShare={() => setShowShare("manager")} onReset={() => setConfirm({ kind: "reset", role: "manager" })}
-          onCreate={() => act(() => actions.saveInvite("manager"), "Manager link created.", "Couldn't create the link. Try again.")}
-        />
-      )}
-
       <div className="panel members-block">
         <h2 className="club-section">Everyone</h2>
         {!ready ? (
@@ -142,15 +85,6 @@ export default function ClubMembers({ clubId, club, uid, canManage, isOwner, req
         ))}
       </div>
 
-      {showShare && (showShare === "manager" ? managerCode : code) && (
-        <ShareModal
-          url={inviteUrl(window.location.origin, clubId, showShare === "manager" ? managerCode : code, showShare)} close={() => setShowShare(null)}
-          title={showShare === "manager" ? "Share manager link" : "Share invite link"} label={showShare === "manager" ? "MANAGER LINK" : "INVITE LINK"} openLabel="Open link" qr
-          hint={showShare === "manager"
-            ? `Anyone signed in with this link joins ${club.name} as a manager. Only send it to people you trust. Reset the link on this page to stop old ones.`
-            : `Anyone signed in with this link joins ${club.name} right away. Reset the link on this page to stop old ones.`}
-        />
-      )}
       {confirm?.kind === "demote" && (
         <ConfirmDialog
           title={`Remove ${confirm.member.name} as manager?`} message="They stay in the club as a member and lose access to open play, games and settings." confirmLabel="Remove manager"
@@ -180,17 +114,6 @@ export default function ClubMembers({ clubId, club, uid, canManage, isOwner, req
           onConfirm={() => {
             setConfirm(null);
             act(async () => { await actions.leave(); navigate("/"); }, null, "Couldn't leave. Check your connection and try again.");
-          }}
-        />
-      )}
-      {confirm?.kind === "reset" && (
-        <ConfirmDialog
-          title={confirm.role === "manager" ? "Reset the manager link?" : "Reset the invite link?"} message="Old links stop working. Share the new link with the people you still want to invite." confirmLabel="Reset link"
-          onCancel={() => setConfirm(null)}
-          onConfirm={() => {
-            const role = confirm.role;
-            setConfirm(null);
-            act(() => actions.saveInvite(role), "New link created. Old links no longer work.", "Couldn't reset the link. Try again.");
           }}
         />
       )}

@@ -1,7 +1,7 @@
 // Self-check for the pure game logic. Run: node src/utils/gameSession.check.mjs
 import assert from "node:assert";
 import {
-  bookingCostEntry, buildGameSession, courtDocs, floorQuarter, gamePickList, gameStartFields,
+  bookingCostEntry, buildGameSession, checkInFields, courtDocs, floorQuarter, gamePickList, gameStartFields,
   gameSummary, playNowEvent, playersToAdd, uidBySeat,
 } from "./gameSession.js";
 
@@ -32,6 +32,10 @@ assert.deepEqual(
 );
 assert.equal(gameStartFields({ defaults: { courts: "0" } }, 1).courts, 2);
 assert.equal(gameStartFields({ defaults: { mode: "Skill Courts" } }, 1).mode, "Balanced"); // a removed mode in saved defaults
+assert.deepEqual(checkInFields(3, 12), { checked: true, checkedAt: 12, skill: 3 });
+assert.throws(() => checkInFields(0, 12), RangeError);
+assert.throws(() => checkInFields(7, 12), RangeError);
+assert.throws(() => checkInFields(2.5, 12), RangeError);
 assert.deepEqual(courtDocs(2, 9), [
   { id: "court-1", data: { courtNumber: 1, start: 9, teamA: [], teamB: [] } },
   { id: "court-2", data: { courtNumber: 2, start: 9, teamA: [], teamB: [] } },

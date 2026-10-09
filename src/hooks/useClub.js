@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { collection, doc, getDoc, getDocs, writeBatch } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, updateDoc, writeBatch } from "firebase/firestore";
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { auth, db } from "../firebase";
-import { seedSession } from "../data/constants";
+import { DEFAULT_RULES, RULE_DEFAULTS_VERSION, seedSession } from "../data/constants";
 import { authMessage } from "../utils/account";
 import { wipeCollection } from "../utils/wipe";
 import { matchCount } from "../utils/stats";
@@ -11,7 +11,10 @@ const QUICK_NAME = "Quick session";
 const SUBCOLLECTIONS = ["players", "courts", "history", "costs", "matchLog", "bookings", "bookingRequests"];
 
 function createFreshSession(batch, id) {
-  batch.set(doc(db, "sessions", id), { ...seedSession, location: QUICK_NAME, createdAt: Date.now() });
+  batch.set(doc(db, "sessions", id), {
+    ...seedSession, location: QUICK_NAME, createdAt: Date.now(),
+    rules: { ...DEFAULT_RULES }, ruleDefaultsVersion: RULE_DEFAULTS_VERSION,
+  });
   for (let i = 1; i <= seedSession.courts; i++) {
     batch.set(doc(db, "sessions", id, "courts", `court-${i}`), {
       courtNumber: i, start: Date.now(), teamA: [], teamB: [],
@@ -51,6 +54,13 @@ export function useClub() {
           createFreshSession(batch, user.uid);
           await batch.commit();
           snap = await getDoc(ref);
+        }
+        const data = snap.data();
+        if (data?.ruleDefaultsVersion !== RULE_DEFAULTS_VERSION) {
+          await updateDoc(ref, {
+            rules: { ...DEFAULT_RULES, ...data?.rules, avoidRepeatPartners: true },
+            ruleDefaultsVersion: RULE_DEFAULTS_VERSION,
+          });
         }
         if (call !== latest) return; // a newer auth change already resolved
         setError("");

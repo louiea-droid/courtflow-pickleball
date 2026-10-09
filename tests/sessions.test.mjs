@@ -12,6 +12,7 @@ const anon = env.unauthenticatedContext().firestore();
 const quick = env.authenticatedContext("q1", { firebase: { sign_in_provider: "anonymous" } }).firestore();
 const legacy = env.authenticatedContext("c1", { email: "club1@courtflow.local", firebase: { sign_in_provider: "password" } }).firestore();
 const own = real("own"), mem = real("mem"), mgr = real("mgr"), stranger = real("stranger");
+const walkInEvent = { title: "Play now", date: "2026-10-10", startTime: "09:00", durationMins: 240, maxPlayers: 0, attendees: [], status: "live", walkIn: true };
 
 await env.clearFirestore();
 await env.withSecurityRulesDisabled(async (ctx) => {
@@ -66,6 +67,12 @@ await assertFails(updateDoc(doc(mgr, "clubs/pub/events/e1"), { clubPublic: false
 await assertSucceeds(updateDoc(doc(mgr, "clubs/pub/events/e2"), { notes: "n" })); // an event with no copy yet can still be edited
 await assertFails(setDoc(doc(mgr, "clubs/priv/events/new"), { clubPublic: true, title: "t", date: "2026-10-10" }));
 await assertSucceeds(setDoc(doc(mgr, "clubs/priv/events/new2"), { title: "t", date: "2026-10-10" })); // no flag: the sync adds it
+// Play now is a walk-in: a public club must be able to create it without making it discoverable.
+await assertSucceeds(setDoc(doc(mgr, "clubs/pub/events/walkin"), { ...walkInEvent, clubPublic: false }));
+await assertFails(setDoc(doc(mgr, "clubs/pub/events/walkin-public"), { ...walkInEvent, clubPublic: true }));
+await assertSucceeds(updateDoc(doc(mgr, "clubs/pub/events/walkin"), { walkIn: false, clubPublic: true }));
+await assertFails(updateDoc(doc(mgr, "clubs/pub/events/e2"), { walkIn: true })); // a walk-in must not stay discoverable
+
 // Switching a club private flips its events in the same batch
 const flip = writeBatch(own);
 flip.update(doc(own, "clubs/pub"), { visibility: "private" });

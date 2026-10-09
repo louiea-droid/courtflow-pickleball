@@ -37,14 +37,14 @@ export default function GamePickModal({ event, players, close, submit }) {
   };
 
   const row = (r) => (
-    <label className={`pick-row ${r.inGame ? "in" : ""}`} key={r.id}>
+    <label className={`pick-row${r.inGame ? " in" : picked.has(r.id) ? " is-selected" : ""}`} key={r.id}>
       <input type="checkbox" checked={r.inGame || picked.has(r.id)} disabled={r.inGame} onChange={() => toggle(r.id)} />
       <b>{r.name}</b>
       <span className="pick-tags">
-        {r.inGame ? <span className="pill">In the game</span> : (
+        {r.inGame ? <span className="pick-status is-in-game">In the game</span> : (
           <>
-            {r.group === "waitlist" && <span className="pill off">Waitlist #{r.waitNo}</span>}
-            <span className={`pill ${r.paid === "paid" ? "" : "off"}`}>{PAID_TAG[r.paid]}</span>
+            {r.group === "waitlist" && <span className="pick-status is-waitlist">Waitlist #{r.waitNo}</span>}
+            <span className={`pick-status is-${r.paid}`}>{PAID_TAG[r.paid]}</span>
           </>
         )}
       </span>
@@ -52,28 +52,40 @@ export default function GamePickModal({ event, players, close, submit }) {
   );
 
   return (
-    <Modal title={live ? "Add players to the game" : "Proceed to game"} label={event.title} close={close}>
-      <p className="pick-help">
-        Tick the players who are here. They join the game not checked in; tap each in on the Queue tab as they arrive.
-      </p>
-      <div className="pick-tools">
-        <button type="button" className="tiny outline" onClick={() => choose((r) => r.group === "joined")}>Select all joined</button>
-        <button type="button" className="tiny outline" onClick={() => choose((r) => r.paid === "paid")}>Select all paid</button>
-        <button type="button" className="tiny outline" onClick={() => setPicked(new Set())}>Clear</button>
-      </div>
-      {rows.length ? (
-        <div className="pick-list" role="group" aria-label="Players">
-          {joined.map(row)}
-          {waiting.length > 0 && <div className="pick-head">Waitlist</div>}
-          {waiting.map(row)}
+    <Modal title={live ? "Add players to the game" : "Proceed to game"} label={event.title} close={close} className="game-pick-modal">
+      <div className="game-pick-content">
+        <p className="pick-help">
+          Select who is here. They'll join unchecked; check them in from the Queue tab as they arrive.
+        </p>
+        <div className="pick-toolbar">
+          <span className="pick-toolbar-label">Quick select</span>
+          <div className="pick-tools" role="group" aria-label="Quick player selection">
+            <button type="button" className="tiny outline" onClick={() => choose((r) => r.group === "joined")}>Select all joined</button>
+            <button type="button" className="tiny outline" onClick={() => choose((r) => r.paid === "paid")}>Select all paid</button>
+            <button type="button" className="tiny outline" onClick={() => setPicked(new Set())}>Clear</button>
+          </div>
         </div>
-      ) : (
-        <div className="empty">Nobody has booked yet. Start the game and add walk-ins there.</div>
-      )}
-      {error && <p className="op-error" role="alert">{error}</p>}
+        <div className="pick-list-heading">
+          <h4>Players</h4>
+          <span aria-live="polite">{picked.size} selected</span>
+        </div>
+        {rows.length ? (
+          <div className="pick-list" role="group" aria-label="Players">
+            {joined.map(row)}
+            {waiting.length > 0 && <div className="pick-head">Waitlist</div>}
+            {waiting.map(row)}
+          </div>
+        ) : (
+          <div className="pick-empty">
+            <b>No bookings yet</b>
+            <span>Start the game, then add walk-in players from the Queue tab.</span>
+          </div>
+        )}
+        {error && <p className="op-error" role="alert">{error}</p>}
+      </div>
       <div className="modalactions">
-        <button className="outline" onClick={close}>Cancel</button>
-        <button className="primary" disabled={!canSubmit} onClick={go}>
+        <button type="button" className="outline" onClick={close}>Cancel</button>
+        <button type="button" className="primary" disabled={!canSubmit} onClick={go}>
           {live ? "Add to game" : "Start game"}{picked.size ? ` (${picked.size})` : ""}
         </button>
       </div>

@@ -12,7 +12,7 @@ const UPCOMING = 5;
 
 // The home screen: the way to start playing, the session you are in right now, what is coming up on other dates,
 // then friends, inbox and your clubs.
-export default function Hub({ uid, name, clubs, ready, friendships = [], inbox = { chats: [], unread: 0 }, sessions: sessionsState, navigate }) {
+export default function Hub({ uid, name, clubs, ready, friendships = [], inbox = { chats: [], unread: 0 }, sessions: sessionsState, activeGames = [], navigate }) {
   const to = (path) => (e) => { e.preventDefault(); navigate(path); };
   const first = (name || "").trim().split(/\s+/)[0];
   const { friends, received } = friendBuckets(friendships, uid);
@@ -41,7 +41,7 @@ export default function Hub({ uid, name, clubs, ready, friendships = [], inbox =
 
       <section className="home-active" aria-label="Your active session">
         <h2 className="club-section">Your active session</h2>
-        <ActiveQueue uid={uid} clubs={ready ? clubs : []} navigate={navigate} />
+        <ActiveQueue games={activeGames} navigate={navigate} />
         <div className="panel home-active-empty">
           <p>You're not in a session right now. Join one from Coming up, or use Find session above.</p>
         </div>
@@ -63,7 +63,7 @@ export default function Hub({ uid, name, clubs, ready, friendships = [], inbox =
               <div className="session-group" key={g.date}>
                 <h3 className="home-day">{dayHeading(g.date, today)}</h3>
                 <div className="find-list">
-                  {g.events.map((s) => <SessionCard key={`${s.clubId}/${s.id}`} session={s} mine={mine.has(s.clubId)} />)}
+                  {g.events.map((s) => <SessionCard key={`${s.clubId}/${s.id}`} session={s} mine={mine.has(s.clubId)} compact />)}
                 </div>
               </div>
             ))}

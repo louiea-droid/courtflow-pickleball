@@ -5,7 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth, db, firebaseConfigured } from "./firebase";
 import { useEvents } from "./hooks/useEvents";
 import { applyDisplayPrefs, formatDay, formatHM, money } from "./utils/format";
-import { applyTheme } from "./utils/theme";
+import { applyGlobalTheme } from "./utils/theme";
 import DateTile from "./components/DateTile";
 import { byStart, endHM, isListed, myStatus, splitAttendees } from "./utils/bookings";
 import { DEFAULT_DISPLAY } from "./data/constants";
@@ -227,7 +227,7 @@ export default function OpenPlay() {
   // carries its own zone for deciding upcoming vs past.
   const display = { ...DEFAULT_DISPLAY, ...club?.display };
   applyDisplayPrefs(display);
-  applyTheme(display, { persist: false });
+  applyGlobalTheme(display, { persist: false });
   const upcoming = useMemo(
     () => events.filter((e) => isListed(e, display.timeZone)).sort(byStart),
     // eslint-disable-next-line react-hooks/exhaustive-deps

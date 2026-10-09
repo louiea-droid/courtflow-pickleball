@@ -28,9 +28,9 @@ Decided with the owner:
 
 | Path | Holds | Read | Write |
 |---|---|---|---|
-| `accounts/{uid}` | profile only: `name`, `email`, `createdAt`, `display.theme` (personal light / dark / system) | owner | owner |
+| `accounts/{uid}` | profile only: `name`, `email`, `createdAt`, `display.theme` (global light / dark / system preference) | owner | owner |
 | `accounts/{uid}/memberships/{clubId}` | a display copy for "My clubs": `clubName`, `role`, `joinedAt` | owner | owner; a manager of that club may create it when approving (B) |
-| `clubs/{clubId}` | `name`, `description`, `location`, `visibility` (`public` / `private`), `ownerId`, `createdAt`, and the club's settings: `defaults`, `rules`, `costDefaults`, `live`, `display` (time zone, clock, theme, accent, team colors) | public clubs: anyone; any club: any signed-in user by id (`get`); list only public clubs | managers (some fields owner-only, see below) |
+| `clubs/{clubId}` | `name`, `description`, `location`, `visibility` (`public` / `private`), `ownerId`, `createdAt`, and the club's settings: `defaults`, `rules`, `costDefaults`, `live`, `display` (time zone, clock, accent, team colors) | public clubs: anyone; any club: any signed-in user by id (`get`); list only public clubs | managers (some fields owner-only, see below) |
 | `clubs/{clubId}/members/{uid}` | `role` (`owner` / `manager` / `member`), `name`, `joinedAt` | members | see Rules |
 | `clubs/{clubId}/joinRequests/{uid}` (B) | `name`, `message`, `status`, `createdAt` | the requester and managers | the requester creates; managers update and delete |
 | `clubs/{clubId}/private/invite` (B) | `code` | managers | managers |

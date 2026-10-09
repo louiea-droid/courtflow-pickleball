@@ -4,12 +4,10 @@ import AccountMenu from "./AccountMenu";
 import { clubPath } from "../utils/clubs";
 
 // The one sidebar for every signed-in screen in the hub and club area (a drawer behind a menu button on
-// phones). Home, Play (find a club, friends with a count of requests waiting, the inbox with a count of unread chats), My clubs (a link to the page of all your clubs, with the clubs listed under
-// it; the open club expands in place to its screens: `club` = { id, name, tabs: [{ to, label, Icon, current,
-// badge, badgeText }] }). The account menu lives in the sticky header across the top (with the button that collapses the
+// phones). Home, Play (find a club, friends with a count of requests waiting, the inbox with a count of unread chats), My clubs (a link to the page of all your clubs, with the clubs listed under it; the open club links to its overview: `club` = { id, name, current }). The account menu lives in the sticky header across the top (with the button that collapses the
 // sidebar to an icon rail on a wide screen; the choice is remembered). Creating a club and the quick session live on
 // Home. `active` highlights a place: "hub" | "sessions" | "find" | "friends" | "inbox" | "clubs" | "help".
-export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null, friendRequests = 0, inboxUnread = 0 }) {
+export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null, friendRequests = 0, inboxUnread = 0, headerAction = null }) {
   const [open, setOpen] = useState(false);
   // Wide screens: the sidebar is a fixed rail that can collapse to icons. A data attribute on <html> carries the state to the CSS.
   const [collapsed, setCollapsed] = useState(() => {
@@ -28,13 +26,12 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
   }, [open]);
 
   const go = (to) => (e) => { e.preventDefault(); setOpen(false); navigate(to); };
-  const link = (to, label, Icon, current, extra) => (
-    <a key={to} className="acct-link" href={to} title={label} aria-current={current ? "page" : undefined} onClick={go(to)}>
+  const link = (to, label, Icon, current, extra, selected = false) => (
+    <a key={to} className={`acct-link${selected ? " selected-club" : ""}`} href={to} title={label} aria-current={current ? "page" : undefined} onClick={go(to)}>
       {Icon && <Icon size={17} />}<span>{label}</span>{extra}
     </a>
   );
-  // Your clubs, with the open club expanded in place to its screens (a club the person isn't in yet, such as a
-  // public one opened from Clubs, still shows as the open one).
+  // Your clubs, with the open club listed even if they have not joined it (for example, a public club page).
   const list = club && !clubs.some((c) => c.id === club.id) ? [{ id: club.id, clubName: club.name }, ...clubs] : clubs;
 
   return (
@@ -44,6 +41,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
           <Menu size={20} />
         </button>
         <a className="acct-brand" href="/" onClick={go("/")}><img src="/images/courtflow.png" alt="" /><b>CourtFlow</b></a>
+        {headerAction}
         <AccountMenu name={name} email={email} onSignOut={onSignOut} navigate={navigate} />
       </header>
       <div className={`overlay${open ? " show" : ""}`} onClick={() => setOpen(false)} />
@@ -78,14 +76,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
               <div className="acct-side-sub">
                 {list.map((c) => (c.id === club?.id ? (
                   <div className="acct-side-open" key={c.id}>
-                    <p className="acct-side-name"><span>{c.clubName}</span></p>
-                    {club.tabs.length > 0 && (
-                      <div className="acct-side-sub">
-                        {club.tabs.map((t) => link(t.to, t.label, t.Icon, t.current, t.badge ? (
-                          <><span className="count-badge">{t.badge}</span><span className="sr-only"> {t.badgeText}</span></>
-                        ) : null))}
-                      </div>
-                    )}
+                    {link(clubPath(c.id), c.clubName, null, c.id === club?.id && club.current, null, c.id === club?.id)}
                   </div>
                 ) : link(clubPath(c.id), c.clubName, null, false)))}
               </div>

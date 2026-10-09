@@ -27,16 +27,19 @@ Keep: Space Grotesk (titles) and DM Sans (text), the court-green accent, the clu
 
 One container for all screens in this area: max width 1000px, centred, with the same side padding as the bar. Form screens (create club, profile, club settings) are capped at 720px inside it, left aligned. Page title: one style, 28px Space Grotesk 700, with an optional one-line subtitle in muted text, and page actions aligned to the right of the title row on desktop and wrapped below it on phones. Section headings (`h2`): 16px Space Grotesk 700. Spacing steps: 8, 14, 22, 32.
 
-### 3. Club header and tabs (every `/clubs/:id/...` screen except the game)
+### 3. Club header and navigation (every `/clubs/:id/...` screen)
 
 ```
 ┌ arat                                   [Owner] [Public club]  ┐   compact header: name + pills
 │ cebu · ww                                                     │   location + description (overview only)
 └───────────────────────────────────────────────────────────────┘
-  Overview   Open play   Settings                                    tab strip, accent underline on the active tab
+  Overview   Open play   Members   Announcements                    tab strip, accent underline on the active tab
 ```
 
-- Tabs: Overview, Open play, Settings. Managers see all three; members see only the header, no tab strip. "Open play" stays active on the event page, which also keeps its "Open play" back link.
+- The global sidebar keeps "My clubs" as the club switcher; the selected club links back to its overview. Club destinations sit in this horizontal header row instead of expanding beneath the club in the sidebar.
+- Members see an Announcements feed alongside Overview and Members; managers can publish updates, and the latest three also appear on Overview. "Open play" stays active on event and game pages.
+- Club tools stays available on every club page for managers: Start new, Play now, Share booking page, Settings, Manage members and the member invite link.
+- On narrow screens the row scrolls horizontally rather than wrapping or crowding the club header.
 - The duplicate buttons on the overview are removed. The overview shows the next open play and a single primary action for managers ("New open play").
 - Settings page gets the title "Settings", profile gets "Profile".
 

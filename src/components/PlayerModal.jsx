@@ -3,6 +3,7 @@ import { deleteField } from "firebase/firestore";
 import Modal from "./Modal";
 import Select from "./Select";
 import StarRating from "./StarRating";
+import { isValidSkillLevel } from "../utils/courtLevels";
 import { hasGender, lockProblem } from "../utils/rotationModes";
 
 const GENDER_OPTIONS = [
@@ -13,7 +14,7 @@ const GENDER_OPTIONS = [
 
 // `memberChoices` ([{ id, name }], club games only) lets the host tie a player to a club member, so the
 // member's Home shows their place in the queue.
-export default function PlayerModal({ close, submit, player, players = [], mode, memberChoices = [] }) {
+export default function PlayerModal({ close, submit, player, players = [], mode, memberChoices = [], requireSkillOnCheckIn = false }) {
   const isEdit = Boolean(player);
   const [name, setName] = useState(player?.name || "");
   const [skill, setSkill] = useState(player?.skill || 0);
@@ -21,6 +22,7 @@ export default function PlayerModal({ close, submit, player, players = [], mode,
   const [checked, setChecked] = useState(player ? player.checked : true);
   const [lockedWithId, setLockedWithId] = useState(player?.lockedWithId || "");
   const [uid, setUid] = useState(player?.uid || "");
+  const [skillError, setSkillError] = useState("");
   const pickMember = (id) => {
     setUid(id);
     const m = memberChoices.find((x) => x.id === id);
@@ -54,6 +56,10 @@ export default function PlayerModal({ close, submit, player, players = [], mode,
         onSubmit={async (e) => {
           e.preventDefault();
           if (submitting || !name.trim()) return;
+          if (requireSkillOnCheckIn && checked && !isValidSkillLevel(skill)) {
+            setSkillError("Choose a skill level before checking this player in.");
+            return;
+          }
           setSubmitting(true);
           try {
             await submit({
@@ -79,7 +85,7 @@ export default function PlayerModal({ close, submit, player, players = [], mode,
         <div className="formgrid">
           <label>
             Skill
-            <StarRating value={skill} onChange={setSkill} />
+            <StarRating value={skill} onChange={(value) => { setSkill(value); setSkillError(""); }} />
           </label>
           <label>
             Gender
@@ -96,9 +102,10 @@ export default function PlayerModal({ close, submit, player, players = [], mode,
           </label>
         )}
         <label className="check">
-          <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
+          <input type="checkbox" checked={checked} onChange={(e) => { setChecked(e.target.checked); setSkillError(""); }} />
           Checked in
         </label>
+        {skillError && <p className="modal-note warn" role="alert">{skillError}</p>}
         {isEdit && (
           <label>
             Lock in with
