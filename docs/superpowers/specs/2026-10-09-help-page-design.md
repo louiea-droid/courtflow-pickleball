@@ -1,12 +1,12 @@
 # Help page
 
-**Goal.** One Help page for the whole system. The seven major features each get a visual guide (real screenshots, numbered steps); the queueing system is the featured one, written so a player understands everything about it. Everything else is short written entries.
+**Goal.** One Help page for the whole system. The six major features each get a visual guide (real screenshots, numbered steps); the queueing system is the featured one, written so a player understands everything about it. Everything else is short written entries.
 
 ## What the owner asked for
 
 - A help page for the whole system: major features as a guide with visuals, minor features in words.
 - **Screenshots** for the visuals (chosen over drawn mock-ups).
-- Major features include the Quick session (no login) and Home. Accounts, Settings and Friends/Inbox are **minor**.
+- Major features include Home and the Quick session (no login), which is merged with the queue section (same tool, owner's call). Accounts, Settings and Friends/Inbox are **minor**.
 - Highlight the **queueing system** so players know and understand everything in it.
 
 ## Where it lives
@@ -19,14 +19,15 @@
 ## Major features (re-evaluated)
 
 1. **Home**: the Ready-to-play bar, your active session, Coming up by date, Friends and Inbox tiles, My clubs. Shot: Home.
-2. **Quick session (no login)**: `/club`, the classic queue app with nothing to sign up for; data stays in this browser; End Session archives stats. Shot: the dashboard with courts and a queue.
-3. **Clubs**: the Clubs directory, creating a club, joining (ask to join, invite link), roles (owner, manager, member), the Members tab. Shots: Clubs page, a club's Members tab with the invite link.
-4. **Open play**: a manager creates an event, shares the booking link or QR code, players send a request, the host approves; seats, waitlist, payment status. Shots: Host list, the public booking page.
-5. **Find session**: the week strip, search, the cards, joining through the club's booking page. Shot: Find session.
-6. **Running a game**: Proceed to game from an event, checking players in, courts, starting a match, recording the winner (and Undo), ending a game, cost split. Shots: the game dashboard, the Queue tab.
-7. **The queue, for players** (featured, expanded, with its own heading and a coloured edge): everything a player needs. Shots: the Home active-session card, the read-only queue page, the Queue tab, the mode picker.
+2. **Clubs**: the Clubs directory, creating a club, joining (ask to join, invite link), roles (owner, manager, member), the Members tab. Shots: Clubs page, a club's Members tab with the invite link.
+3. **Open play**: a manager creates an event, shares the booking link or QR code, players send a request, the host approves; seats, waitlist, payment status. Shots: Host list, the public booking page.
+4. **Find session**: the week strip, search, the cards, joining through the club's booking page. Shot: Find session.
+5. **Running a game**: Proceed to game from an event, checking players in, courts, starting a match, recording the winner (and Undo), ending a game, cost split. Shots: the game dashboard, the Queue tab.
+6. **Quick session and the queue** (featured, expanded, with its own heading and a coloured edge): it opens with the Quick session (`/club`: the classic queue app with nothing to sign up for, data kept in this browser, End Session archives the stats), then everything a player needs to understand the queue. Shots: the Quick session dashboard, the Home active-session card, the read-only queue page, the Queue tab, the mode picker.
 
-### The queue for players: content outline
+### Quick session and the queue: content outline
+
+- **Quick session first:** open `/club` from Home or the sign-in page, no account; your session lives in this browser (clearing site data starts fresh); End Session archives today's stats and returns Home.
 
 - **How you get in:** the host checks you in when you arrive; only checked-in players are in the queue. A booking alone is not a place in line.
 - **Who is picked next:** fewest games first, then the earliest check-in. So someone who just played goes to the back, and a late arrival with zero games moves ahead of players who have played more.
