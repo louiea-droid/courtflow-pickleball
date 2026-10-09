@@ -31,6 +31,10 @@ const seedClub = async (db, id, ownerId) => {
     await setDoc(doc(db, `clubs/${id}/events/${e}`), { title: e, attendees: [] });
     for (const sub of EVENT_SUBS) await setDoc(doc(db, `clubs/${id}/events/${e}/${sub}/x`), { n: 1 });
   }
+  // The club chat: two messages, one from someone who has since left the club.
+  await setDoc(doc(db, `chats/club_${id}`), { kind: "club", clubId: id, title: id, lastText: "hi", lastAt: 1, lastBy: ownerId, createdAt: 1 });
+  await setDoc(doc(db, `chats/club_${id}/messages/m1`), { from: ownerId, name: ownerId, text: "hi", createdAt: 1 });
+  await setDoc(doc(db, `chats/club_${id}/messages/m2`), { from: "gone", name: "Gone", text: "bye", createdAt: 2 });
 };
 
 await env.withSecurityRulesDisabled(async (ctx) => {
@@ -46,6 +50,8 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, "accounts/u1/events/oldEvent"), { title: "Old" });
   for (const sub of EVENT_SUBS) await setDoc(doc(db, `accounts/u1/events/oldEvent/${sub}/x`), { n: 1 });
   await setDoc(doc(db, "accounts/u2"), { name: "Two" });
+  await setDoc(doc(db, "accounts/u1/chatReads/club_c1"), { at: 1 });
+  await setDoc(doc(db, "accounts/u1/chatReads/club_c2"), { at: 1 });
 });
 
 // Deleting one event takes the doc and every subcollection, and leaves the other event alone.
@@ -68,7 +74,11 @@ for (const e of ["e1", "e2"]) {
 await env.withSecurityRulesDisabled(async (ctx) => {
   const clubs = await getDocs(collection(ctx.firestore(), "clubs"));
   assert.equal(clubs.docs.map((d) => d.id).sort().join(), "c1,c2"); // c3 is gone
+  const chats = await getDocs(collection(ctx.firestore(), "chats"));
+  assert.equal(chats.docs.map((d) => d.id).sort().join(), "club_c1,club_c2", "c3's chat doc left behind");
 });
+assert.equal(await count("chats/club_c3/messages"), 0, "c3's chat messages left behind (a departed author's too)");
+assert.equal(await count("chats/club_c2/messages"), 2, "c2's chat was touched");
 
 // Deleting an account removes the clubs it owns, its copies, and the pre-club data; clubs it only belongs to stay.
 await deleteAccountData(real("u1"), "u1");
@@ -79,6 +89,9 @@ for (const e of ["e1", "e2"]) {
   for (const sub of EVENT_SUBS) assert.equal(await count(`clubs/c1/events/${e}/${sub}`), 0, `c1/${e}/${sub} left behind`);
 }
 assert.equal(await count("accounts/u1/memberships"), 0);
+assert.equal(await count("accounts/u1/chatReads"), 0, "u1's read positions left behind");
+assert.equal(await count("chats/club_c1/messages"), 0, "c1's chat messages left behind");
+assert.equal(await count("chats/club_c2/messages"), 2, "c2's chat was touched");
 assert.equal(await count("accounts/u1/roster"), 0);
 assert.equal(await count("accounts/u1/events"), 0);
 assert.equal(await count("accounts/helper/memberships"), 1, "helper's c1 card left behind"); // only c2 remains

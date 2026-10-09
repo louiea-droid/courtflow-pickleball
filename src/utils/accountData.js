@@ -1,4 +1,5 @@
 import { collection, deleteDoc, doc, getDoc, getDocs, query, where, writeBatch } from "firebase/firestore";
+import { clubChatId } from "./chat.js";
 import { wipeCollection } from "./wipe.js";
 
 // Subcollections under each event: join requests, and the game's players, courts, matchLog
@@ -38,6 +39,11 @@ export async function deleteClubData(db, clubId, ownerId) {
     await Promise.all(EVENT_SUBCOLLECTIONS.map((name) => wipeCollection(db, collection(e.ref, name))));
     await deleteDoc(e.ref);
   }));
+  // The club chat: its messages (anyone's, including people who have left) and then the chat itself. Chat
+  // access follows the owner's member record, so this has to happen before that record goes.
+  const chat = doc(db, "chats", clubChatId(clubId));
+  await wipeCollection(db, collection(chat, "messages"));
+  await deleteDoc(chat);
   await Promise.all(CLUB_SUBCOLLECTIONS.map((name) => wipeCollection(db, collection(ref, name))));
   const members = await getDocs(collection(ref, "members"));
   const others = writeBatch(db);
@@ -101,6 +107,7 @@ export async function deleteAccountData(db, uid) {
   await Promise.all(joined.map((m) => leaveClub(db, m.id, uid)));
   await Promise.all(owned.map((m) => deleteClubData(db, m.id, uid)));
   await wipeCollection(db, collection(db, "accounts", uid, "memberships"));
+  await wipeCollection(db, collection(db, "accounts", uid, "chatReads"));
   await deleteFriendData(db, uid);
   await deleteLegacyData(db, uid);
   const batch = writeBatch(db);
