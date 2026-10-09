@@ -2,7 +2,7 @@
 // Run: npm run test:rules (needs Java and the Firebase CLI).
 import fs from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 
 const rules = fs.readFileSync("firestore.rules", "utf8");
 const env = await initializeTestEnvironment({ projectId: "chat-test", firestore: { rules, host: "127.0.0.1", port: 8080 } });
@@ -162,6 +162,129 @@ await assertSucceeds(getDoc(doc(mem, "accounts/mem/chatReads/club_pub")));
 await assertFails(getDoc(doc(mem2, "accounts/mem/chatReads/club_pub")));
 await assertFails(setDoc(doc(mem2, "accounts/mem/chatReads/club_pub"), { at: 1 }));
 await assertFails(getDoc(doc(anon, "accounts/mem/chatReads/club_pub")));
+
+// =====================================================================================
+// Direct messages: chats/dm_{lo}_{hi}
+// =====================================================================================
+const me = real("me"), bea = real("bea"), cy = real("cy"), dan = real("dan");
+// me and bea share club "pub" (me is only a member there); me and cy are accepted friends; bea and cy have a pending request.
+// mgr manages "pub" too (a manager of the shared club must not be able to read a direct conversation).
+async function seedDm() {
+  await env.clearFirestore();
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "clubs/pub"), { name: "pub", nameLower: "pub", visibility: "public", ownerId: "own", createdAt: 1 });
+    for (const [uid, role] of [["own", "owner"], ["mgr", "manager"], ["me", "member"], ["bea", "member"]]) await setDoc(doc(db, `clubs/pub/members/${uid}`), { role, name: uid, joinedAt: 1 });
+    await setDoc(doc(db, "clubs/other"), { name: "other", nameLower: "other", visibility: "public", ownerId: "own", createdAt: 1 });
+    await setDoc(doc(db, "clubs/other/members/me"), { role: "member", name: "me", joinedAt: 1 }); // only me is in "other"
+    await setDoc(doc(db, "friendships/cy_me"), { users: ["cy", "me"], names: { me: "me", cy: "cy" }, status: "accepted", requestedBy: "me", createdAt: 1 });
+    await setDoc(doc(db, "friendships/bea_cy"), { users: ["bea", "cy"], names: { bea: "bea", cy: "cy" }, status: "pending", requestedBy: "bea", createdAt: 1 });
+  });
+}
+const dm = (a, b, extra = {}) => ({ kind: "dm", members: [a, b].sort(), names: { [a]: a, [b]: b }, lastText: "", lastAt: 0, lastBy: "", createdAt: now(), ...extra });
+const dmRef = (db, a, b) => doc(db, `chats/dm_${[a, b].sort().join("_")}`);
+
+await seedDm();
+await assertSucceeds(setDoc(dmRef(me, "me", "cy"), dm("me", "cy"))); // accepted friends
+await assertSucceeds(setDoc(dmRef(me, "me", "bea"), dm("me", "bea", { viaClub: "pub" }))); // members of the same club
+await seedDm();
+await assertFails(setDoc(dmRef(me, "me", "bea"), dm("me", "bea"))); // not friends, no club named
+await assertFails(setDoc(dmRef(bea, "bea", "cy"), dm("bea", "cy"))); // a request that is still pending
+await assertFails(setDoc(dmRef(me, "me", "bea"), dm("me", "bea", { viaClub: "other" }))); // a club the two don't share (only me is in it)
+await assertFails(setDoc(dmRef(me, "me", "dan"), dm("me", "dan", { viaClub: "pub" }))); // dan isn't in pub
+await assertFails(setDoc(dmRef(dan, "me", "bea"), dm("me", "bea", { viaClub: "pub" }))); // dan makes one for two other people
+await assertFails(setDoc(dmRef(me, "me", "dan"), dm("me", "dan"))); // a stranger
+await assertFails(setDoc(doc(me, "chats/dm_me_me"), { ...dm("me", "me"), members: ["me", "me"], names: { me: "me" } })); // yourself
+await assertFails(setDoc(doc(me, "chats/dm_me_cy"), dm("me", "cy"))); // an id that isn't dm_lo_hi (the right one is dm_cy_me)
+await assertFails(setDoc(doc(me, "chats/dm_me_cy"), { ...dm("me", "cy"), members: ["me", "cy"] })); // unsorted members
+await assertFails(setDoc(dmRef(me, "me", "cy"), dm("me", "cy", { extra: 1 })));
+await assertFails(setDoc(dmRef(me, "me", "cy"), dm("me", "cy", { lastAt: now() })));
+await assertFails(setDoc(dmRef(me, "me", "cy"), dm("me", "cy", { lastText: "forged" })));
+await assertFails(setDoc(dmRef(me, "me", "cy"), dm("me", "cy", { createdAt: now() - DAY })));
+await assertFails(setDoc(dmRef(me, "me", "cy"), dm("me", "cy", { names: { me: "me" } }))); // a name missing
+await assertFails(setDoc(dmRef(me, "me", "cy"), dm("me", "cy", { names: { me: "me", cy: "x".repeat(61) } })));
+await assertFails(setDoc(dmRef(me, "me", "cy"), dm("me", "cy", { names: { me: "me", cy: "Someone else" } }))); // not the name on their friendship
+await assertFails(setDoc(dmRef(me, "me", "bea"), dm("me", "bea", { viaClub: "pub", names: { me: "me", bea: "Boss" } }))); // not the name on their member record
+await assertFails(setDoc(dmRef(me, "me", "cy"), dm("me", "cy", { names: { me: "Louie", cy: "cy" } }))); // nor a false name for yourself
+for (const [, db] of [["anonymous", anon], ["quick", quick], ["legacy", legacy]]) await assertFails(setDoc(dmRef(db, "me", "cy"), dm("me", "cy")));
+
+// Reading: the two people only (not a manager of the shared club, not a stranger)
+await seedDm();
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  await setDoc(dmRef(db, "me", "bea"), dm("me", "bea", { viaClub: "pub" }));
+  await setDoc(doc(db, "chats/dm_bea_me/messages/x1"), { from: "bea", name: "bea", text: "hi", createdAt: now() });
+});
+const mine = (db, uid) => query(collection(db, "chats"), where("members", "array-contains", uid));
+for (const db of [me, bea]) {
+  await assertSucceeds(getDoc(doc(db, "chats/dm_bea_me")));
+  await assertSucceeds(getDocs(collection(db, "chats/dm_bea_me/messages")));
+}
+await assertSucceeds(getDocs(mine(me, "me")));
+await assertSucceeds(getDocs(mine(bea, "bea")));
+for (const [, db] of [["cy", cy], ["manager of the shared club", mgr], ["owner of the shared club", own], ["anonymous", anon], ["quick", quick], ["legacy", legacy]]) {
+  await assertFails(getDoc(doc(db, "chats/dm_bea_me")));
+  await assertFails(getDocs(collection(db, "chats/dm_bea_me/messages")));
+}
+await assertFails(getDocs(mine(cy, "me"))); // asking for someone else's conversations
+await assertFails(getDocs(collection(me, "chats"))); // no unfiltered list
+// A person can ask for a conversation that isn't there yet (a missing document must not kill a listener), for their own ids only
+await assertSucceeds(getDoc(doc(me, "chats/dm_cy_me")));
+await assertFails(getDoc(doc(me, "chats/dm_bea_cy")));
+await assertFails(getDoc(doc(cy, "chats/dm_bea_me")));
+
+// Updating the last line: either member, tail only, as yourself
+const dmTail = (uid, extra = {}) => ({ lastText: "hey", lastAt: now(), lastBy: uid, ...extra });
+await assertSucceeds(updateDoc(doc(me, "chats/dm_bea_me"), dmTail("me")));
+await assertSucceeds(updateDoc(doc(bea, "chats/dm_bea_me"), dmTail("bea")));
+await assertFails(updateDoc(doc(me, "chats/dm_bea_me"), dmTail("bea"))); // as the other person
+await assertFails(updateDoc(doc(me, "chats/dm_bea_me"), dmTail("me", { members: ["me", "cy"] })));
+await assertFails(updateDoc(doc(me, "chats/dm_bea_me"), dmTail("me", { names: { me: "Z", bea: "Z" } })));
+await assertFails(updateDoc(doc(me, "chats/dm_bea_me"), dmTail("me", { viaClub: "other" })));
+await assertFails(updateDoc(doc(cy, "chats/dm_bea_me"), dmTail("cy")));
+await assertFails(updateDoc(doc(mgr, "chats/dm_bea_me"), dmTail("mgr")));
+await assertSucceeds(updateDoc(doc(bea, "chats/dm_bea_me"), { lastText: "Message deleted" })); // the preview after a delete
+
+// Messages: either member writes as themselves, under the name on the conversation
+const dmMsg = (db, id, uid, extra = {}) => setDoc(doc(db, `chats/dm_bea_me/messages/${id}`), { from: uid, name: uid, text: "yo", createdAt: now(), ...extra });
+await assertSucceeds(dmMsg(me, "a", "me"));
+await assertSucceeds(dmMsg(bea, "b", "bea"));
+await assertFails(dmMsg(me, "c", "bea")); // as the other person
+await assertFails(dmMsg(me, "d", "me", { name: "bea" })); // under their name
+await assertFails(dmMsg(me, "e", "me", { text: "" }));
+await assertFails(dmMsg(me, "f", "me", { text: "x".repeat(1001) }));
+await assertFails(dmMsg(me, "g", "me", { createdAt: now() - DAY }));
+await assertFails(dmMsg(me, "h", "me", { extra: 1 }));
+await assertFails(dmMsg(cy, "i", "cy"));
+await assertFails(dmMsg(mgr, "j", "mgr"));
+await assertFails(dmMsg(anon, "k", "me"));
+await assertFails(updateDoc(doc(me, "chats/dm_bea_me/messages/a"), { text: "edited" })); // no edits
+// Either member may delete any message in their conversation; nobody else
+await assertFails(deleteDoc(doc(cy, "chats/dm_bea_me/messages/a")));
+await assertFails(deleteDoc(doc(mgr, "chats/dm_bea_me/messages/a")));
+await assertSucceeds(deleteDoc(doc(bea, "chats/dm_bea_me/messages/a"))); // bea deletes me's message
+await assertSucceeds(deleteDoc(doc(me, "chats/dm_bea_me/messages/b")));
+// Deleting the conversation: either member
+await assertFails(deleteDoc(doc(cy, "chats/dm_bea_me")));
+await assertFails(deleteDoc(doc(mgr, "chats/dm_bea_me")));
+await assertSucceeds(deleteDoc(doc(me, "chats/dm_bea_me")));
+
+// History outlives the link: with the friendship gone and the shared club left, the conversation stays readable and writable
+// by both people, but a new conversation that depended on it can't be started.
+await seedDm();
+await env.withSecurityRulesDisabled(async (ctx) => {
+  await setDoc(dmRef(ctx.firestore(), "me", "cy"), dm("me", "cy"));
+  await setDoc(dmRef(ctx.firestore(), "me", "bea"), dm("me", "bea", { viaClub: "pub" }));
+  await deleteDoc(doc(ctx.firestore(), "friendships/cy_me"));
+  await deleteDoc(doc(ctx.firestore(), "clubs/pub/members/bea"));
+});
+await assertSucceeds(getDoc(doc(me, "chats/dm_cy_me")));
+await assertSucceeds(getDoc(doc(cy, "chats/dm_cy_me")));
+await assertSucceeds(setDoc(doc(me, "chats/dm_cy_me/messages/z"), { from: "me", name: "me", text: "still here", createdAt: now() }));
+await assertSucceeds(getDoc(doc(bea, "chats/dm_bea_me")));
+await assertSucceeds(updateDoc(doc(me, "chats/dm_bea_me"), dmTail("me")));
+await env.withSecurityRulesDisabled((ctx) => deleteDoc(dmRef(ctx.firestore(), "me", "cy")));
+await assertFails(setDoc(dmRef(me, "me", "cy"), dm("me", "cy"))); // the friendship is gone: no new conversation
 
 await env.cleanup();
 console.log("chat rules: ok");

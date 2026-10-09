@@ -110,46 +110,93 @@ service cloud.firestore {
     }
 
     // ---- Chats. A club's group chat is club_{clubId}: every member reads and writes it, a manager starts it and
-    // moderates it. (Direct messages are added by the next plan.) Access follows the club's member record on every request.
-    function chatClub(chatId) { return get(/databases/$(database)/documents/chats/$(chatId)).data.clubId; }
+    // moderates it; access follows the club's member record on every request. A direct message is dm_{lo}_{hi} (the two
+    // uids sorted) with `members`: only those two read and write it (no moderator, not even a club manager). It can
+    // be started between accepted friends, or between two members of one club (`viaClub`); each person's name on it must be
+    // the name on that friendship or member record. Once it exists it outlives the friendship or the shared club (history
+    // belongs to both). The friendship and member documents are read with get()/exists(), so a missing one is a refusal.
+    function chatData(chatId) { return get(/databases/$(database)/documents/chats/$(chatId)).data; }
+    function inChat(chatId) {
+      return chatData(chatId).kind == 'club' ? isMember(chatData(chatId).clubId) : request.auth.uid in chatData(chatId).members;
+    }
     function validTail(d) {
       return d.lastText is string && d.lastText.size() <= 100 && d.lastBy == request.auth.uid && nearNow(d.lastAt);
     }
+    function friendsNow(a, b) {
+      return exists(/databases/$(database)/documents/friendships/$(a + '_' + b))
+        && get(/databases/$(database)/documents/friendships/$(a + '_' + b)).data.status == 'accepted';
+    }
+    function friendName(a, b, who) {
+      return get(/databases/$(database)/documents/friendships/$(a + '_' + b)).data.names[who];
+    }
+    function clubMemberName(club, who) {
+      return get(/databases/$(database)/documents/clubs/$(club)/members/$(who)).data.name;
+    }
+    function sharedClub(club, a, b) {
+      return exists(/databases/$(database)/documents/clubs/$(club)/members/$(a))
+        && exists(/databases/$(database)/documents/clubs/$(club)/members/$(b));
+    }
+    function validDmCreate(chatId, d) {
+      return d.keys().hasOnly(['kind', 'members', 'names', 'lastText', 'lastAt', 'lastBy', 'createdAt', 'viaClub'])
+        && d.keys().hasAll(['kind', 'members', 'names', 'lastText', 'lastAt', 'lastBy', 'createdAt'])
+        && d.members.size() == 2 && d.members[0] < d.members[1]
+        && chatId == 'dm_' + d.members[0] + '_' + d.members[1]
+        && request.auth.uid in d.members
+        && d.names.keys().hasOnly(d.members) && d.names.keys().hasAll(d.members)
+        && validName(d.names[d.members[0]]) && validName(d.names[d.members[1]])
+        && d.lastText == '' && d.lastAt == 0 && d.lastBy == '' && nearNow(d.createdAt)
+        && ((friendsNow(d.members[0], d.members[1])
+              && friendName(d.members[0], d.members[1], d.members[0]) == d.names[d.members[0]]
+              && friendName(d.members[0], d.members[1], d.members[1]) == d.names[d.members[1]])
+          || ('viaClub' in d && d.viaClub is string && sharedClub(d.viaClub, d.members[0], d.members[1])
+              && clubMemberName(d.viaClub, d.members[0]) == d.names[d.members[0]]
+              && clubMemberName(d.viaClub, d.members[1]) == d.names[d.members[1]]));
+    }
     match /chats/{chatId} {
-      // A member may "get" a club chat that doesn't exist yet: a refused read ends a listener for good, so without this
-      // a member's open Inbox would never see the chat a manager starts later. (Nothing is revealed: it just isn't there.)
+      // A person may "get" a chat that doesn't exist yet (a club's, or a direct one with their own id in its name): a refused
+      // read ends a listener for good, and startDm looks before it creates. Nothing is revealed: it just isn't there.
       allow get: if isRealUser() && (resource == null
-        ? chatId.matches('club_.+') && isMember(chatId.replace('club_', ''))
-        : resource.data.kind == 'club' && isMember(resource.data.clubId));
-      allow list: if isRealUser() && resource.data.kind == 'club' && isMember(resource.data.clubId);
-      allow create: if isRealUser() && request.resource.data.kind == 'club'
-        && request.resource.data.keys().hasOnly(['kind', 'clubId', 'title', 'lastText', 'lastAt', 'lastBy', 'createdAt'])
-        && request.resource.data.keys().hasAll(['kind', 'clubId', 'title', 'lastText', 'lastAt', 'lastBy', 'createdAt'])
-        && chatId == 'club_' + request.resource.data.clubId
-        && isManager(request.resource.data.clubId)
-        && validName(request.resource.data.title)
-        && request.resource.data.lastText == '' && request.resource.data.lastAt == 0 && request.resource.data.lastBy == ''
-        && nearNow(request.resource.data.createdAt);
-      allow update: if isRealUser() && resource.data.kind == 'club' && isMember(resource.data.clubId)
+        ? ((chatId.matches('club_.+') && isMember(chatId.replace('club_', '')))
+            || chatId.matches('dm_' + request.auth.uid + '_.+') || chatId.matches('dm_.+_' + request.auth.uid))
+        : (resource.data.kind == 'club' ? isMember(resource.data.clubId) : request.auth.uid in resource.data.members));
+      // A person lists their direct conversations with where('members', 'array-contains', uid).
+      allow list: if isRealUser() && request.auth.uid in resource.data.members;
+      allow create: if isRealUser() && (request.resource.data.kind == 'dm'
+        ? validDmCreate(chatId, request.resource.data)
+        : (request.resource.data.kind == 'club'
+          && request.resource.data.keys().hasOnly(['kind', 'clubId', 'title', 'lastText', 'lastAt', 'lastBy', 'createdAt'])
+          && request.resource.data.keys().hasAll(['kind', 'clubId', 'title', 'lastText', 'lastAt', 'lastBy', 'createdAt'])
+          && chatId == 'club_' + request.resource.data.clubId
+          && isManager(request.resource.data.clubId)
+          && validName(request.resource.data.title)
+          && request.resource.data.lastText == '' && request.resource.data.lastAt == 0 && request.resource.data.lastBy == ''
+          && nearNow(request.resource.data.createdAt)));
+      allow update: if isRealUser() && request.resource.data.kind == resource.data.kind
+        && (resource.data.kind == 'club' ? isMember(resource.data.clubId) : request.auth.uid in resource.data.members)
         && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText', 'lastAt', 'lastBy'])
               && validTail(request.resource.data))
-          // After the newest message is deleted the preview is rewritten (text only): by that line's author or a manager.
+          // After the newest message is deleted the preview is rewritten (text only): in a club by that line's author or a
+          // manager, in a direct conversation by either person.
           || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText'])
               && request.resource.data.lastText is string && request.resource.data.lastText.size() <= 100
-              && (resource.data.lastBy == request.auth.uid || isManager(resource.data.clubId))));
-      allow delete: if isRealUser() && resource.data.kind == 'club' && isOwner(resource.data.clubId);
+              && (resource.data.kind == 'dm' || resource.data.lastBy == request.auth.uid || isManager(resource.data.clubId))));
+      allow delete: if isRealUser()
+        && (resource.data.kind == 'club' ? isOwner(resource.data.clubId) : request.auth.uid in resource.data.members);
 
       match /messages/{id} {
-        allow read: if isRealUser() && isMember(chatClub(chatId));
-        allow create: if isRealUser() && isMember(chatClub(chatId))
+        allow read: if isRealUser() && inChat(chatId);
+        allow create: if isRealUser() && inChat(chatId)
           && request.resource.data.keys().hasOnly(['from', 'name', 'text', 'createdAt'])
           && request.resource.data.keys().hasAll(['from', 'name', 'text', 'createdAt'])
           && request.resource.data.from == request.auth.uid
-          && request.resource.data.name == get(memberPath(chatClub(chatId))).data.name // the name on your member record, so nobody posts as someone else
+          // the name on your member record (club) or on the conversation (direct), so nobody posts as someone else
+          && request.resource.data.name == (chatData(chatId).kind == 'club'
+            ? get(memberPath(chatData(chatId).clubId)).data.name
+            : chatData(chatId).names[request.auth.uid])
           && request.resource.data.text is string && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 1000
           && nearNow(request.resource.data.createdAt);
-        allow delete: if isRealUser() && isMember(chatClub(chatId))
-          && (resource.data.from == request.auth.uid || isManager(chatClub(chatId)));
+        allow delete: if isRealUser() && inChat(chatId)
+          && (chatData(chatId).kind == 'dm' || resource.data.from == request.auth.uid || isManager(chatData(chatId).clubId));
       }
     }
 
