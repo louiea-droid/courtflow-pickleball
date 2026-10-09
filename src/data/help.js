@@ -14,7 +14,7 @@ export const MAJOR = [
       "The Friends and Inbox tiles show how many friends and chats you have, with a badge when something is waiting.",
       "My clubs lists the clubs you belong to. Create a club from there if you host.",
     ],
-    shots: [{ src: "/help/home.png", alt: "The Home screen: a Ready to play bar, your active session, a Coming up list of sessions by date, Friends and Inbox tiles and your clubs.", caption: "Home, with the sessions coming up by date." }],
+    shots: [{ src: "/help/home.png", w: 1280, h: 900, alt: "The Home screen: a Ready to play bar, your active session, a Coming up list of sessions by date, Friends and Inbox tiles and your clubs.", caption: "Home, with the sessions coming up by date." }],
     go: { to: "/", label: "Go to Home" },
   },
   {
@@ -29,8 +29,8 @@ export const MAJOR = [
       "Roles: an owner runs everything, a manager runs open play, games and requests, a member can read and chat.",
     ],
     shots: [
-      { src: "/help/clubs-directory.png", alt: "The Clubs page listing public clubs with a search box.", caption: "Clubs: every public club, searchable." },
-      { src: "/help/club-members.png", alt: "A club's Members tab with the club chat, the invite link and the list of members with their roles.", caption: "A club's Members tab: chat, invite link and roles." },
+      { src: "/help/clubs-directory.png", w: 1280, h: 900, alt: "The Clubs page listing public clubs with a search box.", caption: "Clubs: every public club, searchable." },
+      { src: "/help/club-members.png", w: 1280, h: 900, alt: "A club's Members tab with the club chat, the invite link and the list of members with their roles.", caption: "A club's Members tab: chat, invite link and roles." },
     ],
     go: { to: "/clubs/find", label: "Browse clubs" },
   },
@@ -46,8 +46,8 @@ export const MAJOR = [
       "The host marks each player unpaid, paid or refunded, and sees how much has been collected.",
     ],
     shots: [
-      { src: "/help/host-events.png", alt: "The Open play tab listing a club's sessions with spots and a New open play button.", caption: "The host's list of open play." },
-      { src: "/help/booking-page.png", alt: "The public booking page showing upcoming open play with fee, level, spots left and a Join button.", caption: "What a player sees on the booking page." },
+      { src: "/help/host-events.png", w: 1280, h: 900, alt: "The Open play tab listing a club's sessions with spots and a New open play button.", caption: "The host's list of open play." },
+      { src: "/help/booking-page.png", w: 620, h: 709, alt: "The public booking page showing upcoming open play with fee, level, spots left and a Join button.", caption: "What a player sees on the booking page." },
     ],
     go: { to: "/clubs", label: "Open your clubs" },
   },
@@ -61,7 +61,7 @@ export const MAJOR = [
       "Search by club, place, session name or level.",
       "Each card shows the time, the club, the place, the spots left and the fee. Tap it to open the club's booking page.",
     ],
-    shots: [{ src: "/help/find-session.png", alt: "Find session with a week strip, a search box and session cards grouped by date.", caption: "Find session: pick a day, then a session." }],
+    shots: [{ src: "/help/find-session.png", w: 1280, h: 900, alt: "Find session with a week strip, a search box and session cards grouped by date.", caption: "Find session: pick a day, then a session." }],
     go: { to: "/sessions", label: "Find a session" },
   },
   {
@@ -77,8 +77,8 @@ export const MAJOR = [
       "End game keeps everything (players, matches, costs). You can reopen it later.",
     ],
     shots: [
-      { src: "/help/game-dashboard.png", alt: "The game dashboard with two courts, one in play, and the next players shown below.", caption: "The dashboard: courts, who is playing and who is next." },
-      { src: "/help/game-queue.png", alt: "The Queue tab listing checked-in players in priority order with their games and waiting time.", caption: "The Queue tab, in priority order." },
+      { src: "/help/game-dashboard.png", w: 1280, h: 900, alt: "The game dashboard with two courts, one in play, and the next players shown below.", caption: "The dashboard: courts, who is playing and who is next." },
+      { src: "/help/game-queue.png", w: 1280, h: 900, alt: "The Queue tab listing checked-in players in priority order with their games and waiting time.", caption: "The Queue tab, in priority order." },
     ],
     go: { to: "/clubs", label: "Open your clubs" },
   },
@@ -94,10 +94,10 @@ export const MAJOR = [
       "Playing in a club's game? Your active session on Home shows your place, and View queue opens the live list for everyone.",
     ],
     shots: [
-      { src: "/help/quick-session.png", alt: "The Quick session dashboard with two courts and a waiting queue.", caption: "Quick session: courts and the waiting queue." },
-      { src: "/help/active-queue.png", alt: "Home's active session card reading You're number 3 in line, 2 players ahead, about 10 minutes.", caption: "Your place in line, on Home." },
-      { src: "/help/queue-page.png", alt: "The read-only queue page listing who is on court and who is waiting, in order.", caption: "View queue: the live list for everyone in the game." },
-      { src: "/help/modes.png", alt: "The mode picker listing Balanced, Skill Separated, Custom, Winners / Losers and Mixed Doubles.", caption: "The rotation modes." },
+      { src: "/help/quick-session.png", w: 1280, h: 900, alt: "The Quick session dashboard with two courts and a waiting queue.", caption: "Quick session: courts and the waiting queue." },
+      { src: "/help/active-queue.png", w: 921, h: 86, alt: "Home's active session card reading You're number 3 in line, 2 players ahead, about 10 minutes.", caption: "Your place in line, on Home." },
+      { src: "/help/queue-page.png", w: 1280, h: 900, alt: "The read-only queue page listing who is on court and who is waiting, in order.", caption: "View queue: the live list for everyone in the game." },
+      { src: "/help/modes.png", w: 1280, h: 900, alt: "The mode picker listing Balanced, Skill Separated, Custom, Winners / Losers and Mixed Doubles.", caption: "The rotation modes." },
     ],
     go: { to: "/club", label: "Start a quick session" },
     extra: [

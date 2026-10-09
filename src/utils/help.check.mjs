@@ -15,6 +15,7 @@ for (const s of MAJOR) {
   for (const shot of s.shots) {
     assert.match(shot.src, /^\/help\/[a-z0-9-]+\.png$/, `${s.id} shot path`);
     assert.ok(shot.alt.length > 20 && shot.caption, `${s.id} shot needs alt text and a caption`);
+    assert.ok(shot.w > 0 && shot.h > 0, `${s.id} shot needs its width and height (no layout jump)`);
   }
 }
 for (const m of MINOR) assert.ok(m.title && m.body, `${m.id} has a title and body`);
