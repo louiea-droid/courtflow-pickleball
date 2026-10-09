@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, LogOut, UserRound } from "lucide-react";
+import { ChevronDown, CircleHelp, LogOut, UserRound } from "lucide-react";
 
 export default function AccountMenu({ name, email, onSignOut, navigate }) {
   const [open, setOpen] = useState(false);
@@ -34,6 +34,12 @@ export default function AccountMenu({ name, email, onSignOut, navigate }) {
     navigate("/settings");
   };
 
+  const goToHelp = (event) => {
+    event.preventDefault();
+    setOpen(false);
+    navigate("/help");
+  };
+
   return (
     <div className="account-menu" ref={menuRef}>
       <button
@@ -58,6 +64,9 @@ export default function AccountMenu({ name, email, onSignOut, navigate }) {
         </div>
         <a className="account-menu-item" href="/settings" onClick={goToProfile}>
           <UserRound size={16} /> Profile
+        </a>
+        <a className="account-menu-item" href="/help" onClick={goToHelp}>
+          <CircleHelp size={16} /> Help
         </a>
         <button className="account-menu-item" type="button" onClick={onSignOut}>
           <LogOut size={16} /> Sign out

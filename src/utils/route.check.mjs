@@ -88,4 +88,8 @@ assert.equal(routeOf("/sessions"), "sessions");
 assert.equal(routeOf("/sessions/"), "sessions");
 assert.equal(routeOf("/sessionsx"), "hub");
 
+assert.equal(routeOf("/help"), "help");
+assert.equal(routeOf("/help/"), "help");
+assert.equal(routeOf("/helpx"), "hub");
+
 console.log("route.check: ok");

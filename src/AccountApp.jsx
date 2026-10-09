@@ -18,6 +18,7 @@ import MyClubs from "./views/MyClubs";
 import Friends from "./views/Friends";
 import Inbox from "./views/Inbox";
 import FindSession from "./views/FindSession";
+import Help from "./views/Help";
 import CreateClub from "./views/CreateClub";
 import FindClubs from "./views/FindClubs";
 import Profile from "./views/Profile";
@@ -93,7 +94,7 @@ export default function AccountApp() {
   return (
     <div className="acct-shell">
       <AccountSidebar
-        active={{ "clubs-find": "find", clubs: "clubs", friends: "friends", inbox: "inbox", sessions: "sessions", hub: "hub" }[route] || null}
+        active={{ "clubs-find": "find", clubs: "clubs", friends: "friends", inbox: "inbox", sessions: "sessions", help: "help", hub: "hub" }[route] || null}
         name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} clubs={clubs}
         friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
       />
@@ -106,6 +107,8 @@ export default function AccountApp() {
           <Friends uid={uid} name={name} friendships={friendships} ready={friendsReady} notify={notify} navigate={navigate} />
         ) : route === "inbox" ? (
           <Inbox uid={uid} name={name} clubs={clubs} clubsReady={clubsReady} inbox={inbox} chatId={chatId} navigate={navigate} />
+        ) : route === "help" ? (
+          <Help navigate={navigate} />
         ) : route === "sessions" ? (
           <FindSession clubs={clubs} sessions={sessions} navigate={navigate} />
         ) : route === "clubs" ? (

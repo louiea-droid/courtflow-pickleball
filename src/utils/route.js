@@ -12,6 +12,7 @@ export function routeOf(pathname) {
   if (path === "/clubs") return "clubs";
   if (path === "/friends") return "friends";
   if (path === "/sessions") return "sessions";
+  if (path === "/help") return "help";
   if (/^\/inbox(\/[^/]+)?$/.test(path)) return "inbox";
   if (path === "/clubs/new") return "clubs-new";
   if (path === "/clubs/find") return "clubs-find";

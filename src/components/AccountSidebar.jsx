@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Building2, CalendarSearch, House, Menu, MessageSquare, PanelLeft, UserPlus, Users, X } from "lucide-react";
+import { Building2, CalendarSearch, CircleHelp, House, Menu, MessageSquare, PanelLeft, UserPlus, Users, X } from "lucide-react";
 import AccountMenu from "./AccountMenu";
 import { clubPath } from "../utils/clubs";
 
@@ -8,7 +8,7 @@ import { clubPath } from "../utils/clubs";
 // it; the open club expands in place to its screens: `club` = { id, name, tabs: [{ to, label, Icon, current,
 // badge, badgeText }] }). The account menu lives in the sticky header across the top (with the button that collapses the
 // sidebar to an icon rail on a wide screen; the choice is remembered). Creating a club and the quick session live on
-// Home. `active` highlights a place: "hub" | "sessions" | "find" | "friends" | "inbox" | "clubs".
+// Home. `active` highlights a place: "hub" | "sessions" | "find" | "friends" | "inbox" | "clubs" | "help".
 export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null, friendRequests = 0, inboxUnread = 0 }) {
   const [open, setOpen] = useState(false);
   // Wide screens: the sidebar is a fixed rail that can collapse to icons. A data attribute on <html> carries the state to the CSS.
@@ -94,6 +94,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
           )}
         </div>
         <div className="acct-side-foot">
+          {link("/help", "Help", CircleHelp, active === "help")}
           <button className="acct-collapse" type="button" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} aria-pressed={collapsed} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((c) => !c)}>
             <PanelLeft size={17} /><span>{collapsed ? "Expand" : "Collapse"}</span>
           </button>
