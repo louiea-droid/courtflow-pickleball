@@ -398,7 +398,7 @@ export default function Dashboard({
               <div className="stat-leader-row" key={p.id}>
                 <b className="leaderboard-rank">{i + 1}</b>
                 <span className="leaderboard-name">{p.name}</span>
-                <small className="leaderboard-win-pct">{winPct(p)}%</small>
+                <small className="leaderboard-win-pct">{p.wins || 0} won · {winPct(p)}%</small>
               </div>
             )) : <small className="leaderboard-empty">No players yet</small>}
           </div>

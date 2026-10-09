@@ -493,7 +493,8 @@ export default function QueueApp({
     const stay = shouldWinnersStay({ rules, mode, streak, winners });
     const capped = winners.length > 0 && !stay && streak >= rules.maxWinStreak && (rules.winnersStay || mode === "Winners / Losers");
     if (stay) {
-      const challengers = autoRotateOn
+      // Winners / Losers always brings the challengers on, whatever the auto-rotation switch says.
+      const challengers = autoRotateOn || mode === "Winners / Losers"
         ? selectToJoin({
           pool: queue, court: c, mode, need: need / 2,
           seated: winners.map((id) => players.find((p) => p.id === id)).filter(Boolean),

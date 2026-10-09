@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff, LogIn, Moon, Sun, UserPlus } from "lucide-react";
 import { isDarkTheme, setDeviceTheme } from "../utils/theme";
 
@@ -20,6 +20,27 @@ export default function AccountLogin({ onSignIn, onSignUp, onGoogle, onReset }) 
   const [dark, setDark] = useState(isDarkTheme);
   const toggleTheme = () => { setDeviceTheme(dark ? "light" : "dark"); setDark(!dark); };
   const { title, blurb, action, icon: Icon } = COPY[mode];
+  const ball = useRef(null);
+
+  // A soft ball chases the pointer (eased, so it trails a little); with reduced motion it stays put.
+  useEffect(() => {
+    const el = ball.current;
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    const goal = { x: window.innerWidth / 2, y: window.innerHeight / 3 };
+    const pos = { ...goal };
+    let raf = 0;
+    const tick = () => {
+      pos.x += (goal.x - pos.x) * 0.12;
+      pos.y += (goal.y - pos.y) * 0.12;
+      el.style.transform = `translate3d(${pos.x}px,${pos.y}px,0) translate(-50%,-50%)`;
+      raf = requestAnimationFrame(tick);
+    };
+    const move = (e) => { goal.x = e.clientX; goal.y = e.clientY; };
+    window.addEventListener("pointermove", move);
+    raf = requestAnimationFrame(tick);
+    return () => { window.removeEventListener("pointermove", move); cancelAnimationFrame(raf); };
+  }, []);
+
 
   const go = (next) => { setMode(next); setError(""); setInfo(""); setShowPassword(false); };
 
@@ -45,7 +66,8 @@ export default function AccountLogin({ onSignIn, onSignUp, onGoogle, onReset }) 
   const ready = email.trim() && (mode === "reset" || password) && (mode !== "signup" || name.trim());
 
   return (
-    <div className="clublogin">
+    <div className="clublogin clublogin-fx">
+      <div className="clublogin-ball" ref={ball} aria-hidden="true" />
       <div className="clublogin-wrap">
         <div className="clublogin-brand">
           <img src="/images/courtflow.png" alt="" />

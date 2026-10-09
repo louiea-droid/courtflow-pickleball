@@ -411,3 +411,20 @@ button.acct-brand:hover{background:var(--side-hover)}
   .help-body{overflow-y:auto;padding:0 8px 55vh 0;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
   .help-section,.help-minor article{scroll-margin-top:8px}
 }
+
+/* Sign-in backdrop: a theme-aware gradient and a soft accent ball that follows the pointer */
+.clublogin-fx{
+  position:relative;overflow:hidden;
+  background:
+    radial-gradient(60% 50% at 15% 0%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%),
+    radial-gradient(55% 55% at 100% 100%,color-mix(in srgb,var(--team2,var(--accent)) 18%,transparent),transparent 70%),
+    var(--bg)
+}
+.clublogin-fx>.clublogin-wrap{position:relative;z-index:1}
+.clublogin-fx>.theme-toggle{z-index:2}
+.clublogin-ball{
+  position:fixed;left:0;top:0;width:340px;height:340px;border-radius:50%;pointer-events:none;z-index:0;
+  background:radial-gradient(circle,color-mix(in srgb,var(--accent) 55%,transparent) 0,color-mix(in srgb,var(--accent) 18%,transparent) 45%,transparent 70%);
+  filter:blur(18px);transform:translate3d(50vw,30vh,0) translate(-50%,-50%);will-change:transform
+}
+@media (prefers-reduced-motion:reduce){.clublogin-ball{opacity:.6}}

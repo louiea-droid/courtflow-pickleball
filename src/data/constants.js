@@ -1,9 +1,9 @@
 export const MODE_DESCRIPTIONS = {
   "Balanced": "Rotates turns fairly and evens out each match by star rating: the strongest player teams with the weakest, so similar levels face each other. Avoids repeat partners when it can.",
-  "Skill Separated": "Keeps each match to one skill level. A court takes the first level in the queue that has enough players waiting; anyone whose level is short keeps their place. Winners who stay on are challenged by their own level.",
+  "Skill Separated": "Keeps each match to one skill level. A court takes the first level with enough players waiting; anyone whose level is short keeps their place. If no level has enough, the front player plays with the closest levels so courts never sit empty. Winners who stay on are challenged by their own level.",
   "Custom": "You build every match yourself: nothing is picked automatically. Add players to a court from the Queue or a court card; results still update stats and the queue, and the court empties.",
-  "Winners / Losers": "Winners play winners and losers play losers.",
-  "Mixed Doubles": "Forms each team with one male and one female player.",
+  "Winners / Losers": "Winners stay on until they reach the win-streak limit (2 by default, set in Settings), then rest at the back. Challengers are recent winners first, and they come on automatically.",
+  "Mixed Doubles": "Every team is one man and one woman, so a match needs two of each waiting. Players with no gender set are never picked and show a warning.",
   "King/Queen of the Court": "Winners move up courts and losers move down (coming soon).",
   "Club Wars": "Two named groups compete; every match is Group A versus Group B (coming soon).",
   "Tournament": "Fixed doubles teams with a schedule and optional pools/playoffs (coming soon).",
@@ -22,8 +22,9 @@ export const DEFAULT_RULES = {
   gameAlertMinutes: 0, // 0 = off
   winnersStay: false,
   maxWinStreak: 2, // only used when winnersStay is on
-  avoidRepeatPartners: false, // Balanced mode always does this
+  avoidRepeatPartners: true, // Balanced mode always does this
 };
+export const RULE_DEFAULTS_VERSION = 1;
 export const DEFAULT_COST = { rate: 0, roundTo: 0 }; // roundTo 0 = exact split
 // `key` null = the plain ?club= link works; once regenerated, only ?key=<key> does.
 export const DEFAULT_LIVE = { enabled: true, key: null, showSkill: true, showQueueRank: true, showStats: true };

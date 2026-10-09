@@ -58,9 +58,14 @@ assert.deepEqual(pick.remaining.map((x) => x.id), ["b1"]); // the beginner keeps
 pool = [p("a1", 3), p("e1", 5), p("a2", 3), p("e2", 5), p("a3", 3), p("e3", 5), p("a4", 3), p("e4", 5)];
 assert.equal(ids(selectForCourt({ pool, court, mode: "Skill Separated", need: 4 })), "a1,a2,a3,a4");
 
-// No tier has four: the court waits.
+// No tier has four but five wait: the front player plus the three closest in skill play.
 pool = [p("a1", 3), p("a2", 3), p("e1", 5), p("e2", 5), p("b1", 1)];
-assert.equal(ids(selectForCourt({ pool, court, mode: "Skill Separated", need: 4 })), "");
+assert.equal(ids(selectForCourt({ pool, court, mode: "Skill Separated", need: 4 })), "a1,a2,e1,e2");
+// Fewer players than seats: still waits.
+assert.equal(ids(selectForCourt({ pool: pool.slice(0, 3), court, mode: "Skill Separated", need: 4 })), "");
+// Winners / Losers with mixed results (no group of four): queue order, never a stalled court.
+pool = [p("n1", 3), p("w1", 3, { lastResult: "win" }), p("l1", 3, { lastResult: "loss" }), p("w2", 3, { lastResult: "win" }), p("l2", 3, { lastResult: "loss" })];
+assert.equal(ids(selectForCourt({ pool, court, mode: "Winners / Losers", need: 4 })), "n1,w1,l1,w2");
 
 // Singles: first tier with two.
 pool = [p("b1", 1), p("a1", 2), p("a2", 2)];

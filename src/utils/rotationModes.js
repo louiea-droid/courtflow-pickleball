@@ -5,12 +5,22 @@ import { matchesCourtLevel, skillLevelLabel, pickForLevel } from "./courtLevels.
 // whose group is still short keep their place and wait, so one lone player at
 // the front can't hold up a court while a full group sits behind them. Only
 // commits if a full group is actually available — otherwise the court waits
-// rather than mixing groups.
-function clusterPick(pool, keyFn, need) {
+// rather than mixing groups. If no group is big enough but the queue still has
+// `need` players, the front player plus the `need - 1` closest by `distFn` (default:
+// queue order) play, so a court never sits empty while many players wait.
+function clusterPick(pool, keyFn, need, distFn = () => 0) {
   const sizes = new Map();
   for (const p of pool) sizes.set(keyFn(p), (sizes.get(keyFn(p)) || 0) + 1);
   const anchor = pool.find((p) => sizes.get(keyFn(p)) >= need);
-  if (!anchor) return { taken: [], remaining: pool };
+  if (!anchor) {
+    if (pool.length < need) return { taken: [], remaining: pool };
+    const front = pool[0];
+    const rest = pool.slice(1).map((p, i) => ({ p, i, d: distFn(front, p) }))
+      .sort((a, b) => a.d - b.d || a.i - b.i).slice(0, need - 1);
+    const takenIds = new Set([front.id, ...rest.map((r) => r.p.id)]);
+    // keep queue order inside the group
+    return { taken: pool.filter((p) => takenIds.has(p.id)), remaining: pool.filter((p) => !takenIds.has(p.id)) };
+  }
   const targetKey = keyFn(anchor);
   const taken = [];
   const remaining = [];
@@ -151,7 +161,7 @@ export function selectForCourt({ pool, court, mode, need }) {
   if (levelRestricted) {
     result = pickForLevel(pool, court.level, need);
   } else if (mode === "Skill Separated") {
-    result = clusterPick(pool, (p) => skillLevelLabel(p.skill), need);
+    result = clusterPick(pool, (p) => skillLevelLabel(p.skill), need, (a, b) => Math.abs((a.skill || 0) - (b.skill || 0)));
   } else if (mode === "Winners / Losers") {
     result = clusterPick(pool, (p) => p.lastResult || "new", need);
   } else if (mode === "Mixed Doubles" && need % 2 === 0) {

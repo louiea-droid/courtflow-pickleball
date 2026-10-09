@@ -1,6 +1,5 @@
-import { useState } from "react";
 import {
-  ChevronDown, LogIn, LayoutDashboard, ListOrdered, Users, Receipt, Trophy, MonitorPlay,
+  LogIn, LayoutDashboard, ListOrdered, Users, Receipt, Trophy, MonitorPlay, CalendarCheck,
 } from "lucide-react";
 import StarDisplay from "../components/StarDisplay";
 import { MODE_DESCRIPTIONS, COMING_SOON_MODES } from "../data/constants";
@@ -9,119 +8,130 @@ import { SKILL_LEVELS } from "../utils/courtLevels";
 const FEATURES = [
   {
     icon: LogIn, title: "Quick session",
-    body: "No login needed: open the app and your session is ready, saved on this device. It comes back exactly as you left it each time you return from the same browser; clearing the browser's site data starts a fresh one. When the day's play is done, use End Session in the sidebar to archive today's stats and reset everyone's game count for next time — see it under Stats → Past Sessions.",
+    body: "No account needed. Open the app and your session is ready, saved in this browser. When play is done, End Session in the sidebar archives the stats and resets game counts (see Stats, Past Sessions).",
+  },
+  {
+    icon: CalendarCheck, title: "Open play game",
+    body: "Signed-in hosts run a game from an event: Proceed to game adds the people who booked, and the same queue app runs the courts. End game keeps everything; Reopen game picks it back up.",
   },
   {
     icon: LayoutDashboard, title: "Dashboard",
-    body: "The live view of every court. Start the next match, record who won to rotate the completed players back into the queue, and preview who's up next. Auto-fill seats open courts from the queue in one click; Auto-rotation controls whether a court refills itself automatically after a win.",
+    body: "Every court at a glance. Record a winner and the court rotates by your mode. Up Next previews who goes on each court; Auto-fill seats all open courts at once, and Undo on the toast fixes a mis-tap.",
   },
   {
     icon: ListOrdered, title: "Queue",
-    body: "Who's waiting, in priority order (fewer games and longer wait go first). Call a player straight to an open court, or check someone out when they leave. The Not Checked In list is a quick way to check someone in the moment they arrive.",
+    body: "Who is waiting, fewest games first, then longest wait. Send someone straight to an open court, skip them to the back, or check people in the moment they arrive.",
   },
   {
     icon: Users, title: "Players",
-    body: "Your roster — add players, set their skill rating, edit details, or remove someone. Each card shows games, wins, and win % for the current session.",
+    body: "Add players, set their skill stars and gender, lock two players as a pair, or edit and remove them. Each card shows games, wins and win percentage.",
   },
   {
     icon: Receipt, title: "Cost",
-    body: "Log a court rental (rate × hours × courts) and split it evenly across whoever played. Track who's paid with a tap, and optionally flip on \"Show on Live Board\" so players can see the split themselves.",
+    body: "Log a court rental and split it across everyone who played. Mark who has paid, and optionally show the split on the Live Board.",
   },
   {
     icon: Trophy, title: "Stats",
-    body: "The session leaderboard, sorted by win percentage. Export everything to CSV, or expand Past Sessions to see the results from before the last time this club ended a session.",
+    body: "The leaderboard by win percentage, with games won. Export to CSV, or open Past Sessions for earlier results.",
   },
   {
     icon: MonitorPlay, title: "Live Board",
-    body: "A read-only screen you can share or put on a TV — live courts, the waiting queue, and the match log, sized to fit any screen with no scrolling. Open it from Share Live Board in the top bar.",
+    body: "A read-only screen for a TV or phone: live courts, the queue and recent matches. Open it from Share Live Board in the top bar.",
   },
 ];
 
+const MODE_NOTES = {
+  "Balanced": "Next in the queue.",
+  "Skill Separated": "Same level first.",
+  "Custom": "You decide.",
+  "Winners / Losers": "Winners stay on.",
+  "Mixed Doubles": "One man and one woman per team.",
+};
+
 const RULES = [
-  {
-    title: "Scoring",
-    body: "Games are typically played to 11 points, win by 2. Only the serving side can score a point. CourtFlow tracks who won each match, not the point-by-point score — keep that on a scoreboard or by voice.",
-  },
-  {
-    title: "Serving",
-    body: "Serve underhand, below the waist, diagonally into the opponent's service box. In doubles, the serve alternates sides of the court as the server's score changes, and both partners typically get a turn to serve before the serve passes to the other team.",
-  },
-  {
-    title: "The double-bounce rule",
-    body: "After the serve, the ball must bounce once on the return and once on the serve-return before either side can hit it out of the air. After that, either side may volley.",
-  },
-  {
-    title: "The kitchen (non-volley zone)",
-    body: "The 7-foot zone on each side of the net. You can't volley the ball (hit it before it bounces) while standing inside it — or even if your momentum carries you in right after.",
-  },
-  {
-    title: "Faults",
-    body: "A rally ends when the ball goes out of bounds, into the net, is volleyed from the kitchen, or bounces twice before it's returned. A fault on the serving side ends their turn to serve (or the game, if it's match point).",
-  },
+  { title: "Scoring", body: "Games are usually to 11, win by 2, and only the serving side scores. CourtFlow records who won each match, not the points." },
+  { title: "Serving", body: "Serve underhand, diagonally into the opponent's box. In doubles, both partners usually serve before the serve passes to the other team." },
+  { title: "Double bounce", body: "The serve and its return must each bounce once before anyone volleys. After that, either side may hit the ball out of the air." },
+  { title: "The kitchen", body: "The 7-foot zone at the net. You can't volley while standing in it, even if your momentum carries you in after the hit." },
+  { title: "Faults", body: "A rally ends when the ball goes out, hits the net, is volleyed from the kitchen, or bounces twice. A fault by the serving side ends their serve." },
 ];
 
 const SKILL_BLURBS = {
-  "Beginner": "New to the game — still learning the rules, serve, and basic shot control.",
-  "Advanced Beginner": "Comfortable in a rally — working on consistency, positioning, and the kitchen line.",
+  "Beginner": "New to the game: still learning the rules, serve and basic shot control.",
+  "Advanced Beginner": "Comfortable in a rally: working on consistency, positioning and the kitchen line.",
   "Intermediate": "Reliable shot placement and some dinking control; starting to play with strategy.",
-  "Advanced Intermediate": "Strong all-around game — consistent net play, third-shot drops, good court awareness.",
-  "Advanced": "Competitive, tournament-capable play with a wide shot variety and sharp strategy.",
-  "Expert": "Tournament-caliber — exceptional consistency, control, and reading of the game.",
+  "Advanced Intermediate": "Strong all-around game: consistent net play, third-shot drops, good court awareness.",
+  "Advanced": "Competitive, tournament-capable play with wide shot variety and sharp strategy.",
+  "Expert": "Tournament-caliber: exceptional consistency, control and reading of the game.",
 };
 
-function GuideSection({ title, sub, defaultOpen, children }) {
-  const [open, setOpen] = useState(Boolean(defaultOpen));
+const SECTIONS = [
+  ["how", "How it works"],
+  ["modes", "Rotation modes"],
+  ["skill", "Skill levels"],
+  ["rules", "Pickleball rules"],
+];
+
+function jump(e, id) {
+  e.preventDefault();
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  document.getElementById(`guide-${id}`)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+}
+
+function Section({ id, title, sub, children }) {
   return (
-    <div className="panel guide-section">
-      <button className="guide-section-head" onClick={() => setOpen((o) => !o)}>
-        <div><h3>{title}</h3><span>{sub}</span></div>
-        <ChevronDown size={18} className={open ? "rot" : ""} />
-      </button>
-      {open && <div className="guide-section-body">{children}</div>}
-    </div>
+    <section className="guide-block" id={`guide-${id}`} aria-labelledby={`guide-${id}-h`}>
+      <header><h3 id={`guide-${id}-h`}>{title}</h3><p>{sub}</p></header>
+      {children}
+    </section>
   );
 }
 
 export default function Guide() {
   return (
-    <>
-      <GuideSection title="How CourtFlow Works" sub="What each part of the app does">
-        <div className="rules guide-features">
+    <div className="guide">
+      <nav className="guide-jump" aria-label="Guide sections">
+        {SECTIONS.map(([id, label]) => (
+          <a key={id} href={`#guide-${id}`} onClick={(e) => jump(e, id)}>{label}</a>
+        ))}
+      </nav>
+
+      <Section id="how" title="How CourtFlow works" sub="What each part of the app does.">
+        <div className="guide-cards">
           {FEATURES.map((f) => (
-            <div key={f.title}>
-              <b><f.icon size={14} /></b>
+            <article className="guide-card" key={f.title}>
+              <span className="guide-ico"><f.icon size={16} /></span>
               <div><strong>{f.title}</strong><p>{f.body}</p></div>
-            </div>
+            </article>
           ))}
         </div>
-      </GuideSection>
+      </Section>
 
-      <GuideSection title="Rotation Modes" sub="How the queue decides who plays next">
+      <Section id="modes" title="Rotation modes" sub="How the queue decides who plays next. Change it from the mode picker or in Settings.">
         <p className="guide-intro">
-          Two rules hold no matter which mode is active: players with fewer games get priority in
-          the queue, and a court's skill level restricts who can rotate onto it — set it via the
-          badge on each court. The mode you pick decides everything else about how teams get formed.
+          Two things hold in every mode: players with fewer games go first, and a court's level badge
+          only lets matching players onto it. The mode decides how each match is formed.
         </p>
-        <div className="rules">
-          {Object.entries(MODE_DESCRIPTIONS).map(([mode, desc], i) => (
-            <div key={mode}>
-              <b>{i + 1}</b>
+        <div className="guide-cards">
+          {Object.entries(MODE_DESCRIPTIONS).map(([mode, desc]) => (
+            <article className="guide-card guide-mode" key={mode}>
               <div>
                 <strong>
                   {mode}
                   {COMING_SOON_MODES.includes(mode) && <span className="soon-tag guide-soon">Soon</span>}
                 </strong>
+                {MODE_NOTES[mode] && <em>{MODE_NOTES[mode]}</em>}
                 <p>{desc}</p>
               </div>
-            </div>
+            </article>
           ))}
         </div>
-      </GuideSection>
+      </Section>
 
-      <GuideSection title="Skill Levels" sub="What the star rating means, and how court levels use it">
+      <Section id="skill" title="Skill levels" sub="What the star rating means, and how court levels use it.">
         <p className="guide-intro">
-          Every player has a 1–6 star skill rating. Set a court's level badge on the Dashboard to
-          restrict who can rotate onto it — only players matching that rating will fill an open seat there.
+          Every player has a 1 to 6 star rating. Set a court's level on the Dashboard and only players of
+          that level fill its open seats. Unrated players can play on Any Level courts.
         </p>
         <div className="guide-skill-grid">
           {SKILL_LEVELS.map((t) => (
@@ -132,18 +142,17 @@ export default function Guide() {
             </div>
           ))}
         </div>
-      </GuideSection>
+      </Section>
 
-      <GuideSection title="Pickleball Rules" sub="A quick primer on the game itself">
-        <div className="rules">
-          {RULES.map((r, i) => (
-            <div key={r.title}>
-              <b>{i + 1}</b>
+      <Section id="rules" title="Pickleball rules" sub="A quick primer on the game itself.">
+        <div className="guide-cards">
+          {RULES.map((r) => (
+            <article className="guide-card" key={r.title}>
               <div><strong>{r.title}</strong><p>{r.body}</p></div>
-            </div>
+            </article>
           ))}
         </div>
-      </GuideSection>
-    </>
+      </Section>
+    </div>
   );
 }

@@ -32,8 +32,8 @@ export default function DeleteAccountDialog({ clubName, loading, onCancel, onCon
               : "This permanently deletes your account. There is no undo."
             : "This permanently deletes the club with its open play, games, players and members. There is no undo."}
         </p>
-        <label>
-          Type <b>{clubName}</b> to confirm
+        <label className="confirm-type">
+          <span>Type <mark>{clubName}</mark> below to confirm</span>
           <input
             value={typed}
             onChange={(e) => setTyped(e.target.value)}

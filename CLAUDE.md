@@ -6,6 +6,10 @@ Always invoke the matching skills in `.claude/skills` with the Skill tool, even 
 - UI or design work: `frontend-design`, `ui-design-system`, `ui-ux-pro-max`.
 - React or frontend code: `senior-frontend`, `react-best-practices`.
 - Theming (palettes, light/dark theme): `theme-factory`, plus the design skills.
+- Bugs and unexpected behavior: `superpowers:systematic-debugging`. Before saying work is done: `superpowers:verification-before-completion`.
+- Plugin skills (superpowers, ponytail, code-review, ...) count too: use any that fits the task, even when not asked.
+- At the start of a task, list `.claude/skills` and the skills shown in the session; if one is new (not named here), read its description and use it when it fits.
+- Check UI work at phone width (about 390px) as well as desktop, in the browser (`npm run emulators` + `npm run dev:emu`).
 
 ## Settings backlog (Settings page)
 

@@ -376,22 +376,31 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .rules b{background:var(--accent-soft);color:var(--accent-ink);width:23px;height:23px;border-radius:7px;display:grid;place-items:center;font-size:11px}
 
 /* ---------- Guide ---------- */
-.guide-section{margin-bottom:14px}
-.guide-section:last-child{margin-bottom:0}
-.guide-section-head{
-  width:100%;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
-  border:0;background:none;padding:0;text-align:left;cursor:pointer
-}
-.guide-section-head h3{margin:0 0 3px;font:700 17px "Space Grotesk"}
-.guide-section-head span{color:var(--muted);font-size:12.5px}
-.guide-section-head svg{color:var(--faint);flex-shrink:0;margin-top:4px;transition:transform .18s ease}
-.guide-section-head svg.rot{transform:rotate(180deg)}
-.guide-section-body{margin-top:16px;animation:fadeSlideUp .25s var(--ease) both}
-.guide-features strong{display:block;font-size:13.5px}
-.guide-features p{margin:3px 0 0;color:var(--muted);font-size:12.5px;line-height:1.5}
+.guide{max-width:980px}
+.guide-jump{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;padding:4px 0 10px}
+.guide-jump a{padding:7px 14px;border:1px solid var(--line);border-radius:99px;background:var(--panel);color:var(--ink-2);font-size:13px;font-weight:600;text-decoration:none;transition:border-color .15s ease,color .15s ease,background .15s ease}
+.guide-jump a:hover{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
+.guide-jump a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.guide-block{scroll-margin-top:144px;margin-top:30px}
+.guide-block:first-of-type{margin-top:10px}
+.guide-block>header{margin-bottom:14px}
+.guide-block h3{margin:0 0 4px;font:700 20px "Space Grotesk"}
+.guide-block header p{margin:0;color:var(--muted);font-size:13px}
+.guide-intro{color:var(--ink-2);font-size:13.5px;line-height:1.6;margin:0 0 14px;max-width:68ch}
+.guide-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.guide-card{display:flex;gap:12px;padding:15px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.guide-card strong{display:block;font-size:14px;color:var(--ink)}
+.guide-card p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.55}
+.guide-card em{display:block;margin-top:2px;font-style:normal;font-size:12.5px;font-weight:600;color:var(--accent-ink)}
+.guide-ico{flex-shrink:0;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-ink)}
+.guide-skill-grid{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:2px 16px}
+.guide-skill-row{display:grid;grid-template-columns:100px 190px 1fr;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft)}
+.guide-skill-row:last-child{border-bottom:0}
+.guide-skill-row b{font-size:13px;color:var(--ink)}
+.guide-skill-row span{color:var(--muted);font-size:13px;line-height:1.5}
+.guide-soon{margin-left:8px}
 .rules strong{display:block;font-size:13.5px}
 .rules p{margin:3px 0 0;color:var(--muted);font-size:12.5px;line-height:1.5}
-.guide-intro{color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 16px}
 
 /* ---------- Account ---------- */
 .account-groups{display:flex;flex-direction:column;gap:22px}
@@ -421,15 +430,6 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .swatch-custom:focus-within{outline:2px solid var(--accent);outline-offset:3px}
 .account-select .field-select{margin-top:0}
 .account-edit input{width:170px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-weight:600;color:var(--ink)}
-.guide-soon{margin-left:8px}
-.guide-skill-grid{display:grid;gap:2px}
-.guide-skill-row{
-  display:grid;grid-template-columns:100px 160px 1fr;gap:14px;align-items:center;
-  padding:11px 0;border-bottom:1px solid var(--line-soft)
-}
-.guide-skill-row:last-child{border-bottom:0}
-.guide-skill-row b{font-size:13px;color:var(--ink)}
-.guide-skill-row span{color:var(--muted);font-size:12.5px}
 
 /* ---------- Queue table ---------- */
 .table{padding:10px}
@@ -957,6 +957,7 @@ form.confirm-modal .modalactions{margin-top:4px}
   .stat span,.stat small{font-size:8px;letter-spacing:.04em}
   .stat b{font-size:17px;margin:2px 0}
   .stat small{display:none}
+  .stat .leaderboard-win-pct{display:block;font-size:10px;letter-spacing:0}
 
   /* Compact queue & not-checked-in tables */
   .table{padding:8px}
@@ -1276,3 +1277,14 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .modal-note.warn{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn-ink)}
 .gender-banner{display:flex;align-items:flex-start;gap:8px;margin-bottom:12px}
 .gender-banner svg{flex-shrink:0;margin-top:2px;color:var(--warn)}
+
+/* Delete confirmation: the name to type stands out and is readable (not small caps) */
+.confirm-type>span{display:block;margin-bottom:8px;font-size:14px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink)}
+.confirm-type mark{padding:2px 8px;border-radius:6px;background:var(--danger-soft);color:var(--danger-ink);font-weight:800;box-shadow:inset 0 0 0 1px var(--danger-line)}
+.confirm-type input{text-transform:none;letter-spacing:0}
+
+/* Phones scroll by touch: no visible scrollbar (scrolling still works) */
+@media(max-width:760px){
+  *{scrollbar-width:none!important;-ms-overflow-style:none}
+  *::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+}
