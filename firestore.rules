@@ -109,6 +109,13 @@ service cloud.firestore {
       allow delete: if isRealUser() && request.auth.uid in resource.data.users;
     }
 
+    // ---- Find session: events of public clubs can be listed across all clubs (collection-group query). Rules can't look a
+    // club up inside a query, so each event carries a copy of its club's visibility (clubPublic) and the query must ask
+    // for it. Read only; writes stay with the club's managers through the nested rule.
+    match /{path=**}/events/{eventId} {
+      allow read: if resource.data.clubPublic == true;
+    }
+
     // ---- Chats. A club's group chat is club_{clubId}: every member reads and writes it, a manager starts it and
     // moderates it; access follows the club's member record on every request. A direct message is dm_{lo}_{hi} (the two
     // uids sorted) with `members`: only those two read and write it (no moderator, not even a club manager). It can
