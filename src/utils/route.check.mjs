@@ -84,4 +84,8 @@ assert.equal(chatIdOf("/inbox/%E0"), "%E0");
 assert.equal(clubIdOf("/clubs/%E0/members"), "%E0");
 assert.equal(eventIdOf("/clubs/abc/event/%E0"), "%E0");
 
+assert.equal(routeOf("/sessions"), "sessions");
+assert.equal(routeOf("/sessions/"), "sessions");
+assert.equal(routeOf("/sessionsx"), "hub");
+
 console.log("route.check: ok");

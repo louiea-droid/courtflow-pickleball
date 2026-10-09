@@ -278,3 +278,26 @@
 }
 .chat-earlier{align-self:center;flex-shrink:0;min-height:44px}
 .chat-head .chat-hide{margin-left:auto;flex-shrink:0;min-height:44px}
+
+/* ---- Find session: day chips and session cards ---- */
+.day-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.day-chip{min-height:44px;padding:0 16px;border:1px solid var(--card-line);border-radius:99px;background:var(--panel);color:var(--ink);font:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.day-chip:hover{border-color:var(--accent-line);background:var(--hover)}
+.day-chip[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
+.session-group{margin:0 0 20px}
+.session-group .club-section{margin:0 0 10px}
+.session-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--card-line);border-radius:15px;background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s ease,background .15s ease}
+.session-card:hover{border-color:var(--accent-line);background:var(--hover)}
+.session-main,.session-side{display:grid;gap:3px;min-width:0}
+.session-main b{overflow-wrap:anywhere;font-size:15px}
+.session-main small,.session-side small{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;color:var(--muted);font-size:13px}
+.session-club{color:var(--ink-2)}
+.session-side{justify-items:end;text-align:right}
+.session-side b{font-size:13.5px}
+.session-full{color:var(--danger-ink)}
+.session-card .pill{padding:3px 8px;font-size:10px}
+.session-card .pill.live{background:var(--danger-soft);color:var(--danger-ink)}
+@media (max-width:560px){
+  .session-card{grid-template-columns:auto minmax(0,1fr)}
+  .session-side{grid-column:1 / -1;justify-items:start;text-align:left;flex-direction:row}
+}

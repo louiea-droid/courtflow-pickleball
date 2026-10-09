@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { House, Menu, MessageSquare, Search, UserPlus, Users, X } from "lucide-react";
+import { CalendarSearch, House, Menu, MessageSquare, Search, UserPlus, Users, X } from "lucide-react";
 import AccountMenu from "./AccountMenu";
 import { clubPath } from "../utils/clubs";
 
@@ -7,7 +7,7 @@ import { clubPath } from "../utils/clubs";
 // phones). Home, Play (find a club, friends with a count of requests waiting, the inbox with a count of unread chats), My clubs (a link to the page of all your clubs, with the clubs listed under
 // it; the open club expands in place to its screens: `club` = { id, name, tabs: [{ to, label, Icon, current,
 // badge, badgeText }] }), and the account menu at the bottom. Creating a club and the quick session live on
-// Home. `active` highlights a place: "hub" | "find" | "friends" | "inbox" | "clubs".
+// Home. `active` highlights a place: "hub" | "sessions" | "find" | "friends" | "inbox" | "clubs".
 export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null, friendRequests = 0, inboxUnread = 0 }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -48,6 +48,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
           <section className="acct-side-group" aria-label="Play">
             <p className="acct-side-label">Play</p>
             <nav aria-label="Play">
+              {link("/sessions", "Find session", CalendarSearch, active === "sessions")}
               {link("/clubs/find", "Find a club", Search, active === "find")}
               {link("/friends", "Friends", UserPlus, active === "friends", friendRequests > 0 ? (
                 <><span className="count-badge">{friendRequests}</span><span className="sr-only"> friend requests waiting</span></>
