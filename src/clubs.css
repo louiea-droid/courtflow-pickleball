@@ -276,3 +276,4 @@
   .inbox.has-chat .inbox-list,.inbox:not(.has-chat) .inbox-main{display:none}
   .chat-back{display:inline-grid}
 }
+.chat-earlier{align-self:center;flex-shrink:0;min-height:44px}

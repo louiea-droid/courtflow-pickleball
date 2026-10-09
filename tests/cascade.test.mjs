@@ -188,5 +188,17 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   assert.equal((await getDocs(collection(db, "friendships"))).docs[0].id, "u11_u12");
 });
 
+// A club that never started a chat (every club from before the chat, or whose manager never pressed the button)
+// must still delete: the chat's messages and doc are missing, and the rules refuse reads below a missing chat.
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  await setDoc(doc(db, "clubs/c6"), { name: "c6", visibility: "public", ownerId: "u6", createdAt: 1 });
+  await setDoc(doc(db, "clubs/c6/members/u6"), { role: "owner", name: "u6", joinedAt: 1 });
+  await setDoc(doc(db, "accounts/u6/memberships/c6"), { clubName: "c6", role: "owner", joinedAt: 1 });
+});
+await deleteClubData(real("u6"), "c6", "u6");
+assert.equal(await count("clubs/c6/members"), 0, "a club with no chat could not be deleted");
+assert.equal(await count("accounts/u6/memberships"), 0);
+
 console.log("cascade: ok");
 await env.cleanup();

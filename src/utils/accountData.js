@@ -42,8 +42,11 @@ export async function deleteClubData(db, clubId, ownerId) {
   // The club chat: its messages (anyone's, including people who have left) and then the chat itself. Chat
   // access follows the owner's member record, so this has to happen before that record goes.
   const chat = doc(db, "chats", clubChatId(clubId));
-  await wipeCollection(db, collection(chat, "messages"));
-  await deleteDoc(chat);
+  // A club that never started a chat has none (the rules refuse reads below a missing chat), so check first.
+  if ((await getDoc(chat)).exists()) {
+    await wipeCollection(db, collection(chat, "messages"));
+    await deleteDoc(chat);
+  }
   await Promise.all(CLUB_SUBCOLLECTIONS.map((name) => wipeCollection(db, collection(ref, name))));
   const members = await getDocs(collection(ref, "members"));
   const others = writeBatch(db);

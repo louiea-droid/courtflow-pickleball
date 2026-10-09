@@ -25,12 +25,27 @@ export function useInbox(uid, clubs) {
         return next;
       });
     };
-    const offs = clubKey.split("|").filter(Boolean).map((id) => onSnapshot(
-      doc(db, "chats", clubChatId(id)),
-      (s) => put(id, s.exists() ? s.data() : null),
-      () => put(id, null),
-    ));
-    return () => offs.forEach((off) => off());
+    // A refused listener is dead for good. Right after joining by invite link the card shows before the server has the
+    // member record, so a first refusal is retried a few times (3 s apart) before the chat is given up as unavailable.
+    let stopped = false;
+    const offs = {};
+    const timers = {};
+    const listen = (id, tries) => {
+      offs[id] = onSnapshot(
+        doc(db, "chats", clubChatId(id)),
+        (s) => put(id, s.exists() ? s.data() : null),
+        () => {
+          put(id, null);
+          if (!stopped && tries < 3) timers[id] = setTimeout(() => listen(id, tries + 1), 3000);
+        },
+      );
+    };
+    clubKey.split("|").filter(Boolean).forEach((id) => listen(id, 0));
+    return () => {
+      stopped = true;
+      Object.values(offs).forEach((off) => off());
+      Object.values(timers).forEach(clearTimeout);
+    };
   }, [uid, clubKey]);
 
   useEffect(() => {
@@ -52,18 +67,21 @@ export function useInbox(uid, clubs) {
   return { chats, reads, ready, unread: unreadCount(chats, reads, uid) };
 }
 
-// The last 100 messages of a chat, oldest first, live. ponytail: older messages aren't loadable; add
-// "Load older" with a cursor when a chat outgrows 100.
+// The latest messages of a chat, oldest first, live: 100 at first, 100 more each time "Load earlier" is used
+// (the same query with a bigger limit, so the newest stay live too).
+const PAGE = 100;
 export function useMessages(chatId) {
   const [state, setState] = useState({ messages: [], ready: false });
+  const [max, setMax] = useState(PAGE);
+  useEffect(() => { setMax(PAGE); }, [chatId]);
   useEffect(() => {
-    setState({ messages: [], ready: false });
+    setState((s) => (s.chatId === chatId ? s : { messages: [], ready: false, chatId }));
     if (!firebaseConfigured || !chatId) return undefined;
     return onSnapshot(
-      query(collection(db, "chats", chatId, "messages"), orderBy("createdAt", "desc"), limit(100)),
-      (s) => setState({ messages: s.docs.map((d) => ({ id: d.id, ...d.data() })).reverse(), ready: true }),
-      () => setState({ messages: [], ready: true }),
+      query(collection(db, "chats", chatId, "messages"), orderBy("createdAt", "desc"), limit(max)),
+      (s) => setState({ messages: s.docs.map((d) => ({ id: d.id, ...d.data() })).reverse(), ready: true, chatId }),
+      () => setState({ messages: [], ready: true, chatId }),
     );
-  }, [chatId]);
-  return state;
+  }, [chatId, max]);
+  return { messages: state.messages, ready: state.ready, hasMore: state.messages.length >= max, loadMore: () => setMax((m) => m + PAGE) };
 }

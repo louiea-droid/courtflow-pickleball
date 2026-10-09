@@ -14,7 +14,7 @@ export const whenLabel = (ms) => (sameDay(ms) ? formatTime(ms) : formatDate(ms))
 // One conversation: the messages (plain text, never HTML) and the box to write in. `unread` is whether this
 // chat has a line the person hasn't seen; showing it marks it read. `canModerate`: a manager of the club.
 export default function ChatPane({ chat, uid, unread, canModerate, actions, onBack }) {
-  const { messages, ready } = useMessages(chat.id);
+  const { messages, ready, hasMore, loadMore } = useMessages(chat.id);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -28,10 +28,14 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
   }, [chat.id, chat.lastAt, unread]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { stick.current = true; setText(""); setError(""); }, [chat.id]);
+  const olderFrom = useRef(null); // the list's height before "Load earlier", to keep the reader where they were
   useLayoutEffect(() => {
     const el = listRef.current;
-    if (el && stick.current) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    if (olderFrom.current !== null) { el.scrollTop += el.scrollHeight - olderFrom.current; olderFrom.current = null; }
+    else if (stick.current) el.scrollTop = el.scrollHeight;
   }, [messages, chat.id]);
+  const showEarlier = () => { olderFrom.current = listRef.current.scrollHeight; loadMore(); };
   const onScroll = (e) => {
     const el = e.currentTarget;
     stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM;
@@ -58,7 +62,7 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
   const confirmRemove = async () => {
     const m = removing;
     setRemoving(null);
-    try { await actions.deleteMessage(chat.id, m.id); } catch { setError("Couldn't delete that message. Try again."); }
+    try { await actions.deleteMessage(chat.id, m.id, m.id === messages[messages.length - 1]?.id && chat.lastBy === m.from); } catch { setError("Couldn't delete that message. Try again."); }
   };
 
   return (
@@ -76,7 +80,9 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
           <p className="chat-empty">Loading…</p>
         ) : messages.length === 0 ? (
           <p className="chat-empty">No messages yet. Say hello.</p>
-        ) : messages.map((m) => {
+        ) : <>
+          {hasMore && <button className="outline chat-earlier" type="button" onClick={showEarlier}>Load earlier messages</button>}
+          {messages.map((m) => {
           const mine = m.from === uid;
           return (
             <article key={m.id} className={`chat-msg${mine ? " mine" : ""}`}>
@@ -92,7 +98,7 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
               <p>{m.text}</p>
             </article>
           );
-        })}
+        })}</>}
       </div>
 
       <div className="chat-composer">

@@ -131,8 +131,12 @@ service cloud.firestore {
         && request.resource.data.lastText == '' && request.resource.data.lastAt == 0 && request.resource.data.lastBy == ''
         && nearNow(request.resource.data.createdAt);
       allow update: if isRealUser() && resource.data.kind == 'club' && isMember(resource.data.clubId)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText', 'lastAt', 'lastBy'])
-        && validTail(request.resource.data);
+        && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText', 'lastAt', 'lastBy'])
+              && validTail(request.resource.data))
+          // After the newest message is deleted the preview is rewritten (text only): by that line's author or a manager.
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText'])
+              && request.resource.data.lastText is string && request.resource.data.lastText.size() <= 100
+              && (resource.data.lastBy == request.auth.uid || isManager(resource.data.clubId))));
       allow delete: if isRealUser() && resource.data.kind == 'club' && isOwner(resource.data.clubId);
 
       match /messages/{id} {
@@ -141,7 +145,7 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['from', 'name', 'text', 'createdAt'])
           && request.resource.data.keys().hasAll(['from', 'name', 'text', 'createdAt'])
           && request.resource.data.from == request.auth.uid
-          && validName(request.resource.data.name)
+          && request.resource.data.name == get(memberPath(chatClub(chatId))).data.name // the name on your member record, so nobody posts as someone else
           && request.resource.data.text is string && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 1000
           && nearNow(request.resource.data.createdAt);
         allow delete: if isRealUser() && isMember(chatClub(chatId))

@@ -91,6 +91,16 @@ await assertFails(updateDoc(doc(mem, "chats/club_pub"), tail("mem", { kind: "dm"
 await assertFails(updateDoc(doc(mem, "chats/club_pub"), tail("mem", { extra: 1 })));
 for (const [, db] of outsiders) await assertFails(updateDoc(doc(db, "chats/club_pub"), tail("mem")));
 
+// ---- Rewriting only the preview text (after the newest message is deleted): the line's author or a manager, nothing else changes
+await seed();
+await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), "chats/club_pub"), { kind: "club", clubId: "pub", title: "pub", lastText: "bye", lastAt: now() - DAY, lastBy: "mem2", createdAt: 1 }));
+await assertSucceeds(updateDoc(doc(mem2, "chats/club_pub"), { lastText: "Message deleted" })); // its author
+await assertSucceeds(updateDoc(doc(mgr, "chats/club_pub"), { lastText: "Message deleted" })); // a manager
+await assertFails(updateDoc(doc(mem, "chats/club_pub"), { lastText: "forged" })); // another plain member
+await assertFails(updateDoc(doc(mgr, "chats/club_pub"), { lastText: "x".repeat(101) }));
+await assertFails(updateDoc(doc(stranger, "chats/club_pub"), { lastText: "forged" }));
+await assertFails(updateDoc(doc(mgr, "chats/club_pub"), { lastText: "ok", title: "Mine" })); // only the preview
+
 // ---- Messages: a member writes as themselves
 await seed();
 await assertSucceeds(setDoc(m(mem, "a1"), msg("mem")));
@@ -99,6 +109,8 @@ await assertSucceeds(setDoc(m(mem, "a3"), msg("mem", { text: "x".repeat(1000) })
 await assertFails(setDoc(m(mem, "b1"), msg("mem2"))); // another person's uid
 await assertFails(setDoc(m(mem, "b2"), msg("mem", { name: "x".repeat(61) })));
 await assertFails(setDoc(m(mem, "b3"), msg("mem", { name: "" })));
+await assertFails(setDoc(m(mem, "b3b"), msg("mem", { name: "Club owner" }))); // someone else's name (or any name that isn't yours)
+await assertFails(setDoc(m(mem, "b3c"), msg("mem", { name: "mem2" })));
 await assertFails(setDoc(m(mem, "b4"), msg("mem", { text: "" })));
 await assertFails(setDoc(m(mem, "b5"), msg("mem", { text: "x".repeat(1001) })));
 await assertFails(setDoc(m(mem, "b6"), msg("mem", { extra: 1 })));
