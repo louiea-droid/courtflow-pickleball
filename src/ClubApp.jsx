@@ -11,6 +11,8 @@ import { removeMyCopy, useMembershipActions } from "./hooks/useMembershipActions
 import { useMyClubs } from "./hooks/useMyClubs";
 import { useFriendships } from "./hooks/useFriends";
 import { useInbox } from "./hooks/useChats";
+import { useChatActions } from "./hooks/useChatActions";
+import { clubChatId } from "./utils/chat";
 import { friendBuckets } from "./utils/friends";
 import { applyDisplayPrefs } from "./utils/format";
 import { applyTheme } from "./utils/theme";
@@ -90,6 +92,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
   const { clubs: myClubs } = useMyClubs(uid);
   const { friendships } = useFriendships(uid);
   const inbox = useInbox(uid, myClubs);
+  const chatActions = useChatActions({ uid, name: personName });
   const hasCard = myClubs.some((c) => c.id === clubId);
   useEffect(() => {
     if (!info.confirmed || isMember || !hasCard) return undefined;
@@ -195,6 +198,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate }) {
         <ClubMembers
           clubId={clubId} club={club} uid={uid} canManage={canManage} isOwner={isOwner}
           requests={pendingRequests} actions={membership} navigate={navigate} notify={notify}
+          chat={{ ready: inbox.ready, exists: inbox.chats.some((c) => c.id === clubChatId(clubId)) }} chatActions={chatActions}
         />
       );
     }

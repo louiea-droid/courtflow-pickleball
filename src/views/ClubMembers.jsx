@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { LogOut, Link2, RefreshCw, Share2 } from "lucide-react";
+import { LogOut, Link2, MessageSquare, RefreshCw, Share2 } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageTitle from "../components/PageTitle";
 import ShareModal from "../components/ShareModal";
 import { useInvite, useMembers } from "../hooks/useMembership";
 import { formatDate } from "../utils/format";
 import { ROLE_LABEL, canChangeRole, canRemove, inviteUrl } from "../utils/clubs";
+import { clubChatId } from "../utils/chat";
 
 // One invite link: share it, reset it, or make it the first time.
 function LinkBlock({ title, help, code, ready, busy, role, onShare, onReset, onCreate }) {
@@ -29,9 +30,10 @@ function LinkBlock({ title, help, code, ready, busy, role, onShare, onReset, onC
 }
 
 // Everyone in the club sees who is in it. Plain members can leave; managers also review join requests,
-// manage the invite link and remove plain members. Only the owner names managers (by hand or with the
+// manage the invite link and remove plain members. `chat` = { ready, exists } for the club's group chat: a manager
+// turns it on, then everyone opens it from here. Only the owner names managers (by hand or with the
 // manager link) and can remove a manager.
-export default function ClubMembers({ clubId, club, uid, canManage, isOwner, requests, actions, navigate, notify }) {
+export default function ClubMembers({ clubId, club, uid, canManage, isOwner, requests, actions, chat, chatActions, navigate, notify }) {
   const { members, ready } = useMembers(clubId);
   const { code, ready: inviteReady } = useInvite(canManage ? clubId : null);
   const { code: managerCode, ready: managerReady } = useInvite(isOwner ? clubId : null, "managerInvite");
@@ -78,6 +80,20 @@ export default function ClubMembers({ clubId, club, uid, canManage, isOwner, req
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {chat.ready && (chat.exists || canManage) && (
+        <div className="panel members-block">
+          <h2 className="club-section">Club chat</h2>
+          <p className="members-help">
+            {chat.exists ? "A group chat for everyone in this club." : "Start a group chat that every member of this club can read and write. You can delete any message in it."}
+          </p>
+          {chat.exists ? (
+            <a className="outline" href={`/inbox/${clubChatId(clubId)}`} onClick={(e) => { e.preventDefault(); navigate(`/inbox/${clubChatId(clubId)}`); }}><MessageSquare size={15} /> Open club chat</a>
+          ) : (
+            <button className="primary" disabled={busy} onClick={() => act(async () => { await chatActions.startClubChat({ id: clubId, name: club.name }); navigate(`/inbox/${clubChatId(clubId)}`); }, null, "Couldn't start the chat. Check your connection and try again.")}><MessageSquare size={15} /> Start club chat</button>
+          )}
         </div>
       )}
 
