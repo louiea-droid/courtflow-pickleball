@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarSearch, House, Menu, MessageSquare, Search, UserPlus, Users, X } from "lucide-react";
+import { Building2, CalendarSearch, House, Menu, MessageSquare, UserPlus, Users, X } from "lucide-react";
 import AccountMenu from "./AccountMenu";
 import { clubPath } from "../utils/clubs";
 
@@ -24,7 +24,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
     </a>
   );
   // Your clubs, with the open club expanded in place to its screens (a club the person isn't in yet, such as a
-  // public one opened from Find a club, still shows as the open one).
+  // public one opened from Clubs, still shows as the open one).
   const list = club && !clubs.some((c) => c.id === club.id) ? [{ id: club.id, clubName: club.name }, ...clubs] : clubs;
 
   return (
@@ -49,7 +49,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
             <p className="acct-side-label">Play</p>
             <nav aria-label="Play">
               {link("/sessions", "Find session", CalendarSearch, active === "sessions")}
-              {link("/clubs/find", "Find a club", Search, active === "find")}
+              {link("/clubs/find", "Clubs", Building2, active === "find")}
               {link("/friends", "Friends", UserPlus, active === "friends", friendRequests > 0 ? (
                 <><span className="count-badge">{friendRequests}</span><span className="sr-only"> friend requests waiting</span></>
               ) : null)}
@@ -58,6 +58,8 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
               ) : null)}
             </nav>
           </section>
+          {/* My clubs exists once the person has a club (joined, managing, or one they just opened) */}
+          {list.length > 0 && (
           <nav className="acct-side-group" aria-label="My clubs">
             {link("/clubs", "My clubs", Users, active === "clubs")}
             {list.length > 0 && (
@@ -77,6 +79,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
               </div>
             )}
           </nav>
+          )}
         </div>
         <AccountMenu name={name} email={email} onSignOut={onSignOut} navigate={navigate} />
       </aside>

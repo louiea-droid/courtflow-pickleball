@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, MapPin, Search } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
 import PageTitle from "../components/PageTitle";
 import { useDirectory } from "../hooks/useMembership";
 import { ROLE_LABEL, clubPath, filterClubs } from "../utils/clubs";
@@ -15,8 +15,7 @@ export default function FindClubs({ myClubs, navigate }) {
 
   return (
     <div className="page-narrow">
-      <a className="back-link" href="/" onClick={(e) => { e.preventDefault(); navigate("/"); }}><ArrowLeft size={14} /> My clubs</a>
-      <PageTitle title="Find a club" sub="Public clubs you can ask to join. Private clubs are joined with an invite link." />
+      <PageTitle title="Clubs" sub="Every public club: search, open one and ask to join. Private clubs are joined with an invite link." />
       <label className="find-search">
         <Search size={16} />
         <input

@@ -1,4 +1,4 @@
-import { Plus, Search, Users } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import PageTitle from "../components/PageTitle";
 import { ROLE_LABEL, clubPath } from "../utils/clubs";
 
@@ -11,7 +11,6 @@ export default function MyClubs({ clubs, ready, navigate }) {
         title="My clubs"
         sub={ready ? (clubs.length === 1 ? "1 club" : `${clubs.length} clubs`) : undefined}
       >
-        <a className="outline" href="/clubs/find" onClick={to("/clubs/find")}><Search size={15} /> Find a club</a>
         <a className="primary" href="/clubs/new" onClick={to("/clubs/new")}><Plus size={15} /> Create a club</a>
       </PageTitle>
       {!ready ? (
@@ -19,7 +18,7 @@ export default function MyClubs({ clubs, ready, navigate }) {
       ) : clubs.length === 0 ? (
         <div className="panel hub-start">
           <b>You're not in a club yet</b>
-          <p>Create one to host open play, or find a club to ask to join.</p>
+          <p>Create one to host open play, or open Clubs to find one to join.</p>
         </div>
       ) : (
         <div className="hub-grid">

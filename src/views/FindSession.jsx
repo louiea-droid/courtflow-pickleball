@@ -49,7 +49,7 @@ export default function FindSession({ clubs, sessions: { sessions, ready, error 
       ) : sessions.length === 0 ? (
         <div className="panel notice">
           <p>No open play is scheduled yet. Check back soon, or find a club to join.</p>
-          <a className="outline" href="/clubs/find" onClick={(e) => { e.preventDefault(); navigate("/clubs/find"); }}>Find a club</a>
+          <a className="outline" href="/clubs/find" onClick={(e) => { e.preventDefault(); navigate("/clubs/find"); }}>Browse clubs</a>
         </div>
       ) : shown.length === 0 ? (
         <p className="hub-empty">{date !== "any" && !text.trim() ? `No sessions on ${formatDay(date)}. Try another day, or All.` : "No sessions match. Try another day or All."}</p>
