@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { MESSAGE_MAX, chatPreview, chatTail, clubChatId, clubIdOfChat, isUnread, messageDoc, sortChats, unreadCount, validateMessage } from "./chat.js";
+import { MESSAGE_MAX, chatPreview, chatTail, chatTitle, clubChatId, clubIdOfChat, dmChatDoc, dmChatId, isHidden, isUnread, messageDoc, otherMember, sortChats, unreadCount, validateMessage, visibleChats } from "./chat.js";
 
 assert.equal(MESSAGE_MAX, 1000);
 assert.equal(clubChatId("abc"), "club_abc");
@@ -34,4 +34,19 @@ const chats = [
 ];
 assert.deepEqual(sortChats(chats).map((c) => c.id), ["club_a", "club_z", "dm_a_c", "dm_a_b"]);
 assert.equal(unreadCount([{ id: "c1", lastAt: 9, lastBy: "u2" }, { id: "c2", lastAt: 9, lastBy: "u2" }, { id: "c3", lastAt: 9, lastBy: "u1" }], { c2: { at: 9 } }, "u1"), 1);
+
+// Direct messages
+assert.equal(dmChatId("b", "a"), "dm_a_b");
+const d = dmChatDoc("b", "Bea", "a", "Al", 7, "club1");
+assert.deepEqual(d, { kind: "dm", members: ["a", "b"], names: { b: "Bea", a: "Al" }, lastText: "", lastAt: 0, lastBy: "", createdAt: 7, viaClub: "club1" });
+assert.equal("viaClub" in dmChatDoc("b", "Bea", "a", "Al", 7), false);
+assert.deepEqual(otherMember(d, "b"), { id: "a", name: "Al" });
+assert.deepEqual(otherMember(d, "a"), { id: "b", name: "Bea" });
+assert.equal(chatTitle(d, "b"), "Al");
+assert.equal(chatTitle({ kind: "club", title: "Ace Club" }, "b"), "Ace Club");
+assert.equal(isHidden({ hidden: true, at: 10 }, { lastAt: 10 }), true);
+assert.equal(isHidden({ hidden: true, at: 10 }, { lastAt: 11 }), false); // a newer message brings it back
+assert.equal(isHidden({ at: 10 }, { lastAt: 1 }), false);
+assert.equal(isHidden(undefined, { lastAt: 1 }), false);
+assert.deepEqual(visibleChats([{ id: "x", lastAt: 5 }, { id: "y", lastAt: 5 }], { x: { hidden: true, at: 9 } }).map((c) => c.id), ["y"]);
 console.log("chat.check: ok");

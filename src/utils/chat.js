@@ -37,3 +37,29 @@ export function sortChats(chats) {
 }
 
 export const unreadCount = (chats, reads, uid) => chats.filter((c) => isUnread(c, reads[c.id]?.at, uid)).length;
+
+// ---- Direct messages: chats/dm_{a}_{b} (the two uids sorted), shown in the same list as the club chats.
+export const dmChatId = (a, b) => (a < b ? `dm_${a}_${b}` : `dm_${b}_${a}`);
+
+// \`names\` holds each person's name as it was when the conversation started (so it survives either leaving);
+// \`viaClub\` is the club the two share when they are not friends.
+export const dmChatDoc = (me, meName, other, otherName, now, viaClub) => ({
+  kind: "dm",
+  members: [me, other].sort(),
+  names: { [me]: (meName || "").trim().slice(0, 60) || "Member", [other]: (otherName || "").trim().slice(0, 60) || "Member" },
+  lastText: "",
+  lastAt: 0,
+  lastBy: "",
+  createdAt: now,
+  ...(viaClub ? { viaClub } : {}),
+});
+
+export function otherMember(chat, uid) {
+  const id = chat.members.find((m) => m !== uid);
+  return { id, name: chat.names?.[id] || "Member" };
+}
+export const chatTitle = (chat, uid) => (chat.kind === "dm" ? otherMember(chat, uid).name : chat.title);
+
+// Hidden is per person (chatReads/{chatId}.hidden); a message newer than the hiding brings the chat back.
+export const isHidden = (readInfo, chat) => Boolean(readInfo?.hidden) && (chat.lastAt || 0) <= (readInfo.at || 0);
+export const visibleChats = (chats, reads) => chats.filter((c) => !isHidden(reads[c.id], c));
