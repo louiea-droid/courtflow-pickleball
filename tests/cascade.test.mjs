@@ -200,5 +200,25 @@ await deleteClubData(real("u6"), "c6", "u6");
 assert.equal(await count("clubs/c6/members"), 0, "a club with no chat could not be deleted");
 assert.equal(await count("accounts/u6/memberships"), 0);
 
+// Deleting an account removes its direct conversations (and their messages, from both people); other people's stay.
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  await setDoc(doc(db, "accounts/u13"), { name: "Thirteen" });
+  const dm = (a, b) => ({ kind: "dm", members: [a, b], names: { [a]: a, [b]: b }, lastText: "x", lastAt: 1, lastBy: a, createdAt: 1 });
+  await setDoc(doc(db, "chats/dm_u13_u14"), dm("u13", "u14"));
+  await setDoc(doc(db, "chats/dm_u13_u14/messages/m1"), { from: "u13", name: "u13", text: "a", createdAt: 1 });
+  await setDoc(doc(db, "chats/dm_u13_u14/messages/m2"), { from: "u14", name: "u14", text: "b", createdAt: 2 });
+  await setDoc(doc(db, "chats/dm_u13_u15"), dm("u13", "u15"));
+  await setDoc(doc(db, "chats/dm_u14_u15"), dm("u14", "u15")); // two other people: must stay
+  await setDoc(doc(db, "chats/dm_u14_u15/messages/m1"), { from: "u14", name: "u14", text: "c", createdAt: 1 });
+});
+await deleteAccountData(real("u13"), "u13");
+assert.equal(await count("chats/dm_u13_u14/messages"), 0, "u13's conversation messages left behind");
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const ids = (await getDocs(collection(ctx.firestore(), "chats"))).docs.map((d) => d.id).filter((id) => id.startsWith("dm_")).sort().join();
+  assert.equal(ids, "dm_u14_u15", "u13's conversations left behind (or someone else's removed)");
+});
+assert.equal(await count("chats/dm_u14_u15/messages"), 1, "someone else's conversation was touched");
+
 console.log("cascade: ok");
 await env.cleanup();

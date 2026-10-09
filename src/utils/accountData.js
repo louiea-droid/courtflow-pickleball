@@ -100,6 +100,16 @@ async function deleteLegacyData(db, uid) {
   await wipeCollection(db, collection(db, "accounts", uid, "roster"));
 }
 
+// The direct conversations this person is in: messages first (the rules read the chat to allow them), then the chat.
+// Either person may delete the conversation, so it goes for both. Their lines in a club chat stay.
+async function deleteDirectChats(db, uid) {
+  const mine = await getDocs(query(collection(db, "chats"), where("members", "array-contains", uid)));
+  for (const c of mine.docs) {
+    await wipeCollection(db, collection(c.ref, "messages"));
+    await deleteDoc(c.ref);
+  }
+}
+
 // Erases everything an account owns. Clubs the person only belongs to are left first (no ghost
 // member stays behind), then each club it owns (with everything in it), its "My clubs" copies, any
 // friend directory entries and friendships, data from before clubs, and the account doc itself. Data first; the caller deletes the sign-in last.
@@ -112,6 +122,7 @@ export async function deleteAccountData(db, uid) {
   await wipeCollection(db, collection(db, "accounts", uid, "memberships"));
   await wipeCollection(db, collection(db, "accounts", uid, "chatReads"));
   await deleteFriendData(db, uid);
+  await deleteDirectChats(db, uid);
   await deleteLegacyData(db, uid);
   const batch = writeBatch(db);
   batch.delete(doc(db, "accounts", uid));
