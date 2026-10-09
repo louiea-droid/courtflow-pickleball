@@ -235,7 +235,7 @@
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---- Inbox: the list of chats and the open conversation (one pane at a time under 860px) ---- */
-.inbox{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;height:calc(100dvh - 150px);min-height:420px;margin-bottom:16px}
+.inbox{display:grid;grid-template-columns:320px minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:16px;height:calc(100dvh - 235px);min-height:420px;margin-bottom:16px}
 .inbox-list{display:flex;flex-direction:column;overflow-y:auto;padding:6px;border:1px solid var(--card-line);border-radius:17px;background:var(--panel)}
 .inbox-row{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 12px;border-radius:12px;color:var(--ink);text-decoration:none}
 .inbox-row:hover{background:var(--soft)}
@@ -272,7 +272,7 @@
 .chat-count.over,.chat-error{color:var(--danger-ink)}
 .chat-error{margin:0 2px 8px;font-weight:600;font-size:13.5px}
 @media (max-width:860px){
-  .inbox{grid-template-columns:minmax(0,1fr);height:calc(100dvh - 190px)}
+  .inbox{grid-template-columns:minmax(0,1fr);height:calc(100dvh - 290px);min-height:360px}
   .inbox.has-chat .inbox-list,.inbox:not(.has-chat) .inbox-main{display:none}
   .chat-back{display:inline-grid}
 }
