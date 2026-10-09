@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowLeft, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, EyeOff, Send, Trash2 } from "lucide-react";
 import ConfirmDialog from "./ConfirmDialog";
 import { useMessages } from "../hooks/useChats";
-import { MESSAGE_MAX, validateMessage } from "../utils/chat";
+import { MESSAGE_MAX, chatTitle, validateMessage } from "../utils/chat";
 import { formatDate, formatTime } from "../utils/format";
 
 const COUNTER_FROM = 900;
@@ -19,6 +19,9 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [removing, setRemoving] = useState(null); // a message about to be deleted
+  const [hiding, setHiding] = useState(false); // asking before a direct conversation is hidden
+  const title = chatTitle(chat, uid);
+  const direct = chat.kind === "dm";
   const listRef = useRef(null);
   const stick = useRef(true); // follow new messages only while the reader is already at the bottom
 
@@ -59,6 +62,10 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
   const onKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); }
   };
+  const confirmHide = async () => {
+    setHiding(false);
+    try { await actions.hideChat(chat.id, chat.lastAt); onBack(); } catch { setError("Couldn't hide the conversation. Try again."); }
+  };
   const confirmRemove = async () => {
     const m = removing;
     setRemoving(null);
@@ -66,13 +73,14 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
   };
 
   return (
-    <section className="chat-pane" aria-label={`Chat: ${chat.title}`}>
+    <section className="chat-pane" aria-label={`Chat: ${title}`}>
       <header className="chat-head">
         <button className="outline chat-back" type="button" onClick={onBack} aria-label="Back to all chats"><ArrowLeft size={16} /></button>
         <div>
-          <h2>{chat.title}</h2>
-          <p>Only members of this club can read and write here.</p>
+          <h2>{title}</h2>
+          {!direct && <p>Only members of this club can read and write here.</p>}
         </div>
+        {direct && <button className="outline chat-hide" type="button" onClick={() => setHiding(true)}><EyeOff size={15} /> Hide conversation</button>}
       </header>
 
       <div className="chat-list" ref={listRef} onScroll={onScroll} role="log" aria-live="polite" aria-label="Messages">
@@ -89,7 +97,7 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
               <div className="chat-msg-head">
                 <b>{mine ? "You" : m.name}</b>
                 <time dateTime={new Date(m.createdAt).toISOString()}>{whenLabel(m.createdAt)}</time>
-                {(mine || canModerate) && (
+                {(mine || canModerate || direct) && (
                   <button className="chat-msg-del" type="button" aria-label={`Delete message from ${mine ? "you" : m.name}`} onClick={() => setRemoving(m)}>
                     <Trash2 size={14} />
                   </button>
@@ -115,9 +123,15 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
         )}
       </div>
 
+      {hiding && (
+        <ConfirmDialog
+          title="Hide this conversation?" message="It disappears from your list. A new message from them brings it back." confirmLabel="Hide"
+          onCancel={() => setHiding(false)} onConfirm={confirmHide}
+        />
+      )}
       {removing && (
         <ConfirmDialog
-          title="Delete this message?" message="It is removed for everyone in the club." confirmLabel="Delete"
+          title="Delete this message?" message={direct ? "It is removed for both of you." : "It is removed for everyone in the club."} confirmLabel="Delete"
           onCancel={() => setRemoving(null)} onConfirm={confirmRemove}
         />
       )}

@@ -2,7 +2,7 @@ import { MessageSquare } from "lucide-react";
 import ChatPane, { whenLabel } from "../components/ChatPane";
 import PageTitle from "../components/PageTitle";
 import { useChatActions } from "../hooks/useChatActions";
-import { clubIdOfChat, isUnread } from "../utils/chat";
+import { chatTitle, clubIdOfChat, isUnread } from "../utils/chat";
 
 const href = (id) => (id ? `/inbox/${encodeURIComponent(id)}` : "/inbox");
 
@@ -14,23 +14,23 @@ export default function Inbox({ uid, name, clubs, clubsReady, inbox, chatId, nav
   const ready = clubsReady && inbox.ready;
   const chat = chats.find((c) => c.id === chatId);
   const go = (to) => (e) => { e.preventDefault(); navigate(to); };
-  const canModerate = chat ? ["owner", "manager"].includes(clubs.find((c) => c.id === clubIdOfChat(chat.id))?.role) : false;
+  const canModerate = chat?.kind === "club" ? ["owner", "manager"].includes(clubs.find((c) => c.id === clubIdOfChat(chat.id))?.role) : false;
 
   return (
     <div>
-      <PageTitle title="Inbox" sub="Chats with your clubs." />
+      <PageTitle title="Inbox" sub="Chats with your clubs, friends and club members." />
       <div className={`inbox${chatId ? " has-chat" : ""}`}>
         <nav className="inbox-list" aria-label="Conversations">
           {!ready ? (
             <p className="inbox-empty">Loading…</p>
           ) : chats.length === 0 ? (
-            <p className="inbox-empty">No conversations yet. A club's chat appears here once a manager starts it.</p>
+            <p className="inbox-empty">No conversations yet. A club's chat appears here once a manager starts it, and you can message friends and club members.</p>
           ) : chats.map((c) => {
             const unread = isUnread(c, reads[c.id]?.at, uid);
             return (
               <a key={c.id} className="inbox-row" href={href(c.id)} aria-current={c.id === chatId ? "page" : undefined} onClick={go(href(c.id))}>
                 <span className="inbox-row-main">
-                  <b>{c.title}</b>
+                  <b>{chatTitle(c, uid)}</b>
                   <small>{c.lastText ? `${c.lastBy === uid ? "You: " : ""}${c.lastText}` : "No messages yet"}</small>
                 </span>
                 {c.lastAt > 0 && <time className="inbox-row-time" dateTime={new Date(c.lastAt).toISOString()}>{whenLabel(c.lastAt)}</time>}

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Search, UserPlus } from "lucide-react";
+import { MessageSquare, Search, UserPlus } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageTitle from "../components/PageTitle";
+import { useChatActions } from "../hooks/useChatActions";
 import { useFriendActions, useFriendSearch } from "../hooks/useFriends";
 import { friendBuckets, relationTo } from "../utils/friends";
 
@@ -12,9 +13,10 @@ const HINTS = {
 };
 
 // Find people by name or friend code, answer requests, and see your friends.
-export default function Friends({ uid, name, friendships, ready, notify }) {
+export default function Friends({ uid, name, friendships, ready, notify, navigate }) {
   const { friends, received, sent } = friendBuckets(friendships, uid);
   const actions = useFriendActions({ uid, name });
+  const chat = useChatActions({ uid, name });
   const { results, status, search } = useFriendSearch(uid);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState("");
@@ -116,6 +118,7 @@ export default function Friends({ uid, name, friendships, ready, notify }) {
           <div className="member-row" key={f.id}>
             <div className="member-main"><b>{f.name}</b></div>
             <div className="member-actions">
+              <button className="outline" disabled={Boolean(busy)} onClick={() => act(`msg-${f.id}`, async () => navigate(`/inbox/${await chat.startDm(f.otherId, { me: f.names?.[uid], other: f.names?.[f.otherId] })}`), null, "Couldn't open the conversation. Try again.")}><MessageSquare size={15} /> Message</button>
               <button className="outline" disabled={Boolean(busy)} onClick={() => setConfirm(f)}>Remove</button>
             </div>
           </div>

@@ -126,6 +126,9 @@ export default function ClubMembers({ clubId, club, uid, canManage, isOwner, req
             </div>
             <div className="member-actions">
               <span className="pill">{ROLE_LABEL[m.role] || ROLE_LABEL.member}</span>
+              {m.id !== uid && (
+                <button className="outline" disabled={busy} onClick={() => act(async () => navigate(`/inbox/${await chatActions.startDm(m.id, { me: members.find((x) => x.id === uid)?.name, other: m.name }, clubId)}`), null, "Couldn't open the conversation. Try again.")}><MessageSquare size={15} /> Message</button>
+              )}
               {m.id !== uid && canChangeRole(myRole, m.role) && (m.role === "member" ? (
                 <button className="outline" disabled={busy} onClick={() => act(() => actions.setRole(m, "manager"), `${m.name} is now a manager.`, "Couldn't change the role. Check your connection and try again.")}>Make manager</button>
               ) : (

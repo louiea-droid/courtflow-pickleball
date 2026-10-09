@@ -99,7 +99,7 @@ export default function AccountApp() {
         ) : route === "clubs-new" ? (
           <CreateClub onCreate={clubActions.createClub} navigate={navigate} />
         ) : route === "friends" ? (
-          <Friends uid={uid} name={name} friendships={friendships} ready={friendsReady} notify={notify} />
+          <Friends uid={uid} name={name} friendships={friendships} ready={friendsReady} notify={notify} navigate={navigate} />
         ) : route === "inbox" ? (
           <Inbox uid={uid} name={name} clubs={clubs} clubsReady={clubsReady} inbox={inbox} chatId={chatId} navigate={navigate} />
         ) : route === "clubs" ? (
