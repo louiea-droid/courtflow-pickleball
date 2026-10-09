@@ -9,6 +9,8 @@
 .acct-side-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .acct-brand{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;color:var(--side-ink);text-decoration:none}
 .acct-brand img{height:30px;width:auto}
+button.acct-brand{border:0;background:transparent;font:inherit;text-align:left;cursor:pointer;border-radius:10px}
+button.acct-brand:hover{background:var(--side-hover)}
 .acct-brand b{font:700 17px "Space Grotesk"}
 .acct-menu-btn{display:inline-grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--side-ink)}
 .acct-menu-btn:hover{background:var(--side-hover)}
@@ -34,9 +36,11 @@
 .acct-topbar{position:fixed;top:0;left:var(--side-w);right:0;z-index:30;display:flex;align-items:center;gap:8px;height:var(--header-h);padding:0 var(--page-gutter);background:var(--bg);border-bottom:1px solid var(--card-line);transition:left .2s ease}
 .acct-topbar .account-menu{margin-left:auto}
 .acct-topbar .acct-brand,.acct-topbar .acct-open{display:none}
-.acct-collapse{display:inline-grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--ink-2);cursor:pointer}
-.acct-collapse:hover{background:var(--soft);color:var(--ink)}
-.acct-collapse:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.acct-side-foot{padding-top:8px;border-top:1px solid var(--side-line)}
+.acct-collapse{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:var(--side-muted);font:700 13.5px "DM Sans";text-align:left;cursor:pointer;transition:background .15s ease,color .15s ease}
+.acct-collapse:hover{background:var(--side-hover);color:#fff}
+.acct-collapse:focus-visible{outline:2px solid var(--accent-bright);outline-offset:-2px}
+.acct-collapse svg{flex-shrink:0}
 /* the rail: icons only, labels in the tooltip */
 @media (min-width:861px){
   .acct-main{padding-top:calc(var(--header-h) + 22px)}
@@ -45,6 +49,8 @@
   [data-acct-side="collapsed"] .acct-link{justify-content:center;padding:0;position:relative}
   [data-acct-side="collapsed"] .acct-link .count-badge{position:absolute;top:4px;right:4px;padding:1px 5px;font-size:9px}
   [data-acct-side="collapsed"] .acct-side-top{justify-content:center}
+  [data-acct-side="collapsed"] .acct-collapse{justify-content:center;padding:0}
+  [data-acct-side="collapsed"] .acct-collapse span{display:none}
   [data-acct-side="collapsed"] .acct-brand{padding:0}
 }
 .acct-main{flex:1 1 0;min-width:0;max-width:var(--page-max);padding-left:var(--page-gutter);padding-right:var(--page-gutter)}
@@ -53,7 +59,7 @@
   .acct-topbar{position:sticky;left:auto;right:auto;height:auto;gap:4px;padding:4px 10px;background:var(--nav);border-bottom:0}
   .acct-topbar .acct-brand{display:flex}
   .acct-topbar .acct-open{display:inline-grid}
-  .acct-collapse{display:none}
+  .acct-side-foot{display:none}
   .acct-topbar .acct-brand{padding:0 4px}
   .acct-topbar .account-menu-trigger{padding:4px;border-color:#29362e;background:#141d18}
   .acct-topbar .account-menu-trigger-copy,.acct-topbar .account-menu-chevron{display:none}
