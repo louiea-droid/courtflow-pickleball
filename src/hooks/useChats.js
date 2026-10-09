@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, doc, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { db, firebaseConfigured } from "../firebase";
-import { clubChatId, sortChats, unreadCount } from "../utils/chat";
+import { clubChatId, sortChats, unreadCount, visibleChats } from "../utils/chat";
 
-// The person's Inbox: the group chat of each of their clubs that has one, plus their read positions.
+// The person's Inbox: the group chat of each of their clubs that has one, their direct conversations, and their
+// read positions (which also say which conversations they have hidden).
 // One listener per club on the chat document; a chat that doesn't exist yet, or that the rules refuse
 // (they left the club), simply isn't in the list. `clubs` are the "My clubs" cards.
 export function useInbox(uid, clubs) {
   const [docs, setDocs] = useState({});
   const [reads, setReads] = useState({});
   const [readsReady, setReadsReady] = useState(false);
+  const [dms, setDms] = useState(null); // null until the direct-conversation query has answered
   const [answered, setAnswered] = useState({});
   const clubKey = clubs.map((c) => c.id).join("|");
 
@@ -59,11 +61,23 @@ export function useInbox(uid, clubs) {
     );
   }, [uid]);
 
-  const chats = useMemo(() => sortChats(clubs.filter((c) => docs[c.id]).map((c) => (
-    { ...docs[c.id], id: clubChatId(c.id), title: c.clubName || docs[c.id].title }
-  ))), [clubs, docs]);
-  // ready: every club has answered, so a chat that is missing really is missing.
-  const ready = readsReady && clubs.every((c) => answered[c.id]);
+  // Direct conversations: one query on the people list (a single field, no index). Hidden ones drop out in `chats`.
+  useEffect(() => {
+    setDms(null);
+    if (!firebaseConfigured || !uid) return undefined;
+    return onSnapshot(
+      query(collection(db, "chats"), where("members", "array-contains", uid)),
+      (s) => setDms(s.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      () => setDms([]),
+    );
+  }, [uid]);
+
+  const chats = useMemo(() => visibleChats(sortChats([
+    ...clubs.filter((c) => docs[c.id]).map((c) => ({ ...docs[c.id], id: clubChatId(c.id), title: c.clubName || docs[c.id].title })),
+    ...(dms || []),
+  ]), reads), [clubs, docs, dms, reads]);
+  // ready: every club and the direct query have answered, so a chat that is missing really is missing.
+  const ready = readsReady && dms !== null && clubs.every((c) => answered[c.id]);
   return { chats, reads, ready, unread: unreadCount(chats, reads, uid) };
 }
 
