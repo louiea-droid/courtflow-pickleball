@@ -360,15 +360,19 @@ button.acct-brand:hover{background:var(--side-hover)}
 
 /* ---- Help: contents on the left, the feature guides and the written entries on the right ---- */
 .help-layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:28px;align-items:start}
-.help-toc{position:sticky;top:calc(var(--header-h) + 16px);display:grid;gap:4px;max-height:calc(100dvh - var(--header-h) - 32px);overflow-y:auto;scrollbar-width:thin}
+.help-searchbar{position:sticky;top:var(--header-h);z-index:20;margin:0 0 6px;padding:8px 0;background:var(--bg)}
+.help-searchbar .find-search{margin:0}
+.help-toc{position:sticky;top:calc(var(--header-h) + 76px);display:grid;gap:4px;max-height:calc(100dvh - var(--header-h) - 92px);overflow-y:auto;scrollbar-width:thin}
 .help-toc ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
 .help-toc a{display:block;padding:8px 12px;border-radius:9px;color:var(--ink-2);font-weight:700;font-size:13.5px;text-decoration:none}
 .help-toc a:hover{background:var(--soft)}
 .help-toc a[aria-current="true"]{background:color-mix(in srgb,var(--accent) 14%,var(--panel));color:var(--ink)}
+.help-toc a.help-toc-featured{margin-bottom:6px;background:color-mix(in srgb,var(--accent) 12%,var(--panel));box-shadow:inset 3px 0 var(--accent);color:var(--ink)}
+.help-toc a.help-toc-featured[aria-current="true"]{background:color-mix(in srgb,var(--accent) 22%,var(--panel))}
 .help-toc-label{margin:10px 12px 2px;color:var(--muted);font-size:12px;font-weight:700}
 .help-jump{display:none;width:100%;min-height:44px;padding:0 12px;border:1px solid var(--card-line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-weight:700}
 .help-body{display:grid;gap:18px;min-width:0}
-.help-section{scroll-margin-top:calc(var(--header-h) + 16px);padding:22px;box-shadow:none}
+.help-section{scroll-margin-top:calc(var(--header-h) + 84px);padding:22px;box-shadow:none}
 .help-section h2{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 6px;font:700 20px "Space Grotesk"}
 .help-section h2 .pill{padding:4px 9px;font-size:10px}
 .help-summary{max-width:68ch;margin:0 0 14px;color:var(--ink-2);line-height:1.5}
@@ -383,11 +387,26 @@ button.acct-brand:hover{background:var(--side-hover)}
 .help-extra h3,.help-minor h3{margin:0 0 4px;font:700 15px "Space Grotesk"}
 .help-extra p,.help-minor p{max-width:70ch;margin:0;color:var(--ink-2);font-size:14.5px;line-height:1.55}
 .help-minor{display:grid;gap:16px;padding:6px 4px 28px}
-.help-minor article{scroll-margin-top:calc(var(--header-h) + 16px)}
+.help-minor article{scroll-margin-top:calc(var(--header-h) + 84px)}
 @media (max-width:860px){
+  .help-top{display:contents}
+  .help-searchbar{top:52px}
   .help-layout{grid-template-columns:minmax(0,1fr)}
   .help-toc{position:static;max-height:none}
   .help-toc ul,.help-toc-label{display:none}
   .help-jump{display:block}
   .help-section{padding:18px 16px}
+}
+
+/* Help on a wide screen: the title, search and contents stay put and only the guide scrolls, in its own pane */
+@media (min-width:861px){
+  .acct-main:has(.help-page){padding-bottom:0}
+  .help-page{display:flex;flex-direction:column;height:calc(100dvh - var(--header-h) - 22px);min-height:420px}
+  .help-top{flex:0 0 auto}
+  .help-page .page-title{margin-bottom:10px}
+  .help-searchbar{position:static;padding:0 0 12px;background:none}
+  .help-layout{flex:1;min-height:0;grid-template-rows:minmax(0,1fr);align-items:stretch}
+  .help-toc{position:static;max-height:none;align-content:start;overflow-y:auto;padding-bottom:16px}
+  .help-body{overflow-y:auto;padding:0 8px 40px 0;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+  .help-section,.help-minor article{scroll-margin-top:8px}
 }
