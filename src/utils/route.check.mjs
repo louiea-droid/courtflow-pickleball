@@ -1,6 +1,6 @@
 // Self-check for page routing. Run: node src/utils/route.check.mjs
 import assert from "node:assert";
-import { clubIdOf, eventIdOf, routeOf } from "./route.js";
+import { chatIdOf, clubIdOf, eventIdOf, routeOf } from "./route.js";
 
 assert.equal(routeOf("/"), "hub");
 assert.equal(routeOf(""), "hub");
@@ -69,5 +69,14 @@ assert.equal(routeOf("/clubs/abc/members/"), "club-members");
 assert.equal(routeOf("/clubs/abc/members/x"), "hub");
 assert.equal(clubIdOf("/clubs/find"), null);
 assert.equal(clubIdOf("/clubs/abc/members"), "abc");
+
+assert.equal(routeOf("/inbox"), "inbox");
+assert.equal(routeOf("/inbox/club_abc"), "inbox");
+assert.equal(routeOf("/inbox/club_abc/"), "inbox");
+assert.equal(routeOf("/inbox/a/b"), "hub");
+assert.equal(chatIdOf("/inbox/club_abc"), "club_abc");
+assert.equal(chatIdOf("/inbox"), null);
+assert.equal(chatIdOf("/inbox/a%20b/"), "a b");
+assert.equal(chatIdOf("/friends"), null);
 
 console.log("route.check: ok");

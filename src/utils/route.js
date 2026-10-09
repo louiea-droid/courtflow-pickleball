@@ -8,6 +8,7 @@ export function routeOf(pathname) {
   if (path === "/settings") return "settings";
   if (path === "/clubs") return "clubs";
   if (path === "/friends") return "friends";
+  if (/^\/inbox(\/[^/]+)?$/.test(path)) return "inbox";
   if (path === "/clubs/new") return "clubs-new";
   if (path === "/clubs/find") return "clubs-find";
   const m = path.match(/^\/clubs\/[^/]+(\/.*)?$/);
@@ -28,6 +29,12 @@ export function routeOf(pathname) {
 export function clubIdOf(pathname) {
   const m = pathname.replace(/\/+$/, "").match(/^\/clubs\/([^/]+)/);
   return m && !["new", "find"].includes(m[1]) ? decodeURIComponent(m[1]) : null;
+}
+
+// "/inbox/<chatId>" -> "<chatId>" (decoded), else null. The open chat is a parameter of the one inbox screen.
+export function chatIdOf(pathname) {
+  const m = pathname.replace(/\/+$/, "").match(/^\/inbox\/([^/]+)$/);
+  return m ? decodeURIComponent(m[1]) : null;
 }
 
 // "/clubs/<id>/event/<eventId>[/game | /queue]" -> "<eventId>" (decoded), else null.

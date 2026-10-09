@@ -9,17 +9,22 @@ import { clubChatId, sortChats, unreadCount } from "../utils/chat";
 export function useInbox(uid, clubs) {
   const [docs, setDocs] = useState({});
   const [reads, setReads] = useState({});
-  const [ready, setReady] = useState(false);
+  const [readsReady, setReadsReady] = useState(false);
+  const [answered, setAnswered] = useState({});
   const clubKey = clubs.map((c) => c.id).join("|");
 
   useEffect(() => {
     setDocs({});
+    setAnswered({});
     if (!firebaseConfigured || !uid) return undefined;
-    const put = (id, data) => setDocs((prev) => {
-      const next = { ...prev };
-      if (data) next[id] = data; else delete next[id];
-      return next;
-    });
+    const put = (id, data) => {
+      setAnswered((prev) => ({ ...prev, [id]: true }));
+      setDocs((prev) => {
+        const next = { ...prev };
+        if (data) next[id] = data; else delete next[id];
+        return next;
+      });
+    };
     const offs = clubKey.split("|").filter(Boolean).map((id) => onSnapshot(
       doc(db, "chats", clubChatId(id)),
       (s) => put(id, s.exists() ? s.data() : null),
@@ -30,18 +35,20 @@ export function useInbox(uid, clubs) {
 
   useEffect(() => {
     setReads({});
-    setReady(false);
+    setReadsReady(false);
     if (!firebaseConfigured || !uid) return undefined;
     return onSnapshot(
       collection(db, "accounts", uid, "chatReads"),
-      (s) => { setReads(Object.fromEntries(s.docs.map((d) => [d.id, d.data()]))); setReady(true); },
-      () => { setReads({}); setReady(true); },
+      (s) => { setReads(Object.fromEntries(s.docs.map((d) => [d.id, d.data()]))); setReadsReady(true); },
+      () => { setReads({}); setReadsReady(true); },
     );
   }, [uid]);
 
   const chats = useMemo(() => sortChats(clubs.filter((c) => docs[c.id]).map((c) => (
     { ...docs[c.id], id: clubChatId(c.id), title: c.clubName || docs[c.id].title }
   ))), [clubs, docs]);
+  // ready: every club has answered, so a chat that is missing really is missing.
+  const ready = readsReady && clubs.every((c) => answered[c.id]);
   return { chats, reads, ready, unread: unreadCount(chats, reads, uid) };
 }
 

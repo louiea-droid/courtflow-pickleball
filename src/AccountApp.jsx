@@ -4,6 +4,7 @@ import { useAccount } from "./hooks/useAccount";
 import { useRoute } from "./hooks/useRoute";
 import { useMyClubs } from "./hooks/useMyClubs";
 import { useFriendships } from "./hooks/useFriends";
+import { useInbox } from "./hooks/useChats";
 import { friendBuckets } from "./utils/friends";
 import { useClubActions } from "./hooks/useClubActions";
 import { applyTheme } from "./utils/theme";
@@ -14,6 +15,7 @@ import Toast from "./components/Toast";
 import Hub from "./views/Hub";
 import MyClubs from "./views/MyClubs";
 import Friends from "./views/Friends";
+import Inbox from "./views/Inbox";
 import CreateClub from "./views/CreateClub";
 import FindClubs from "./views/FindClubs";
 import Profile from "./views/Profile";
@@ -22,11 +24,12 @@ import ClubApp from "./ClubApp";
 // Sign-in, the hub, creating a club, and the profile. Everything under /clubs/:id is ClubApp.
 export default function AccountApp() {
   const acct = useAccount();
-  const { route, clubId, eventId, navigate } = useRoute();
+  const { route, clubId, eventId, chatId, navigate } = useRoute();
   const uid = acct.user?.uid;
   const name = acct.account?.name || acct.account?.clubName || "";
   const { clubs, ready: clubsReady } = useMyClubs(uid);
   const { friendships, ready: friendsReady } = useFriendships(uid);
+  const inbox = useInbox(uid, clubs);
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [showDelete, setShowDelete] = useState(false);
@@ -86,9 +89,9 @@ export default function AccountApp() {
   return (
     <div className="acct-shell">
       <AccountSidebar
-        active={{ "clubs-find": "find", clubs: "clubs", friends: "friends", hub: "hub" }[route] || null}
+        active={{ "clubs-find": "find", clubs: "clubs", friends: "friends", inbox: "inbox", hub: "hub" }[route] || null}
         name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} clubs={clubs}
-        friendRequests={friendBuckets(friendships, uid).received.length}
+        friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
       />
       <main className="acct-main">
         {route === "settings" ? (
@@ -97,6 +100,8 @@ export default function AccountApp() {
           <CreateClub onCreate={clubActions.createClub} navigate={navigate} />
         ) : route === "friends" ? (
           <Friends uid={uid} name={name} friendships={friendships} ready={friendsReady} notify={notify} />
+        ) : route === "inbox" ? (
+          <Inbox uid={uid} name={name} clubs={clubs} clubsReady={clubsReady} inbox={inbox} chatId={chatId} navigate={navigate} />
         ) : route === "clubs" ? (
           <MyClubs clubs={clubs} ready={clubsReady} navigate={navigate} />
         ) : route === "clubs-find" ? (
