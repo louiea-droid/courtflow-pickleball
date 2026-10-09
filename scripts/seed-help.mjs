@@ -52,7 +52,7 @@ await put("clubs/riverside/events/r2", ev(RIV, "Weekend round robin", day(4), "0
 
 // A live game at Pub Club (Eli is waiting: #3 in line)
 const LIVE = "thursday";
-await put(`clubs/pub/events/${LIVE}`, ev(PUB, "Thursday open play", day(0), "20:00", { durationMins: 180, status: "live", startedAt: now - 1800000, courts: 2, format: "Doubles", mode: "Balanced", autoRotate: true }));
+await put(`clubs/pub/events/${LIVE}`, ev(PUB, "Thursday open play", day(0), "20:00", { attendees: seats(10), durationMins: 180, status: "live", startedAt: now - 1800000, courts: 2, format: "Doubles", mode: "Balanced", autoRotate: true }));
 const roster = [
   ["p1", "Gus Lim", 3, "M", 2, 1, "g"], ["p2", "Hal Ramos", 4, "M", 2, 1, "g"], ["p3", "Ivy Tan", 3, "F", 2, 1, "g"], ["p4", "Jun Co", 4, "M", 2, 0, "g"],
   ["p5", "Kai Uy", 2, "M", 1, 1, "g"], ["p6", "Lia Go", 3, "F", 1, 0, "g"], ["p7", "Mo Sy", 4, "M", 1, 0, "g"], ["p8", "Nia Ong", 5, "F", 1, 1, "g"],

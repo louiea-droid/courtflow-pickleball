@@ -5,7 +5,7 @@ The Help page (`/help`, `src/views/Help.jsx`, content in `src/data/help.js`) sho
 ## Re-create the demo world
 
 1. `npm run emulators` and `npm run dev:emu` (Vite on port 5300), nothing else on ports 8080 and 9099.
-2. `node scripts/seed-help.mjs` seeds five demo accounts (`ann`, `bea`, `cal`, `dee`, `eli` at `@demo.test`, password `password1`), three public clubs (Pub Club owned by Ann, Beta Club, Riverside Pickle), sessions across the next days, a live game at Pub Club (`thursday`) where Eli is **#3 in line, 2 ahead, about 10 min**, and a Quick session for Ann.
+2. Restart the emulators first if you ran the seed before (they keep nothing, and a second run stops on EMAIL_EXISTS). `node scripts/seed-help.mjs` seeds five demo accounts (`ann`, `bea`, `cal`, `dee`, `eli` at `@demo.test`, password `password1`), three public clubs (Pub Club owned by Ann, Beta Club, Riverside Pickle), sessions across the next days, a live game at Pub Club (`thursday`) where Eli is **#3 in line, 2 ahead, about 10 min**, and a Quick session for Ann.
 3. Open the app in a browser at 1280 px wide (the Vite URL; on this machine `http://[::1]:5300` gave a clean storage origin), light theme, sidebar expanded.
 
 ## The shots

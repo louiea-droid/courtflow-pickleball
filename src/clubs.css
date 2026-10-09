@@ -407,6 +407,6 @@ button.acct-brand:hover{background:var(--side-hover)}
   .help-searchbar{position:static;padding:0 0 12px;background:none}
   .help-layout{flex:1;min-height:0;grid-template-rows:minmax(0,1fr);align-items:stretch}
   .help-toc{position:static;max-height:none;align-content:start;overflow-y:auto;padding-bottom:16px}
-  .help-body{overflow-y:auto;padding:0 8px 40px 0;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+  .help-body{overflow-y:auto;padding:0 8px 55vh 0;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
   .help-section,.help-minor article{scroll-margin-top:8px}
 }

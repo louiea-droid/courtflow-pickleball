@@ -28,6 +28,8 @@ export default function Help({ navigate }) {
   // The featured section (the queue) always comes first, in the list and on the page.
   const major = [...found.major].sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)));
   const { minor } = found;
+  // Changes whenever the visible sections change (not only their count), so the highlight observer re-attaches.
+  const shownKey = major.map((s) => s.id).join() + "|" + minor.map((m) => m.id).join();
   const [active, setActive] = useState((MAJOR.find((s) => s.featured) || MAJOR[0]).id);
   const pageRef = useRef(null);
   const bodyRef = useRef(null);
@@ -45,13 +47,21 @@ export default function Help({ navigate }) {
     }, { root, rootMargin: root ? "-10px 0px -60% 0px" : "-120px 0px -55% 0px", threshold: [0, 0.1] });
     pageRef.current.querySelectorAll("[data-help]").forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [major.length, minor.length]);
+  }, [shownKey]);
+
+  // If a search hides the highlighted section, fall back to the first one still shown.
+  const visibleIds = shownKey.split("|").join(",").split(",").filter(Boolean);
+  const current = visibleIds.includes(active) ? active : visibleIds[0];
 
   const jump = (id) => {
     setActive(id);
     document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   };
-  const to = (path) => (e) => { if (!OWN_PAGE.includes(path)) { e.preventDefault(); navigate(path); } };
+  const to = (path) => (e) => {
+    if (OWN_PAGE.includes(path) || e.metaKey || e.ctrlKey || e.shiftKey || e.button > 0) return; // let the browser open it (new tab, own page)
+    e.preventDefault();
+    navigate(path);
+  };
   const none = major.length + minor.length === 0;
 
   return (
@@ -71,13 +81,13 @@ export default function Help({ navigate }) {
       ) : (
         <div className="help-layout">
           <nav className="help-toc" aria-label="Contents">
-            <select className="help-jump" aria-label="Jump to" value={active} onChange={(e) => jump(e.target.value)}>
+            <select className="help-jump" aria-label="Jump to" value={current} onChange={(e) => jump(e.target.value)}>
               {major.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
               {minor.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
             </select>
             <ul>
               {major.map((s) => (
-                <li key={s.id}><a href={`#${s.id}`} className={s.featured ? "help-toc-featured" : undefined} aria-current={active === s.id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(s.id); }}>{s.title}</a></li>
+                <li key={s.id}><a href={`#${s.id}`} className={s.featured ? "help-toc-featured" : undefined} aria-current={current === s.id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(s.id); }}>{s.title}</a></li>
               ))}
             </ul>
             {minor.length > 0 && (
@@ -85,7 +95,7 @@ export default function Help({ navigate }) {
                 <p className="help-toc-label">More</p>
                 <ul>
                   {minor.map((m) => (
-                    <li key={m.id}><a href={`#${m.id}`} aria-current={active === m.id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(m.id); }}>{m.title}</a></li>
+                    <li key={m.id}><a href={`#${m.id}`} aria-current={current === m.id ? "true" : undefined} onClick={(e) => { e.preventDefault(); jump(m.id); }}>{m.title}</a></li>
                   ))}
                 </ul>
               </>
