@@ -83,6 +83,7 @@ Already built:
 - Small rules worth knowing: Esc closes the top dialog (`hooks/useEscape.js`, used by `Modal` and the confirm dialogs); "matches" = player-games / 4 for doubles, / 2 for singles (`utils/stats.js`); the player's payment reference lives on the private request, never on the public event; `deleteEventData` removes the event doc first, then its subcollections; a live game stays on the host list until ended, but the public page stops listing it once its scheduled time passes.
 
 Saved for later (owner's picks, in order of suggestion):
+- Notifications bell in the sticky header (`.acct-topbar`), just left of the account menu (top right, beside the avatar). Not built yet, owner asked only to note it (2026-10-09). Ideas to settle when it is picked up: what counts (friend requests, unread chats, join requests for managers, session reminders), an unread dot/count on the bell and a dropdown list that reuses the existing counts (`friendBuckets`, `useInbox`, join requests), "mark all read", and whether it needs real push or email (nothing like that exists today, so start with in-app only). The "notification settings" item under "Deliberately skipped" would then need a second look.
 - Export roster and match history to CSV (safety net before Delete Account).
 - Past sessions list: view or delete archived stats from End Session / New Session.
 - Currency setting (₱ hard-coded in `money()` and the Live Board).
