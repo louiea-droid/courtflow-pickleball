@@ -116,7 +116,12 @@ service cloud.firestore {
       return d.lastText is string && d.lastText.size() <= 100 && d.lastBy == request.auth.uid && nearNow(d.lastAt);
     }
     match /chats/{chatId} {
-      allow get, list: if isRealUser() && resource.data.kind == 'club' && isMember(resource.data.clubId);
+      // A member may "get" a club chat that doesn't exist yet: a refused read ends a listener for good, so without this
+      // a member's open Inbox would never see the chat a manager starts later. (Nothing is revealed: it just isn't there.)
+      allow get: if isRealUser() && (resource == null
+        ? chatId.matches('club_.+') && isMember(chatId.replace('club_', ''))
+        : resource.data.kind == 'club' && isMember(resource.data.clubId));
+      allow list: if isRealUser() && resource.data.kind == 'club' && isMember(resource.data.clubId);
       allow create: if isRealUser() && request.resource.data.kind == 'club'
         && request.resource.data.keys().hasOnly(['kind', 'clubId', 'title', 'lastText', 'lastAt', 'lastBy', 'createdAt'])
         && request.resource.data.keys().hasAll(['kind', 'clubId', 'title', 'lastText', 'lastAt', 'lastBy', 'createdAt'])

@@ -53,6 +53,14 @@ await assertFails(setDoc(doc(mgr, "chats/club_pub"), chatDoc("pub", { lastText: 
 await assertFails(setDoc(doc(mgr, "chats/club_pub"), chatDoc("pub", { createdAt: now() - DAY })));
 await assertFails(setDoc(doc(mgr, "chats/club_noclub"), chatDoc("noclub"))); // not a manager of a club that doesn't exist
 
+// ---- A chat that isn't there yet: a member's listener must survive until a manager starts it (a refused
+// read ends a listener for good), so members may "get" the missing document. Nobody else may.
+await seed({ chat: false });
+for (const db of [mem, mgr, own]) await assertSucceeds(getDoc(doc(db, "chats/club_pub")));
+for (const [, db] of outsiders) await assertFails(getDoc(doc(db, "chats/club_pub")));
+await assertFails(getDoc(doc(mem, "chats/club_nosuchclub")));
+await assertFails(getDoc(doc(mem, "chats/dm_a_b")));
+
 // ---- Reading: members only, and only their own club's chat
 await seed();
 for (const [who, db] of [["mem", mem], ["mgr", mgr], ["own", own]]) {
