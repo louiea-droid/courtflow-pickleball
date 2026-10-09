@@ -66,11 +66,12 @@ export function groupByDate(events) {
 
 const addDay = (ymd) => new Date(Date.parse(`${ymd}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
 
-// "any", today, tomorrow (always), then up to five more days that have sessions.
+// "any", then today and tomorrow (always) and up to four more days that have sessions, in date order. A day before today
+// still gets its chip: a club's own date can be behind the viewer's (a club in Hawaii while the viewer is in Manila).
 export function dateChips(events, today) {
   const tomorrow = addDay(today);
-  const more = [...new Set(events.map((e) => e.date))].filter((d) => d > tomorrow).sort().slice(0, 5);
-  return ["any", today, tomorrow, ...more];
+  const more = [...new Set(events.map((e) => e.date))].filter((d) => d !== today && d !== tomorrow).sort().slice(0, 4);
+  return ["any", ...[today, tomorrow, ...more].sort()];
 }
 
 export function filterSessions(events, text, date) {
@@ -79,4 +80,6 @@ export function filterSessions(events, text, date) {
     && (!q || [e.clubName, e.clubLocation, e.title, e.level].some((v) => (v || "").toLowerCase().includes(q))));
 }
 
-export const dayHeading = (date, today) => (date === today ? "Today" : date === addDay(today) ? "Tomorrow" : formatDay(date));
+// A group heading: "Today, Fri, Oct 9". The chip label is shorter.
+export const dayHeading = (date, today) => (date === today ? `Today, ${formatDay(date)}` : date === addDay(today) ? `Tomorrow, ${formatDay(date)}` : formatDay(date));
+export const chipLabel = (date, today) => (date === "any" ? "Any day" : date === today ? "Today" : date === addDay(today) ? "Tomorrow" : formatDay(date));

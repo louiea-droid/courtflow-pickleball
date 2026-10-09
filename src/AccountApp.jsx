@@ -5,6 +5,7 @@ import { useRoute } from "./hooks/useRoute";
 import { useMyClubs } from "./hooks/useMyClubs";
 import { useFriendships } from "./hooks/useFriends";
 import { useInbox } from "./hooks/useChats";
+import { useSessions } from "./hooks/useSessions";
 import { friendBuckets } from "./utils/friends";
 import { useClubActions } from "./hooks/useClubActions";
 import { applyTheme } from "./utils/theme";
@@ -31,6 +32,8 @@ export default function AccountApp() {
   const { clubs, ready: clubsReady } = useMyClubs(uid);
   const { friendships, ready: friendsReady } = useFriendships(uid);
   const inbox = useInbox(uid, clubs);
+  // One Find session query shared by Home and the Find session page; off on every other screen.
+  const sessions = useSessions(route === "hub" || route === "sessions");
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [showDelete, setShowDelete] = useState(false);
@@ -104,13 +107,13 @@ export default function AccountApp() {
         ) : route === "inbox" ? (
           <Inbox uid={uid} name={name} clubs={clubs} clubsReady={clubsReady} inbox={inbox} chatId={chatId} navigate={navigate} />
         ) : route === "sessions" ? (
-          <FindSession clubs={clubs} navigate={navigate} />
+          <FindSession clubs={clubs} sessions={sessions} navigate={navigate} />
         ) : route === "clubs" ? (
           <MyClubs clubs={clubs} ready={clubsReady} navigate={navigate} />
         ) : route === "clubs-find" ? (
           <FindClubs myClubs={clubs} navigate={navigate} />
         ) : (
-          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} friendships={friendships} inbox={inbox} navigate={navigate} />
+          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} friendships={friendships} inbox={inbox} sessions={sessions} navigate={navigate} />
         )}
       </main>
       {showDelete && (

@@ -2,7 +2,7 @@ import { CalendarSearch, ListOrdered, MessageSquare, Plus, UserPlus, Users } fro
 import ActiveQueue from "../components/ActiveQueue";
 import PageTitle from "../components/PageTitle";
 import SessionCard from "../components/SessionCard";
-import { useSessions } from "../hooks/useSessions";
+import { useToday } from "../hooks/useToday";
 import { ROLE_LABEL } from "../utils/clubs";
 import { friendBuckets } from "../utils/friends";
 import { dayHeading, groupByDate } from "../utils/sessions";
@@ -12,13 +12,13 @@ const UPCOMING = 5;
 
 // The home screen: the way to start playing, the session you are in right now, what is coming up on other dates,
 // then friends, inbox and your clubs.
-export default function Hub({ uid, name, clubs, ready, friendships = [], inbox = { chats: [], unread: 0 }, navigate }) {
+export default function Hub({ uid, name, clubs, ready, friendships = [], inbox = { chats: [], unread: 0 }, sessions: sessionsState, navigate }) {
   const to = (path) => (e) => { e.preventDefault(); navigate(path); };
   const first = (name || "").trim().split(/\s+/)[0];
   const { friends, received } = friendBuckets(friendships, uid);
-  const { sessions, ready: sessionsReady, error: sessionsError } = useSessions();
+  const { sessions, ready: sessionsReady, error: sessionsError } = sessionsState;
   const mine = new Set(clubs.map((c) => c.id));
-  const today = new Date().toLocaleDateString("en-CA");
+  const today = useToday();
   // The next few sessions, your own clubs' first within a day.
   const upcoming = [...sessions]
     .sort((a, b) => (a.date + (mine.has(a.clubId) ? "0" : "1") + a.startTime).localeCompare(b.date + (mine.has(b.clubId) ? "0" : "1") + b.startTime))

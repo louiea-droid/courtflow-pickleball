@@ -2,21 +2,17 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import PageTitle from "../components/PageTitle";
 import SessionCard from "../components/SessionCard";
-import { useSessions } from "../hooks/useSessions";
-import { dateChips, dayHeading, filterSessions, groupByDate } from "../utils/sessions";
-
-const localToday = () => new Date().toLocaleDateString("en-CA");
+import { useToday } from "../hooks/useToday";
+import { chipLabel, dateChips, dayHeading, filterSessions, groupByDate } from "../utils/sessions";
 
 // Open play and bookings from public clubs, joined or not: pick a day, search by club, place or session name.
-export default function FindSession({ clubs, navigate }) {
-  const { sessions, ready, error } = useSessions();
-  const today = localToday();
+export default function FindSession({ clubs, sessions: { sessions, ready, error }, navigate }) {
+  const today = useToday();
   const [date, setDate] = useState("any");
   const [text, setText] = useState("");
   const mine = new Set(clubs.map((c) => c.id));
   const chips = useMemo(() => dateChips(sessions, today), [sessions, today]);
   const shown = filterSessions(sessions, text, date);
-  const label = (d) => (d === "any" ? "Any day" : dayHeading(d, today));
 
   return (
     <div className="page-narrow">
@@ -30,7 +26,7 @@ export default function FindSession({ clubs, navigate }) {
       </label>
       <div className="day-chips" role="group" aria-label="Day">
         {chips.map((d) => (
-          <button key={d} type="button" className="day-chip" aria-pressed={d === date} onClick={() => setDate(d)}>{label(d)}</button>
+          <button key={d} type="button" className="day-chip" aria-pressed={d === date} onClick={() => setDate(d)}>{chipLabel(d, today)}</button>
         ))}
       </div>
 
