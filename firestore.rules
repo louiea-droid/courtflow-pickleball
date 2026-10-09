@@ -109,6 +109,41 @@ service cloud.firestore {
       allow delete: if isRealUser() && request.auth.uid in resource.data.users;
     }
 
+    // ---- Chats. A club's group chat is club_{clubId}: every member reads and writes it, a manager starts it and
+    // moderates it. (Direct messages are added by the next plan.) Access follows the club's member record on every request.
+    function chatClub(chatId) { return get(/databases/$(database)/documents/chats/$(chatId)).data.clubId; }
+    function validTail(d) {
+      return d.lastText is string && d.lastText.size() <= 100 && d.lastBy == request.auth.uid && nearNow(d.lastAt);
+    }
+    match /chats/{chatId} {
+      allow get, list: if isRealUser() && resource.data.kind == 'club' && isMember(resource.data.clubId);
+      allow create: if isRealUser() && request.resource.data.kind == 'club'
+        && request.resource.data.keys().hasOnly(['kind', 'clubId', 'title', 'lastText', 'lastAt', 'lastBy', 'createdAt'])
+        && request.resource.data.keys().hasAll(['kind', 'clubId', 'title', 'lastText', 'lastAt', 'lastBy', 'createdAt'])
+        && chatId == 'club_' + request.resource.data.clubId
+        && isManager(request.resource.data.clubId)
+        && validName(request.resource.data.title)
+        && request.resource.data.lastText == '' && request.resource.data.lastAt == 0 && request.resource.data.lastBy == ''
+        && nearNow(request.resource.data.createdAt);
+      allow update: if isRealUser() && resource.data.kind == 'club' && isMember(resource.data.clubId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastText', 'lastAt', 'lastBy'])
+        && validTail(request.resource.data);
+      allow delete: if isRealUser() && resource.data.kind == 'club' && isOwner(resource.data.clubId);
+
+      match /messages/{id} {
+        allow read: if isRealUser() && isMember(chatClub(chatId));
+        allow create: if isRealUser() && isMember(chatClub(chatId))
+          && request.resource.data.keys().hasOnly(['from', 'name', 'text', 'createdAt'])
+          && request.resource.data.keys().hasAll(['from', 'name', 'text', 'createdAt'])
+          && request.resource.data.from == request.auth.uid
+          && validName(request.resource.data.name)
+          && request.resource.data.text is string && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 1000
+          && nearNow(request.resource.data.createdAt);
+        allow delete: if isRealUser() && isMember(chatClub(chatId))
+          && (resource.data.from == request.auth.uid || isManager(chatClub(chatId)));
+      }
+    }
+
     // ---- Clubs. The member record is the single source of truth for who may do what.
     function clubPath(clubId) {
       return /databases/$(database)/documents/clubs/$(clubId);
