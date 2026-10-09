@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Search } from "lucide-react";
 import PageTitle from "../components/PageTitle";
 import SessionCard from "../components/SessionCard";
 import { useToday } from "../hooks/useToday";
-import { chipLabel, dateChips, dayHeading, filterSessions, groupByDate } from "../utils/sessions";
+import { dayHeading, filterSessions, groupByDate, weekDays } from "../utils/sessions";
 
 // Open play and bookings from public clubs, joined or not: pick a day, search by club, place or session name.
 export default function FindSession({ clubs, sessions: { sessions, ready, error }, navigate }) {
@@ -11,12 +11,25 @@ export default function FindSession({ clubs, sessions: { sessions, ready, error 
   const [date, setDate] = useState("any");
   const [text, setText] = useState("");
   const mine = new Set(clubs.map((c) => c.id));
-  const chips = useMemo(() => dateChips(sessions, today), [sessions, today]);
+  const week = weekDays(today);
+  const hasSessions = new Set(sessions.map((s) => s.date));
   const shown = filterSessions(sessions, text, date);
 
   return (
     <div className="page-narrow">
       <PageTitle title="Find session" sub="Open play and bookings from public clubs, joined or not." />
+      <div className="week-strip" role="group" aria-label="Day">
+        <button type="button" className="week-all" aria-pressed={date === "any"} onClick={() => setDate("any")}>All</button>
+        {week.map((d) => (
+          <button
+            key={d.date} type="button" className="week-day" aria-pressed={d.date === date}
+            aria-label={`${dayHeading(d.date, today)}${hasSessions.has(d.date) ? ", has sessions" : ""}`}
+            onClick={() => setDate(d.date === date ? "any" : d.date)}
+          >
+            <small>{d.wd}</small><b>{d.day}</b><i className={hasSessions.has(d.date) ? "on" : undefined} aria-hidden="true" />
+          </button>
+        ))}
+      </div>
       <label className="find-search">
         <Search size={16} />
         <input
@@ -24,11 +37,6 @@ export default function FindSession({ clubs, sessions: { sessions, ready, error 
           placeholder="Search by club, place or session" aria-label="Search sessions"
         />
       </label>
-      <div className="day-chips" role="group" aria-label="Day">
-        {chips.map((d) => (
-          <button key={d} type="button" className="day-chip" aria-pressed={d === date} onClick={() => setDate(d)}>{chipLabel(d, today)}</button>
-        ))}
-      </div>
 
       {!ready ? (
         <p className="hub-empty">Loading sessions…</p>

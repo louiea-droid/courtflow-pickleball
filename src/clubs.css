@@ -287,10 +287,17 @@
 .chat-head .chat-hide{margin-left:auto;flex-shrink:0;min-height:44px}
 
 /* ---- Find session: day chips and session cards ---- */
-.day-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
-.day-chip{min-height:44px;padding:0 16px;border:1px solid var(--card-line);border-radius:99px;background:var(--panel);color:var(--ink);font:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:background .15s ease,border-color .15s ease}
-.day-chip:hover{border-color:var(--accent-line);background:var(--hover)}
-.day-chip[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
+.week-strip{display:flex;align-items:stretch;gap:4px;margin:0 0 12px;overflow-x:auto;scrollbar-width:none}
+.week-strip::-webkit-scrollbar{display:none}
+.week-all,.week-day{flex:0 0 auto;min-width:44px;min-height:44px;border:1px solid var(--card-line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.week-all{padding:0 10px;font-size:12.5px;font-weight:700}
+.week-day{display:grid;place-items:center;align-content:center;gap:0;padding:3px 2px}
+.week-day small{color:var(--muted);font-size:10px;font-weight:700;line-height:1.1}
+.week-day b{font:700 14px "Space Grotesk";line-height:1.15}
+.week-day i{width:4px;height:4px;border-radius:50%;background:transparent}
+.week-day i.on{background:var(--accent)}
+.week-all:hover,.week-day:hover{border-color:var(--accent-line);background:var(--hover)}
+.week-all[aria-pressed="true"],.week-day[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
 .session-group{margin:0 0 20px}
 .session-group .club-section{margin:0 0 10px}
 .session-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--card-line);border-radius:15px;background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s ease,background .15s ease}

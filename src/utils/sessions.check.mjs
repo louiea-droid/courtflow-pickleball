@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chipLabel, dateChips, dayHeading, filterSessions, groupByDate, listedSessions, metaFor, needsSync, queryFromDate, sessionMeta, spotsLabel } from "./sessions.js";
+import { dayHeading, filterSessions, groupByDate, listedSessions, metaFor, needsSync, queryFromDate, sessionMeta, spotsLabel, weekDays } from "./sessions.js";
 
 const club = { name: "Ace Club", visibility: "public", location: "Manila" };
 assert.deepEqual(sessionMeta("c1", club), { clubPublic: true, clubId: "c1", clubName: "Ace Club", clubLocation: "Manila" });
@@ -47,12 +47,11 @@ assert.equal(spotsLabel(ev("a", "d", "t", { attendees: [{}, {}, {}] })), "1 spot
 assert.equal(spotsLabel(ev("a", "d", "t", { attendees: [{}] })), "3 spots left");
 
 assert.deepEqual(groupByDate(listed).map((g) => [g.date, g.events.length]), [["2026-10-09", 2], ["2026-10-10", 1]]);
-assert.deepEqual(dateChips(listed, "2026-10-09"), ["any", "2026-10-09", "2026-10-10"]);
-assert.deepEqual(dateChips([], "2026-10-31"), ["any", "2026-10-31", "2026-11-01"]); // today and tomorrow always
-const many = ["12", "13", "14", "15", "16", "17"].map((d, i) => ev(`m${i}`, `2026-10-${d}`, "09:00"));
-assert.equal(dateChips(many, "2026-10-09").length, 7); // any, today, tomorrow, and at most 4 more
-// a club whose own date is behind the viewer's (its "Oct 8" while the viewer is on Oct 9) still gets a chip, in date order
-assert.deepEqual(dateChips([ev("z", "2026-10-08", "23:00"), ev("y", "2026-10-12", "09:00")], "2026-10-09"), ["any", "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-12"]);
+// The week strip: seven days from today, weekday over date number
+assert.deepEqual(weekDays("2026-10-09").map((d) => d.date), ["2026-10-09", "2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15"]);
+assert.deepEqual(weekDays("2026-10-09")[0], { date: "2026-10-09", wd: "Fri", day: 9 });
+assert.deepEqual(weekDays("2026-10-30").map((d) => d.day), [30, 31, 1, 2, 3, 4, 5]); // across a month end
+assert.equal(weekDays("2026-10-30")[2].date, "2026-11-01");
 
 const named = [{ ...ev("1", "2026-10-09", "15:00", { title: "Friday mixer" }), ...meta }, { ...ev("2", "2026-10-10", "09:00", { title: "Drills", level: "Beginner" }), ...meta, clubName: "Zed", clubLocation: "Cebu" }];
 assert.deepEqual(filterSessions(named, "", "any").map((e) => e.id), ["1", "2"]);
@@ -63,8 +62,4 @@ assert.deepEqual(filterSessions(named, "", "2026-10-10").map((e) => e.id), ["2"]
 assert.equal(dayHeading("2026-10-09", "2026-10-09"), "Today, Fri, Oct 9");
 assert.equal(dayHeading("2026-10-10", "2026-10-09"), "Tomorrow, Sat, Oct 10");
 assert.match(dayHeading("2026-10-12", "2026-10-09"), /Oct 12/);
-assert.equal(chipLabel("2026-10-09", "2026-10-09"), "Today");
-assert.equal(chipLabel("2026-10-10", "2026-10-09"), "Tomorrow");
-assert.equal(chipLabel("any", "2026-10-09"), "Any day");
-assert.match(chipLabel("2026-10-12", "2026-10-09"), /Oct 12/);
 console.log("sessions.check: ok");
