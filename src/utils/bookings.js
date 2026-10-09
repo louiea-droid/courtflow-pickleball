@@ -38,11 +38,11 @@ export function endHM(b) {
 }
 
 // Today's date (YYYY-MM-DD) and time (HH:MM) on the club's wall clock.
-export function nowIn(timeZone) {
+export function nowIn(timeZone, at = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone, year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-  }).formatToParts(new Date());
+  }).formatToParts(at);
   const p = Object.fromEntries(parts.map((x) => [x.type, x.value]));
   return { date: `${p.year}-${p.month}-${p.day}`, hm: `${p.hour}:${p.minute}` };
 }
@@ -95,3 +95,4 @@ export const isOver = (event, fallbackZone) =>
 // (a forgotten live game must not stay listed forever).
 export const isListed = (event, fallbackZone) =>
   !event.walkIn && event.status !== "ended" && !hasEndedIn(event, fallbackZone);
+
