@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { dayHeading, filterSessions, groupByDate, listedSessions, metaFor, needsSync, queryFromDate, sessionMeta, spotsLabel, weekDays } from "./sessions.js";
+import { addDays, dayHeading, filterSessions, groupByDate, listedSessions, metaFor, needsSync, queryFromDate, sessionMeta, spotsLabel, weekDays } from "./sessions.js";
 
 const club = { name: "Ace Club", visibility: "public", location: "Manila" };
 assert.deepEqual(sessionMeta("c1", club), { clubPublic: true, clubId: "c1", clubName: "Ace Club", clubLocation: "Manila" });
@@ -47,7 +47,10 @@ assert.equal(spotsLabel(ev("a", "d", "t", { attendees: [{}, {}, {}] })), "1 spot
 assert.equal(spotsLabel(ev("a", "d", "t", { attendees: [{}] })), "3 spots left");
 
 assert.deepEqual(groupByDate(listed).map((g) => [g.date, g.events.length]), [["2026-10-09", 2], ["2026-10-10", 1]]);
-// The week strip: seven days from today, weekday over date number
+assert.equal(addDays("2026-10-09", 7), "2026-10-16");
+assert.equal(addDays("2026-12-30", 3), "2027-01-02"); // across a year end
+assert.equal(addDays("2026-10-09", 0), "2026-10-09");
+// The week strip: seven days from a start date, weekday over date number
 assert.deepEqual(weekDays("2026-10-09").map((d) => d.date), ["2026-10-09", "2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15"]);
 assert.deepEqual(weekDays("2026-10-09")[0], { date: "2026-10-09", wd: "Fri", day: 9 });
 assert.deepEqual(weekDays("2026-10-30").map((d) => d.day), [30, 31, 1, 2, 3, 4, 5]); // across a month end

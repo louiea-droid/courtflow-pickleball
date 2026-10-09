@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import PageTitle from "../components/PageTitle";
 import SessionCard from "../components/SessionCard";
 import { useToday } from "../hooks/useToday";
-import { dayHeading, filterSessions, groupByDate, weekDays } from "../utils/sessions";
+import { addDays, dayHeading, filterSessions, groupByDate, weekDays } from "../utils/sessions";
+import { formatDay } from "../utils/format";
 
 // Open play and bookings from public clubs, joined or not: pick a day, search by club, place or session name.
 export default function FindSession({ clubs, sessions: { sessions, ready, error }, navigate }) {
@@ -11,7 +12,8 @@ export default function FindSession({ clubs, sessions: { sessions, ready, error 
   const [date, setDate] = useState("any");
   const [text, setText] = useState("");
   const mine = new Set(clubs.map((c) => c.id));
-  const week = weekDays(today);
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = the week starting today; past days have no sessions to show
+  const week = weekDays(addDays(today, weekOffset * 7));
   const hasSessions = new Set(sessions.map((s) => s.date));
   const shown = filterSessions(sessions, text, date);
 
@@ -19,6 +21,7 @@ export default function FindSession({ clubs, sessions: { sessions, ready, error 
     <div className="page-narrow">
       <PageTitle title="Find session" sub="Open play and bookings from public clubs, joined or not." />
       <div className="week-strip" role="group" aria-label="Day">
+        <button type="button" className="week-nav" aria-label="Previous week" disabled={weekOffset === 0} onClick={() => setWeekOffset((w) => w - 1)}><ChevronLeft size={16} /></button>
         <button type="button" className="week-all" aria-pressed={date === "any"} onClick={() => setDate("any")}>All</button>
         {week.map((d) => (
           <button
@@ -29,6 +32,7 @@ export default function FindSession({ clubs, sessions: { sessions, ready, error 
             <small>{d.wd}</small><b>{d.day}</b><i className={hasSessions.has(d.date) ? "on" : undefined} aria-hidden="true" />
           </button>
         ))}
+        <button type="button" className="week-nav" aria-label="Next week" disabled={weekOffset >= 26} onClick={() => setWeekOffset((w) => w + 1)}><ChevronRight size={16} /></button>
       </div>
       <label className="find-search">
         <Search size={16} />
@@ -48,7 +52,7 @@ export default function FindSession({ clubs, sessions: { sessions, ready, error 
           <a className="outline" href="/clubs/find" onClick={(e) => { e.preventDefault(); navigate("/clubs/find"); }}>Find a club</a>
         </div>
       ) : shown.length === 0 ? (
-        <p className="hub-empty">No sessions match. Try another day or Any day.</p>
+        <p className="hub-empty">{date !== "any" && !text.trim() ? `No sessions on ${formatDay(date)}. Try another day, or All.` : "No sessions match. Try another day or All."}</p>
       ) : groupByDate(shown).map((g) => (
         <section className="session-group" key={g.date}>
           <h2 className="club-section">{dayHeading(g.date, today)}</h2>

@@ -64,12 +64,13 @@ export function groupByDate(events) {
   return groups;
 }
 
-const addDay = (ymd) => new Date(Date.parse(`${ymd}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
+export const addDays = (ymd, n) => new Date(Date.parse(`${ymd}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+const addDay = (ymd) => addDays(ymd, 1);
 
-// The week strip: seven days from today, each with its short weekday and date number.
-export function weekDays(today) {
+// The week strip: seven days from a start date (today, or a later week), each with its short weekday and date number.
+export function weekDays(start) {
   const days = [];
-  for (let d = today, i = 0; i < 7; d = addDay(d), i += 1) {
+  for (let d = start, i = 0; i < 7; d = addDay(d), i += 1) {
     const [y, m, n] = d.split("-").map(Number);
     days.push({ date: d, wd: new Date(y, m - 1, n).toLocaleDateString("en-US", { weekday: "short" }), day: n });
   }
