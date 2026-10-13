@@ -15,7 +15,7 @@ import { useSessionData } from "./hooks/useSessionData";
 import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
 import { useDocs } from "./hooks/useLiveDocs";
-import { writeScore } from "./utils/umpireData";
+import { claimRecording, clearScore, writeScore } from "./utils/umpireData";
 import { packCourts } from "./utils/courtPack";
 
 import Sidebar from "./components/Sidebar";
@@ -763,6 +763,8 @@ export default function QueueApp({
               onStartNext={startNextMatch} onSwapQueueOrder={swapQueueOrder} onSkipQueued={skipQueuedPlayer}
               onEditPlayer={setEditingPlayer} onSendToCourt={sendPreviewToCourt} rules={rules}
               claims={claims} onScore={scoreCourt} onOpenUmpires={() => setShowUmpires(true)}
+              claimRecording={(courtId, at) => claimRecording(base, courtId, at)}
+              onStopScore={(courtId) => clearScore(base, courtId).catch(() => notify("Couldn't stop the score. Try again.", 4000))}
               goQueue={() => setTab("queue")} />
           )}
           {tab === "queue" && (

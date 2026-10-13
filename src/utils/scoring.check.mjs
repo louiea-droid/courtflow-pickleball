@@ -1,6 +1,6 @@
 // Self-check for the umpire score. Run: node src/utils/scoring.check.mjs
 import assert from "node:assert";
-import { adjust, call, finalText, firstServe, gamePoint, lastEvent, liveScore, newScore, rally, undo, winner } from "./scoring.js";
+import { adjust, call, confirmScore, finalText, firstServe, gamePoint, lastEvent, liveScore, newScore, rally, undo, winner } from "./scoring.js";
 
 const play = (s, ...teams) => teams.reduce(rally, s);
 
@@ -89,5 +89,12 @@ assert.equal(lastEvent(play(newScore({ start: 1, style: "rally" }), 2)), "Point 
 assert.equal(lastEvent(play(newScore({ start: 1, singles: true }), 2)), "Side out: Team 2 now serves");
 assert.equal(lastEvent(adjust(rally(so, 1), 1, -1)), "Score fixed (0-0)");
 assert.equal(lastEvent(adjust(so, 2, 1)), "Score fixed (0-1)");
+
+// Confirming a finished game marks it final (with the time, so a re-confirm after an undo is a new one); undo or a fix clears it.
+const fin = { ...newScore({ start: 1, style: "rally" }), t1: 11, t2: 3, log: [{ t1: 10, t2: 3, serving: 1, server: null }] };
+assert.equal(confirmScore(newScore({ start: 1 }), 5).confirmed, undefined); // not finished: nothing to confirm
+assert.equal(confirmScore(fin, 5).confirmed, 5);
+assert.equal("confirmed" in undo(confirmScore(fin, 5)), false);
+assert.equal("confirmed" in adjust(confirmScore(fin, 5), 2, 1), false);
 
 console.log("scoring checks passed");

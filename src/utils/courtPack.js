@@ -13,6 +13,7 @@ export function packCourts(courts, removedId, claims = []) {
       teamB: c.teamB || [],
       ...(c.level ? { level: c.level } : {}),
       ...(c.score ? { score: c.score } : {}),
+      ...(c.recordedConfirm ? { recordedConfirm: c.recordedConfirm } : {}), // a recorded game must not record again
     },
   }));
   const claimSets = claims.filter((cl) => newId.has(cl.id)).map((cl) => ({ id: newId.get(cl.id), data: { uid: cl.uid, name: cl.name } }));

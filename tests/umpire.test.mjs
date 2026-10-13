@@ -111,6 +111,9 @@ for (const base of [E, S]) {
   await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ singles: "yes" }) }));
   await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ start: 999 }) })); // a late write for an earlier match
   await assertSucceeds(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ server: null, style: "rally", to: 15, singles: true }) }));
+  // the umpire confirms a finished game (a time), so the host app can record it
+  await assertSucceeds(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ t1: 11, confirmed: Date.now() }) }));
+  await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ t1: 11, confirmed: "yes" }) }));
   await assertFails(setDoc(doc(v1, `${base}/players/p9`), { name: "x" })); // nothing else is writable
   if (base === E) await assertFails(getDocs(collection(v1, `${base}/matchLog`))); // (a quick session's match log is public to read, as the Live Board needs)
   // ---- Release: the holder, not another umpire

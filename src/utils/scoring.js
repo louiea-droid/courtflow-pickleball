@@ -17,7 +17,8 @@ export function liveScore(court, { style, to, singles } = {}) {
 }
 
 const snap = (s) => ({ t1: s.t1, t2: s.t2, serving: s.serving, server: s.server });
-const push = (s, next) => ({ ...s, ...next, log: [...s.log, snap(s)].slice(-LOG_MAX) });
+// Any change after a confirmation makes the game unconfirmed again.
+const push = ({ confirmed, ...s }, next) => ({ ...s, ...next, log: [...s.log, snap(s)].slice(-LOG_MAX) });
 
 export function winner(s) {
   return Math.max(s.t1, s.t2) >= s.to && Math.abs(s.t1 - s.t2) >= 2 ? (s.t1 > s.t2 ? 1 : 2) : 0;
@@ -50,8 +51,13 @@ export function adjust(s, team, delta) {
 
 export function undo(s) {
   const prev = s.log[s.log.length - 1];
-  return prev ? { ...s, ...prev, log: s.log.slice(0, -1) } : s;
+  if (!prev) return s;
+  const { confirmed, ...rest } = s;
+  return { ...rest, ...prev, log: s.log.slice(0, -1) };
 }
+
+// The umpire says a finished game is final. `at` (a time) tells one confirmation from a later one after an undo.
+export const confirmScore = (s, at = Date.now()) => (winner(s) ? { ...s, confirmed: at } : s);
 
 // Who serves first, only before the first rally.
 export const firstServe = (s, team) => (s.log.length === 0 && s.t1 + s.t2 === 0 ? { ...s, serving: team } : s);

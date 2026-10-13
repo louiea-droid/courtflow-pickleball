@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { CircleDot, CircleHelp, SlidersHorizontal, Undo2 } from "lucide-react";
-import { adjust, call, finalText, firstServe, gamePoint, lastEvent, liveScore, rally, undo, winner } from "../utils/scoring";
+import { adjust, call, confirmScore, finalText, firstServe, gamePoint, lastEvent, liveScore, rally, undo, winner } from "../utils/scoring";
 
 // The score of one court, as the umpire sees it. Used by managers (a modal on the Dashboard) and by volunteers
 // (/umpire). Nothing is kept here: every tap computes the next score from the court and sends it up.
@@ -27,7 +27,7 @@ const namesOf = (ids, players) => (ids || []).map((id) => players.find((p) => p.
 // Team 1 is always on the left and Team 2 on the right, each with its own score, so a number never changes sides.
 // Each half is the button: tap the side of the team that won the rally. "Fix the score" and "How scoring works" sit
 // below the board, or beside it when there is room (the volunteer page on a desktop); `page` opens them there.
-export default function ScoreKeeper({ court, players, settings, onScore, onConfirm, page = false }) {
+export default function ScoreKeeper({ court, players, settings, onScore, onConfirm, onStop, page = false }) {
   const [wide] = useState(() => page && typeof window !== "undefined" && !!window.matchMedia?.("(min-width: 1100px)").matches);
   const empty = !(court.teamA?.length || court.teamB?.length);
   if (empty) return <p className="scorekeeper-empty">No match on this court yet.</p>;
@@ -84,7 +84,9 @@ export default function ScoreKeeper({ court, players, settings, onScore, onConfi
               <b>Team {won} wins {finalText(s)}</b>
               {onConfirm
                 ? <button className="primary" onClick={() => onConfirm(won === 1 ? "A" : "B")}>Confirm result</button>
-                : <p>Game over. The host will record the result.</p>}
+                : s.confirmed
+                  ? <p>Confirmed. The host's queue records it and puts the next match on this court.</p>
+                  : <button className="primary" onClick={() => onScore(confirmScore(s))}>Confirm result</button>}
             </div>
           ) : null}
         </div>
@@ -101,6 +103,9 @@ export default function ScoreKeeper({ court, players, settings, onScore, onConfi
               <button className="outline" aria-label={`Team ${n} plus one`} onClick={() => onScore(adjust(s, n, 1))}>+1</button>
             </div>
           ))}
+          {onStop && (
+            <button className="outline scorekeeper-stop" onClick={onStop}>Stop scoring this match</button>
+          )}
         </details>
 
         <details className="scorekeeper-card scorekeeper-help" open={wide}>

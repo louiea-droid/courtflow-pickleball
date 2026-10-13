@@ -323,7 +323,8 @@ service cloud.firestore {
     // Every field has to make sense: the Live Board and the Dashboard read them. (log entries can't be size-checked here.)
     function validScore(s) {
       return s is map
-        && s.keys().hasOnly(['start', 't1', 't2', 'serving', 'server', 'style', 'to', 'singles', 'log'])
+        && s.keys().hasOnly(['start', 't1', 't2', 'serving', 'server', 'style', 'to', 'singles', 'log', 'confirmed'])
+        && (!('confirmed' in s) || s.confirmed is number)
         && s.start is number
         && s.t1 is int && s.t1 >= 0 && s.t1 <= 99 && s.t2 is int && s.t2 >= 0 && s.t2 <= 99
         && s.serving in [1, 2] && (s.server == null || s.server in [1, 2])

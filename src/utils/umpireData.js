@@ -1,4 +1,4 @@
-import { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { deleteDoc, deleteField, doc, getDoc, runTransaction, setDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
 import { newInviteCode } from "./clubs";
 
@@ -51,3 +51,17 @@ export const releaseCourt = (base, courtId) => deleteDoc(at(base, "courtClaims",
 // ponytail: last write wins if two scorers tap at the same moment (a manager and a volunteer on one court); a
 // transaction would fix that but fails offline, which a gym with weak wifi would hit more often.
 export const writeScore = (base, courtId, score) => updateDoc(at(base, "courts", courtId), { score });
+// Stop keeping a score on this match: the court card goes back to the plain win buttons.
+export const clearScore = (base, courtId) => updateDoc(at(base, "courts", courtId), { score: deleteField() });
+// Two open Dashboards must not both record one confirmed game: the first device to mark the court records it.
+// Resolves to false when another device already did, or the score changed. Transactions need a connection, so an
+// offline device records nothing and the court keeps its Record button.
+export function claimRecording(base, courtId, confirmedAt) {
+  const ref = at(base, "courts", courtId);
+  return runTransaction(db, async (tx) => {
+    const d = (await tx.get(ref)).data();
+    if (!d?.score || d.score.confirmed !== confirmedAt || d.score.start !== d.start || d.recordedConfirm === confirmedAt) return false;
+    tx.update(ref, { recordedConfirm: confirmedAt });
+    return true;
+  });
+}
