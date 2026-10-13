@@ -155,6 +155,7 @@ export default function LiveBoard() {
         <span className="queue-stats">
           <span className="queue-stat games">{p.games} <small>games</small></span>
           <span className="queue-stat wins">{p.wins} <small>wins</small></span>
+          <span className="queue-stat losses">{p.losses || 0} <small>losses</small></span>
         </span>
       )}
     </div>
@@ -214,7 +215,7 @@ export default function LiveBoard() {
             <div className="panel liveboard-box">
               {matchLog.length ? (
                 <div className="matchlog-list">
-                  {matchLog.map((m) => <MatchLogRow match={m} key={m.id} />)}
+                  {matchLog.slice(0, 5).map((m, i) => <MatchLogRow match={m} latest={i === 0} key={m.id} />)}
                 </div>
               ) : (
                 <div className="empty">No matches recorded yet.</div>

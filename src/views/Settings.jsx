@@ -18,6 +18,7 @@ const AFTER_GAME_OPTIONS = [
   { value: "stay", label: "Winners stay on" },
 ];
 const STREAK_OPTIONS = [2, 3, 4, 5].map((n) => ({ value: n, label: `${n} wins in a row` }));
+const HISTORY_OPTIONS = [5, 10, 15, 20].map((n) => ({ value: n, label: `Last ${n} games` }));
 const ON_OFF = [{ value: "off", label: "Off" }, { value: "on", label: "On" }];
 const SHOW_HIDE = [{ value: "show", label: "Shown" }, { value: "hide", label: "Hidden" }];
 const CLOCK_OPTIONS = [{ value: "12", label: "12-hour" }, { value: "24", label: "24-hour" }];
@@ -226,8 +227,8 @@ export default function Settings({
             </div>
           </SettingsRow>
           <SettingsRow
-            title="Avoid repeat partners"
-            body="Pairs each foursome so nobody teams up with a recent partner. Balanced mode always does this; Mixed Doubles keeps its own pairing."
+            title="Mix up partners and opponents"
+            body="The player who has waited longest always plays next. The other seats, and how the foursome splits into teams, are chosen so nobody keeps getting the same partners or opponents. Balanced always does this."
           >
             <div className="account-select">
               <Select
@@ -235,6 +236,14 @@ export default function Settings({
                 onChange={(v) => onSetRules({ avoidRepeatPartners: v === "on" })}
                 options={ON_OFF}
               />
+            </div>
+          </SettingsRow>
+          <SettingsRow
+            title="How far back to remember"
+            body="Who someone played with and against in their most recent games counts as a repeat. A longer memory spreads partners further but needs more players to stay fresh."
+          >
+            <div className="account-select">
+              <Select value={rules.historyGames || 10} onChange={(historyGames) => onSetRules({ historyGames })} options={HISTORY_OPTIONS} />
             </div>
           </SettingsRow>
         </div>

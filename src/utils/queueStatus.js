@@ -1,6 +1,7 @@
 // Where a person stands in a live game, for the Home card. Pure: no Firestore (the hook reads the data).
 // The order is the queue app's default (fewest games, then earliest check-in); Winners / Losers, Custom and
-// Mixed Doubles pick by other rules, so the number is an estimate and the screens say "about".
+// Mixed Doubles pick by other rules, and the social shuffle (utils/rotationModes.js) fills the other seats from the next
+// SHUFFLE_WINDOW waiting players, so a place can move up or down a round: the number is an estimate and the screens say "about".
 export const DEFAULT_GAME_MINUTES = 15;
 
 const onCourt = (c) => [...(c.teamA || []), ...(c.teamB || [])];

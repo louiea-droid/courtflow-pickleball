@@ -28,6 +28,7 @@ export default function Players({ players, mixed, onEdit, onDelete }) {
               <div className="ministats">
                 <div><span>Games</span><b>{p.games}</b></div>
                 <div><span>Wins</span><b>{p.wins}</b></div>
+                <div><span>Losses</span><b>{p.losses || 0}</b></div>
                 <div><span>Win %</span><b>{winPct(p)}%</b></div>
               </div>
               <div className="playercard-badges">

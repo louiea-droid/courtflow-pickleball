@@ -6,9 +6,12 @@ Always invoke the matching skills in `.claude/skills` with the Skill tool, even 
 - UI or design work: `frontend-design`, `ui-design-system`, `ui-ux-pro-max`.
 - React or frontend code: `senior-frontend`, `react-best-practices`.
 - Theming (palettes, light/dark theme): `theme-factory`, plus the design skills.
+- Testing the app in a browser, QA, bug hunts, screenshots: `webapp-testing` (Playwright; this machine has no Python, so write the
+  scripts with the project's Node `@playwright/test`, server already running: look first, then act) and `agent-browser` (`.agents/skills`).
+- Scroll-driven effects (scroll animations, parallax, scroll storytelling): `scroll-experience`, plus the design skills.
 - Bugs and unexpected behavior: `superpowers:systematic-debugging`. Before saying work is done: `superpowers:verification-before-completion`.
 - Plugin skills (superpowers, ponytail, code-review, ...) count too: use any that fits the task, even when not asked.
-- At the start of a task, list `.claude/skills` and the skills shown in the session; if one is new (not named here), read its description and use it when it fits.
+- Always use the skills, plugins and agents available (owner's standing rule, 2026-10-12). At the start of a task, list `.claude/skills`, `.agents/skills` (installed through `skills-lock.json`) and the skills, plugins and subagents shown in the session, and recognize anything new: if one is not named here, read its description and use it when it fits. Agents are new: `.agents/skills/agent-browser` (browser automation, QA and testing a web app; its SKILL.md is a stub, run `agent-browser skills get core` for the real guide) and the Agent tool's subagents (use them for independent work, e.g. parallel checks).
 - Check UI work at phone width (about 390px) as well as desktop, in the browser (`npm run emulators` + `npm run dev:emu`).
 
 ## Settings backlog (Settings page)
@@ -112,6 +115,23 @@ Still open from the queue and cost ideas:
 - Max consecutive games per player. Not built because the queue already sorts by fewest games,
   so anyone who just played drops to the back; only matters with very small queues.
 - Avoid repeat opponents (no opponent history is tracked yet; partners only).
+- Social shuffle (owner's priorities, 2026-10-12; BUILT: `pickVariety` / `SHUFFLE_WINDOW = 6` in `utils/rotationModes.js`, `opponents` history written in `recordWin`, simulation `node scripts/queue-shuffle-sim.mjs`). Rotation serves two goals, in this order:
+  1. Fairness (wait time): whoever has sat out the longest plays first.
+  2. Variety: avoid repeating partners and opponents from recent matches.
+  Built as: the front-of-queue player always plays; the other seats come from the next 6 by lowest recent repeat-partner (weight 3) /
+  opponent score, plus a cost for passing over anyone who waited longer or has fewer games, so a long wait beats variety. No history, or only
+  one court's worth waiting, gives the old queue-order pick. Used by Balanced, inside the chosen group of Skill Separated and Winners / Losers,
+  Mixed Doubles (still two men + two women; `splitTeams` now picks the fewer-repeat pairing), and challengers against the stayers. Added later the same day (owner's spec, kept the star rating first): Balanced splits by stars, and only among equally star-balanced splits by repeats + win-rate evenness (win rate needs 3+ games, scaled by games up to 8); ties are broken by a stable hash of the group and games (`tieRoll`, so the Up Next preview matches the real pick); a locked pair is one unit in the window (`toUnits`) and its partner repeat costs 0; history is the last `rules.historyGames` games (default 10, Settings row "How far back to remember", `trimHistory`); `ignoredLocks` drives a Dashboard banner for locks the mode can't use (Mixed same-gender, Skill Separated across levels).
+  The existing `avoidRepeatPartners` rule (forced on in useClub/ClubApp) is the switch, shown in Settings as "Mix up partners and
+  opponents"; `selectForCourt({ shuffle: false })` is the old pick. Limit: with exactly 4 x courts players and nobody waiting the same
+  groups are unavoidable. Simulation (120 matches): 16 players / 3 courts, same 4-player groups 119 -> 29, opponent repeats 476 -> 241,
+  longest wait unchanged; 12 players / 3 courts unchanged (no spare players); Skill Separated with small levels improves little.
+- Queue fixes already made (2026-10-12): after `STARVE_MS` (15 min) a player in a short skill level plays with the closest levels;
+  Skill Separated ignores a lock across skill levels; `selectToJoin` and `seatJoiners` keep locked pairs together when topping up or
+  seating challengers; winners who can't get a challenger rotate instead of leaving an empty side; with fewer than a full match
+  waiting the players who just finished queue up behind them; deleting, checking out or calling a locked player keeps the courts
+  consistent. Demo: `node scripts/queue-demo.mjs`, and `node scripts/seed-queue.mjs` seeds `sq1`-`sq5@demo.test` (password
+  `password1`; `sq5` has 30 players) in the emulators.
 
 **Data**
 - Import roster from CSV.

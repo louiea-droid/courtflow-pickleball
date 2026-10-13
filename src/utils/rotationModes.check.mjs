@@ -1,7 +1,7 @@
 // Self-check for Balanced team splitting. Run: node src/utils/rotationModes.check.mjs
 import assert from "node:assert";
 import {
-  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, selectToJoin, shouldWinnersStay, splitTeams, validLock,
+  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, ignoredLocks, seatJoiners, selectToJoin, trimHistory, shouldWinnersStay, STARVE_MS, splitTeams, validLock,
 } from "./rotationModes.js";
 import { normalizeMode } from "../data/constants.js";
 
@@ -174,5 +174,136 @@ assert.equal(ids(selectToJoin({ pool, court, seated: [p("s", 3)], mode: "Custom"
 assert.equal(normalizeMode("Skill Courts"), "Balanced");
 assert.equal(normalizeMode("Mixed Doubles"), "Mixed Doubles");
 assert.equal(normalizeMode(undefined), undefined);
+
+// ---- Queue fixes (see scripts/queue-demo.mjs)
+const NOW = 10 * STARVE_MS;
+const at = (id, skill, minsAgo, extra = {}) => p(id, skill, { checkedAt: NOW - minsAgo * 60000, ...extra });
+// A lone Expert who waited past STARVE_MS plays with the closest levels; a fresh arrival still waits.
+pool = [at("x", 6, 20), at("i1", 3, 19), at("i2", 3, 18), at("i3", 3, 17), at("i4", 3, 16), at("a1", 5, 15), at("a2", 5, 14)];
+assert.equal(ids(selectForCourt({ pool, court, mode: "Skill Separated", need: 4, now: NOW })), "x,i1,a1,a2".split(",").sort((m, n) => pool.findIndex((q) => q.id === m) - pool.findIndex((q) => q.id === n)).join(","));
+pool[0] = at("x", 6, 2);
+assert.equal(ids(selectForCourt({ pool, court, mode: "Skill Separated", need: 4, now: NOW })), "i1,i2,i3,i4");
+assert.equal(ids(selectForCourt({ pool, court, mode: "Skill Separated", need: 4 })), "i1,i2,i3,i4"); // no clock: unchanged
+
+// A lock across skill levels is ignored in Skill Separated (one level per match); same level still pulls the partner in.
+pool = [p("a", 3, { lockedWithId: "z" }), p("b", 3), p("c", 3), p("d", 3), p("z", 5, { lockedWithId: "a" }), p("y", 5)];
+assert.equal(ids(selectForCourt({ pool, court, mode: "Skill Separated", need: 4 })), "a,b,c,d");
+pool = [p("a", 3, { lockedWithId: "z" }), p("b", 3), p("c", 3), p("d", 3), p("z", 3, { lockedWithId: "a" })];
+pick = selectForCourt({ pool, court, mode: "Skill Separated", need: 4 });
+assert.equal(ids(pick), "a,b,c,z");
+assert.deepEqual(pick.remaining.map((x) => x.id), ["d"]); // the bumped player stays first in line
+
+// Challengers / top-ups bring a locked partner with them, and a seated player's waiting partner.
+pool = [p("l", 3, { lockedWithId: "m" }), p("n", 3), p("o", 3), p("m", 3, { lockedWithId: "l" })];
+assert.equal(ids(selectToJoin({ pool, court, seated: [p("w1", 3), p("w2", 3)], mode: "Balanced", need: 2 })), "l,m");
+pool = [p("pat", 3), p("dee", 3, { lockedWithId: "alan" }), p("q", 3), p("r", 3)];
+const alan = p("alan", 3, { lockedWithId: "dee" });
+assert.ok(ids(selectToJoin({ pool, court, seated: [alan], mode: "Balanced", need: 3 })).includes("dee"));
+// ...unless the seated side is fixed (winners staying on): their partner is not pulled over to the other team.
+assert.equal(ids(selectToJoin({ pool: [p("dee", 3, { lockedWithId: "alan" }), p("q", 3)], court, seated: [alan, p("w", 3)], mode: "Balanced", need: 2, pullSeatedPartners: false })), "dee,q");
+
+// Topping up: with a list, only those seated players pull their waiting partner in
+pool = [p("q1", 3), p("q2", 3), p("q3", 3), p("dee", 3, { lockedWithId: "alan" })];
+assert.ok(ids(selectToJoin({ pool, court, seated: [alan], mode: "Balanced", need: 3 })).includes("dee"));
+assert.ok(!ids(selectToJoin({ pool, court, seated: [alan], mode: "Balanced", need: 3, pullSeatedPartners: [] })).includes("dee"));
+assert.ok(ids(selectToJoin({ pool, court, seated: [alan], mode: "Balanced", need: 3, pullSeatedPartners: [alan] })).includes("dee"));
+
+// seatJoiners: the partner of a seated player goes on their team; a locked pair arrives on one team.
+let [sa, sb] = seatJoiners(["alan"], [], [p("pat", 3), p("dee", 3, { lockedWithId: "alan" }), p("q", 3)], 4);
+assert.deepEqual([sa, sb], [["alan", "dee"], ["pat", "q"]]);
+[sa, sb] = seatJoiners(["s"], [], [p("u", 3), p("l", 3, { lockedWithId: "m" }), p("m", 3, { lockedWithId: "l" })], 4);
+assert.ok(sameTeam([sa, sb], "l", "m"));
+assert.deepEqual(seatJoiners([], [], [p("a", 3), p("b", 3)], 2), [["a"], ["b"]]);
+
+// ---- Social shuffle: the front player always plays, the rest avoid recent partners / opponents
+const h = (id, extra = {}) => p(id, 3, { games: 1, checkedAt: Number(id.slice(1)) * 60000, partners: [], opponents: [], ...extra });
+// no history: exactly the queue-order pick
+pool = ["a1", "a2", "a3", "a4", "a5", "a6", "a7"].map((id) => h(id));
+assert.equal(ids(selectForCourt({ pool, court, mode: "Balanced", need: 4 })), "a1,a2,a3,a4");
+// a1 has just played a2, a3 and a4 as partner and opponent: a1 still plays, but the group is not simply the next three
+pool = ["a1", "a2", "a3", "a4", "a5", "a6", "a7"].map((id) => h(id, id === "a1" ? { partners: ["a2", "a3", "a4"], opponents: ["a2", "a3", "a4"] } : {}));
+pick = selectForCourt({ pool, court, mode: "Balanced", need: 4 });
+assert.ok(pick.taken.some((x) => x.id === "a1"), "the front player always plays");
+assert.notEqual(ids(pick), "a1,a2,a3,a4");
+// ...but someone who waited much longer is never passed over for variety
+pool = [h("a1", { partners: ["a2"] }), p("a2", 3, { games: 1, checkedAt: 0, partners: [], opponents: [] }), h("a3"), h("a4"), h("a5"), h("a6")];
+pool[1].checkedAt = 60000 * 1; pool[2].checkedAt = 60000 * 90; pool[3].checkedAt = 60000 * 91; pool[4].checkedAt = 60000 * 92; pool[5].checkedAt = 60000 * 93;
+assert.ok(ids(selectForCourt({ pool, court, mode: "Balanced", need: 4 })).includes("a2"), "a long wait beats a repeat partner");
+// exactly one court's worth waiting: nothing to choose
+pool = ["a1", "a2", "a3", "a4"].map((id) => h(id, { partners: ["a2"] }));
+assert.equal(ids(selectForCourt({ pool, court, mode: "Balanced", need: 4 })), "a1,a2,a3,a4");
+// the old pick is still there with shuffle off
+pool = ["a1", "a2", "a3", "a4", "a5"].map((id) => h(id, id === "a1" ? { partners: ["a2"] } : {}));
+assert.equal(ids(selectForCourt({ pool, court, mode: "Balanced", need: 4, shuffle: false })), "a1,a2,a3,a4");
+// a locked pair is still pulled in after the shuffle pick
+pool = ["a1", "a2", "a3", "a4", "a5", "a6"].map((id) => h(id, id === "a1" ? { lockedWithId: "a6" } : id === "a6" ? { lockedWithId: "a1" } : {}));
+assert.ok(ids(selectForCourt({ pool, court, mode: "Balanced", need: 4 })).includes("a6"));
+
+// Challengers: the front player always comes on; the second seat skips someone the winners just faced
+const winners = [h("w1", { opponents: ["c1", "c2"] }), h("w2", { opponents: ["c1", "c2"] })];
+pool = ["c1", "c2", "c3", "c4", "c5"].map((id) => h(id));
+assert.equal(ids(selectToJoin({ pool, court, seated: winners, mode: "Balanced", need: 2, pullSeatedPartners: false })), "c1,c3");
+
+// Mixed Doubles re-pairs: the pairing that repeats fewer partners wins (and every team stays one man + one woman)
+g = [mx("m1", "M"), mx("f1", "F"), mx("m2", "M"), mx("f2", "F")];
+g[0].partners = ["f1"]; g[1].partners = ["m1"]; g[2].partners = ["f2"]; g[3].partners = ["m2"];
+t = splitTeams(g, "Mixed Doubles", true);
+assert.deepEqual(t.map((x) => x.slice().sort().join("+")).sort(), ["f1+m2", "f2+m1"]);
+assert.deepEqual(splitTeams(g, "Mixed Doubles").map((x) => x.slice().sort().join("+")).sort(), ["f1+m1", "f2+m2"]); // rule off: as before
+
+// Mixed Doubles picks fresh faces too: every group is still two men and two women
+pool = ["m1", "f1", "m2", "f2", "m3", "f3", "m4", "f4"].map((id) => h(id, { gender: id[0] === "m" ? "M" : "F", partners: id === "m1" ? ["f1"] : [], opponents: id === "m1" ? ["m2", "f2"] : [] }));
+pick = selectForCourt({ pool, court, mode: "Mixed Doubles", need: 4 });
+assert.equal(pick.taken.filter((x) => x.gender === "M").length, 2);
+assert.ok(pick.taken.some((x) => x.id === "m1"));
+
+// ---- Win rates, locks as units, history window, tie-breaks
+// Win rate never overrules stars: the star-balanced split stays even if win rates point the other way.
+g = [p("a", 4, { games: 8, wins: 8 }), p("b", 2, { games: 8, wins: 0 }), p("c", 3, { games: 8, wins: 4 }), p("d", 3, { games: 8, wins: 4 })];
+t = splitTeams(g, "Balanced", true);
+assert.ok(sameTeam(t, "a", "b"), "stars decide first (4+2 vs 3+3)");
+// ...but among equally star-balanced splits the win rates even out (the two strong records split up).
+g = [p("a", 3, { games: 8, wins: 8 }), p("b", 3, { games: 8, wins: 7 }), p("c", 3, { games: 8, wins: 1 }), p("d", 3, { games: 8, wins: 0 })];
+t = splitTeams(g, "Balanced", true);
+assert.ok(!sameTeam(t, "a", "b") && !sameTeam(t, "c", "d"), "strong records are split across teams");
+// Fewer than 3 games: the record is ignored (new players are unrated for this).
+g = [p("a", 3, { games: 2, wins: 2 }), p("b", 3, { games: 2, wins: 2 }), p("c", 3, { games: 2, wins: 0 }), p("d", 3, { games: 2, wins: 0 })];
+assert.deepEqual(splitTeams(g, "Balanced", true), splitTeams(g.map((x) => ({ ...x, wins: 1 })), "Balanced", true));
+
+// Tie-break is stable for the same group and games (so a preview matches the real pick) but varies with games played.
+g = [p("a", 3), p("b", 3), p("c", 3), p("d", 3)];
+const first = JSON.stringify(splitTeams(g, "Balanced", true));
+assert.equal(JSON.stringify(splitTeams(g, "Balanced", true)), first);
+const seen = new Set();
+for (let n = 0; n < 12; n++) seen.add(JSON.stringify(splitTeams(g.map((x) => ({ ...x, games: n })), "Balanced", true)));
+assert.ok(seen.size > 1, "equal splits are not always the same one");
+
+// A locked pair is one unit: it is never split by the shuffle, costs nothing as repeat partners, and comes together.
+pool = ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8"].map((id) => h(id, id === "a1" ? { lockedWithId: "a5", partners: ["a5", "a5", "a5"] } : id === "a5" ? { lockedWithId: "a1", partners: ["a1", "a1", "a1"] } : {}));
+for (let n = 0; n < 6; n++) {
+  pick = selectForCourt({ pool: pool.map((x) => ({ ...x, games: n })), court, mode: "Balanced", need: 4 });
+  const got = pick.taken.map((x) => x.id);
+  assert.ok(got.includes("a1") === got.includes("a5"), "a locked pair plays together or not at all");
+  assert.equal(got.length, 4);
+}
+// Many locks: still four players, locks together, queue order kept when nothing else is better.
+pool = ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8"].map((id, i) => h(id, { lockedWithId: ["a2", "a1", "a4", "a3", "a6", "a5", "a8", "a7"][i] }));
+pick = selectForCourt({ pool, court, mode: "Balanced", need: 4 });
+assert.equal(ids(pick), "a1,a2,a3,a4");
+// A lock that the mode can't use is not a unit (Skill Separated across levels).
+pool = [p("a", 3, { lockedWithId: "z", checkedAt: 1, games: 0 }), p("b", 3, { checkedAt: 2, games: 0 }), p("c", 3, { checkedAt: 3, games: 0 }), p("d", 3, { checkedAt: 4, games: 0 }), p("e", 3, { checkedAt: 5, games: 0 }), p("z", 5, { lockedWithId: "a", checkedAt: 6, games: 0 })];
+assert.ok(!ids(selectForCourt({ pool, court, mode: "Skill Separated", need: 4 })).includes("z"));
+
+// ignoredLocks tells the host which locks the mode can't use
+const lk = (id, skill, gender, lockedWithId) => ({ id, name: id, skill, gender, lockedWithId, checked: true });
+assert.equal(ignoredLocks([lk("a", 3, "M", "b"), lk("b", 3, "M", "a")], "Mixed Doubles").length, 1);
+assert.equal(ignoredLocks([lk("a", 3, "M", "b"), lk("b", 3, "F", "a")], "Mixed Doubles").length, 0);
+assert.equal(ignoredLocks([lk("a", 3, "M", "b"), lk("b", 5, "F", "a")], "Skill Separated").length, 1);
+assert.equal(ignoredLocks([lk("a", 3, "M", "b"), lk("b", 5, "F", "a")], "Balanced").length, 0);
+
+// History window: one partner and two opponents per game, last N games
+const th = trimHistory(["1", "2", "3", "4"], ["a", "b", "c", "d", "e", "f", "g", "h"], 2);
+assert.deepEqual(th, { partners: ["3", "4"], opponents: ["e", "f", "g", "h"] });
+assert.equal(trimHistory(Array(15).fill("x"), Array(40).fill("y")).partners.length, 10);
 
 console.log("rotationModes checks passed");

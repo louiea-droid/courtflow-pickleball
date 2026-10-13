@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { X, ArrowLeftRight, Zap, Play, Plus, Pencil } from "lucide-react";
+import LockMark from "../components/LockMark";
 import PanelHead from "../components/PanelHead";
 import PersonBadge from "../components/PersonBadge";
 import MatchLogRow from "../components/MatchLogRow";
@@ -10,7 +11,7 @@ import ElapsedTimer from "../components/ElapsedTimer";
 import { rankPlayers, waitMinutes, winPct } from "../utils/format";
 import { matchesCourtLevel } from "../utils/courtLevels";
 import { CircleAlert } from "lucide-react";
-import { hasGender, selectForCourt, splitTeams } from "../utils/rotationModes";
+import { hasGender, ignoredLocks, selectForCourt, splitTeams } from "../utils/rotationModes";
 import { normalizeMode } from "../data/constants";
 
 // Closes an open swap menu when clicking/tapping outside the given
@@ -44,6 +45,19 @@ function Stat({ n, l, s }) {
   );
 }
 
+// The partner's name when this player is locked in with someone, else undefined.
+const mateName = (p, players) => players.find((x) => x.id === p.lockedWithId)?.name;
+
+// Waiting locked pairs as one menu entry each (the first of the pair stands for it), for swapping a locked pair.
+function waitingPairs(queue) {
+  const ids = new Set(queue.map((q) => q.id));
+  const seen = new Set();
+  return queue.filter((q) => {
+    if (!q.lockedWithId || !ids.has(q.lockedWithId) || seen.has(q.id)) return false;
+    seen.add(q.id); seen.add(q.lockedWithId); return true;
+  }).map((q) => ({ q, mate: queue.find((x) => x.id === q.lockedWithId) }));
+}
+
 function Team({ label, color, ids, openSlots, players, queue, swapOpenId, onSwapClick, onSwap, remove, onAdd }) {
   return (
     <div className="team">
@@ -54,17 +68,26 @@ function Team({ label, color, ids, openSlots, players, queue, swapOpenId, onSwap
         return (
           <div className="chip-wrap" key={id}>
             <div className="chip">
-              <div><b>{p.name}</b><small><StarDisplay value={p.skill} /></small></div>
+              <div><b>{p.name}{mateName(p, players) && <LockMark name={mateName(p, players)} />}</b><small><StarDisplay value={p.skill} /></small></div>
               <div className="chip-actions">
-                <button className="chip-btn swap" title="Swap player" onClick={() => onSwapClick(id)}>
+                <button className="chip-btn swap" title={p.lockedWithId && ids.includes(p.lockedWithId) ? "Swap this locked pair" : "Swap player"} onClick={() => onSwapClick(id)}>
                   <ArrowLeftRight size={13} />
                 </button>
-                <button className="chip-btn remove" title="Remove" onClick={() => remove(id)}>
+                <button className="chip-btn remove" title={p.lockedWithId && ids.includes(p.lockedWithId) ? "Remove this locked pair" : "Remove"} onClick={() => remove(id)}>
                   <X size={13} />
                 </button>
               </div>
             </div>
-            {swapOpenId === id && (
+            {swapOpenId === id && p.lockedWithId && ids.includes(p.lockedWithId) && (
+              <div className="swap-menu">
+                {waitingPairs(queue).length ? waitingPairs(queue).map(({ q, mate }) => (
+                  <button key={q.id} className="swap-item" onClick={() => onSwap(id, q.id)}>
+                    {q.name} + {mate.name}<small className="swap-item-lock">swaps the locked pair</small>
+                  </button>
+                )) : <div className="swap-empty">No other locked pair is waiting. Remove the pair to put others in.</div>}
+              </div>
+            )}
+            {swapOpenId === id && !(p.lockedWithId && ids.includes(p.lockedWithId)) && (
               <div className="swap-menu">
                 {queue.length ? queue.map((q) => (
                   <button key={q.id} className="swap-item" onClick={() => onSwap(id, q.id)}>
@@ -226,45 +249,58 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, 
   );
 }
 
-function PreviewTeam({ label, color, list, players, groupIds, notify, queue, swapOpenId, onSwapClick, onSwap, onSkip }) {
+function PreviewTeam({ label, color, slots, players, groupIds, notify, queue, fillQueue, swapOpenId, onSwapClick, onSwap, onSkip, onFill }) {
   const nameOf = (id) => players.find((x) => x.id === id)?.name || "their partner";
   return (
     <div className="team">
       <div className={color}>{label}</div>
-      {list.length ? list.map((p) => (
+      {slots.length ? slots.map(({ idx, p }) => !p ? (
+        <div className="chip-wrap" key={`empty-${idx}`}>
+          <button className="chip placeholder add-seat" onClick={() => onSwapClick(`empty-${idx}`)}>
+            <small><Plus size={13} /> Add player</small>
+          </button>
+          {swapOpenId === `empty-${idx}` && (
+            <div className="swap-menu">
+              {fillQueue.length ? fillQueue.map((q) => (
+                <button key={q.id} className="swap-item" onClick={() => onFill(idx, q.id)}>
+                  {q.name}
+                  {q.lockedWithId && <small className="swap-item-lock">locked w/ {nameOf(q.lockedWithId)}</small>}
+                </button>
+              )) : <div className="swap-empty">No other eligible players waiting.</div>}
+            </div>
+          )}
+        </div>
+      ) : (
         <div className="chip-wrap" key={p.id}>
           <div className="chip">
-            <div><b>{p.name}</b><small><StarDisplay value={p.skill} /></small></div>
+            <div><b>{p.name}{mateName(p, players) && <LockMark name={mateName(p, players)} />}</b><small><StarDisplay value={p.skill} /></small></div>
             <div className="chip-actions">
               <button
                 className="chip-btn swap"
-                title={p.lockedWithId && groupIds.has(p.lockedWithId) ? `Locked with ${nameOf(p.lockedWithId)} this match` : "Change player"}
-                onClick={() => {
-                  if (p.lockedWithId && groupIds.has(p.lockedWithId)) {
-                    notify(`${p.name} is locked in with ${nameOf(p.lockedWithId)} — can't swap them out this match.`, 4000);
-                    return;
-                  }
-                  onSwapClick(p.id);
-                }}
+                title={p.lockedWithId && groupIds.has(p.lockedWithId) ? `Swap this locked pair (with ${nameOf(p.lockedWithId)})` : "Change player"}
+                onClick={() => onSwapClick(p.id)}
               >
                 <ArrowLeftRight size={13} />
               </button>
               <button
                 className="chip-btn remove"
-                title={p.lockedWithId && groupIds.has(p.lockedWithId) ? `Locked with ${nameOf(p.lockedWithId)} this match` : "Send to back of queue"}
-                onClick={() => {
-                  if (p.lockedWithId && groupIds.has(p.lockedWithId)) {
-                    notify(`${p.name} is locked in with ${nameOf(p.lockedWithId)} — can't move them alone while paired this match.`, 4000);
-                    return;
-                  }
-                  onSkip(p.id);
-                }}
+                title={p.lockedWithId && groupIds.has(p.lockedWithId) ? `Remove this locked pair (with ${nameOf(p.lockedWithId)}); the seats stay empty` : "Remove from this match (goes to the back of the queue; the seat stays empty)"}
+                onClick={() => onSkip(p.id, idx)}
               >
                 <X size={13} />
               </button>
             </div>
           </div>
-          {swapOpenId === p.id && (
+          {swapOpenId === p.id && p.lockedWithId && groupIds.has(p.lockedWithId) && (
+            <div className="swap-menu">
+              {waitingPairs(queue).length ? waitingPairs(queue).map(({ q, mate }) => (
+                <button key={q.id} className="swap-item" onClick={() => onSwap(p.id, q.id, idx)}>
+                  {q.name} + {mate.name}<small className="swap-item-lock">swaps the locked pair</small>
+                </button>
+              )) : <div className="swap-empty">No other locked pair is waiting. Remove the pair to put others in.</div>}
+            </div>
+          )}
+          {swapOpenId === p.id && !(p.lockedWithId && groupIds.has(p.lockedWithId)) && (
             <div className="swap-menu">
               {queue.filter((q) => q.id !== p.id).length ? queue.filter((q) => q.id !== p.id).map((q) => (
                 <button
@@ -275,7 +311,7 @@ function PreviewTeam({ label, color, list, players, groupIds, notify, queue, swa
                       notify(`${q.name} is locked in with ${nameOf(q.lockedWithId)} — can't add them without their partner.`, 4000);
                       return;
                     }
-                    onSwap(p.id, q.id);
+                    onSwap(p.id, q.id, idx);
                   }}
                 >
                   {q.name}
@@ -294,21 +330,79 @@ function PreviewTeam({ label, color, list, players, groupIds, notify, queue, swa
   );
 }
 
-function CourtPreview({ label, level, group, need, mode, avoidRepeats, players, queue, notify, onSwapOrder, onSkip, onSendToCourt, canSend }) {
+function CourtPreview({ label, level, group, draft, othersTaken, setDraft, need, mode, avoidRepeats, players, queue, notify, onSwapOrder, onSkip, onSendToCourt, canSend }) {
   const [swapOpen, setSwapOpen] = useState(null);
   const teamsRef = useRef(null);
   const toggleSwap = (id) => setSwapOpen((cur) => (cur === id ? null : id));
-  const handleSwap = (aId, bId) => { onSwapOrder(aId, bId); setSwapOpen(null); };
   const ready = group.length >= need;
+  const byId = new Map(players.map((p) => [p.id, p]));
   // Mirror the same team split the match will actually get (splitTeams),
   // so a locked pair previewed here shows on one side, not straddled.
-  const byId = new Map(group.map((p) => [p.id, p]));
-  const groupIds = new Set(group.map((p) => p.id));
-  const [teamAIds, teamBIds] = ready ? splitTeams(group, mode, avoidRepeats) : [[], []];
-  const teamA = teamAIds.map((id) => byId.get(id));
-  const teamB = teamBIds.map((id) => byId.get(id));
-  const eligibleQueue = queue.filter((p) => matchesCourtLevel(p.skill, level));
+  const [autoA, autoB] = ready ? splitTeams(group, mode, avoidRepeats) : [group.slice(0, Math.ceil(group.length / 2)).map((p) => p.id), group.slice(Math.ceil(group.length / 2)).map((p) => p.id)];
+  // Once the host edits this match it becomes a draft of fixed seats: removing a player leaves the seat empty,
+  // nobody is inserted and nobody shifts, until the match is sent or the seat is filled.
+  const slotIds = draft || (ready ? [...autoA, ...autoB] : null);
+  const half = need / 2;
+  const seats = (ids) => ids.map((id, i) => ({ idx: i, p: id ? byId.get(id) : null }));
+  const slots = slotIds ? seats(slotIds) : null;
+  const teamA = slots ? slots.slice(0, half) : seats(autoA);
+  const teamB = slots ? slots.slice(half) : seats(autoB).map((x) => ({ ...x, idx: x.idx + autoA.length }));
+  const present = (slots || []).filter((x) => x.p);
+  const groupIds = new Set(slots ? present.map((x) => x.p.id) : group.map((p) => p.id));
+  const filled = Boolean(slots) && present.length === need;
+  const eligibleQueue = queue.filter((p) => matchesCourtLevel(p.skill, level) && !groupIds.has(p.id));
+  const edit = (ids) => { setDraft(ids); setSwapOpen(null); };
+  const current = () => (draft ? [...draft] : [...autoA, ...autoB]);
+  const nameOf = (id) => byId.get(id)?.name || "their partner";
+  const handleSwap = (oldId, newId, idx) => {
+    const ids = current();
+    const old = byId.get(oldId);
+    const mateIdx = old?.lockedWithId ? ids.indexOf(old.lockedWithId) : -1;
+    if (mateIdx >= 0) {
+      // A locked pair is swapped for another waiting locked pair, seat for seat.
+      const newMate = byId.get(byId.get(newId)?.lockedWithId);
+      if (!newMate) return notify(`${old.name} is locked in with ${nameOf(old.lockedWithId)}. Swap them for a locked pair, or remove the pair first.`, 4000);
+      onSwapOrder(oldId, newId);
+      onSwapOrder(old.lockedWithId, newMate.id);
+      ids[idx] = newId; ids[mateIdx] = newMate.id;
+      return edit(ids);
+    }
+    const incoming = byId.get(newId);
+    if (incoming?.lockedWithId && !ids.includes(incoming.lockedWithId)) {
+      return notify(`${incoming.name} is locked in with ${nameOf(incoming.lockedWithId)}. Swap a locked pair in for a locked pair, or empty two seats and add them both.`, 4500);
+    }
+    onSwapOrder(oldId, newId); // the newcomer takes the old player's place in the queue, so nothing else moves
+    ids[idx] = newId; edit(ids);
+  };
+  const handleFill = (idx, newId) => {
+    const ids = current();
+    const incoming = byId.get(newId);
+    const mateId = incoming?.lockedWithId;
+    if (mateId && !ids.includes(mateId)) {
+      // A locked player brings the waiting partner into a second empty seat on the same team.
+      const teamStart = idx < half ? 0 : half;
+      const other = ids.findIndex((id, i) => !id && i !== idx && i >= teamStart && i < teamStart + half);
+      const mate = fillQueue.find((x) => x.id === mateId);
+      if (other < 0 || !mate) {
+        return notify(`${incoming.name} is locked in with ${nameOf(mateId)}, who needs the other empty seat on this team and must be free to join.`, 4500);
+      }
+      ids[idx] = newId; ids[other] = mateId;
+      return edit(ids);
+    }
+    ids[idx] = newId; edit(ids);
+  };
+  const handleSkip = (id, idx) => {
+    const ids = current();
+    const p = byId.get(id);
+    const mateIdx = p?.lockedWithId ? ids.indexOf(p.lockedWithId) : -1;
+    ids[idx] = null;
+    if (mateIdx >= 0) { ids[mateIdx] = null; onSkip(p.lockedWithId); } // a locked pair leaves together
+    edit(ids);
+    onSkip(id);
+  };
   useCloseSwapOnOutside(teamsRef, swapOpen !== null, () => setSwapOpen(null));
+  const fillQueue = eligibleQueue.filter((p) => !othersTaken.has(p.id));
+  const shared = { players, groupIds, notify, queue: eligibleQueue, fillQueue, swapOpenId: swapOpen, onSwapClick: toggleSwap, onSwap: handleSwap, onSkip: handleSkip, onFill: handleFill };
   return (
     <div className="court preview">
       <div className="court-top">
@@ -317,18 +411,16 @@ function CourtPreview({ label, level, group, need, mode, avoidRepeats, players, 
         <span className="badge-next">NEXT</span>
       </div>
       <div className="teams" ref={teamsRef}>
-        <PreviewTeam label="Team 1" color="team1" list={teamA} players={players} groupIds={groupIds} notify={notify} queue={eligibleQueue}
-          swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} onSkip={onSkip} />
-        <PreviewTeam label="Team 2" color="team2" list={teamB} players={players} groupIds={groupIds} notify={notify} queue={eligibleQueue}
-          swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} onSkip={onSkip} />
+        <PreviewTeam label="Team 1" color="team1" slots={teamA} {...shared} />
+        <PreviewTeam label="Team 2" color="team2" slots={teamB} {...shared} />
       </div>
-      {ready ? (
+      {slots ? (
         <button
           className="primary preview-send"
-          disabled={!canSend}
-          onClick={() => onSendToCourt(teamA.map((p) => p.id), teamB.map((p) => p.id))}
+          disabled={!canSend || !filled}
+          onClick={() => { onSendToCourt(teamA.map((x) => x.p.id), teamB.map((x) => x.p.id)); setDraft(null); }}
         >
-          <Play size={14} /> Send to Court
+          <Play size={14} /> {filled ? "Send to Court" : "Add a player to send"}
         </button>
       ) : (
         <div className="preview-empty-note">Not enough players yet.</div>
@@ -336,6 +428,9 @@ function CourtPreview({ label, level, group, need, mode, avoidRepeats, players, 
     </div>
   );
 }
+
+// Next Up and Match Log are fixed-size lists of this many rows, so the two panels line up.
+const LOWER_ROWS = 5;
 
 export default function Dashboard({
   session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer, addPlayerToCourt, notify,
@@ -347,18 +442,26 @@ export default function Dashboard({
   const manual = mode === "Custom";
   const mixed = mode === "Mixed Doubles";
   const noGender = mixed ? players.filter((p) => p.checked && !hasGender(p)) : [];
+  const skippedLocks = ignoredLocks(players, mode);
   const hasOpenCourt = courts.some((c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0);
   const topPlayers = rankPlayers(players).slice(0, 3);
+  // Up Next matches the host has edited (fixed seats, see CourtPreview), by court id. A seat whose player is no
+  // longer waiting (played, checked out) is emptied rather than refilled.
+  const [drafts, setDrafts] = useState({});
+  const waiting = new Set(queue.map((p) => p.id));
+  const draftOf = (key) => drafts[key]?.map((id) => (id && waiting.has(id) ? id : null));
 
   // Reserve consecutive, non-overlapping, level-matched slices of the queue:
   // first for any open courts (shown inline via "Start Next Match"), then one
   // per live court for the "Up Next" preview below — so no player, and no
   // level-restricted seat, is double-counted across courts.
-  let pool = queue;
+  // Players held in an edited (draft) match are reserved first, so no other preview can pick them too.
+  const held = new Set(courts.flatMap((c) => draftOf(c.id) || []).filter(Boolean));
+  let pool = queue.filter((p) => !held.has(p.id));
   const courtViews = courts.map((c) => {
     const isEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
     if (!isEmpty) return { court: c, upNext: [] };
-    const { taken, remaining } = selectForCourt({ pool, court: c, mode, need });
+    const { taken, remaining } = selectForCourt({ pool, court: c, mode, need, now: Date.now() });
     pool = remaining;
     return { court: c, upNext: taken };
   });
@@ -369,14 +472,29 @@ export default function Dashboard({
   const upcomingPreviews = courtViews.map(({ court: c, upNext: emptyUpNext }) => {
     const isEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
     const label = c.name || `Court ${c.courtNumber}`;
+    const draft = draftOf(c.id);
+    if (draft) {
+      const mine = draft.filter(Boolean);
+      return { key: c.id, label, level: c.level, draft, group: mine.map((id) => players.find((p) => p.id === id)) };
+    }
     if (isEmpty) return { key: c.id, label, level: c.level, group: emptyUpNext };
-    const { taken, remaining } = selectForCourt({ pool, court: c, mode, need });
+    const { taken, remaining } = selectForCourt({ pool, court: c, mode, need, now: Date.now() });
     pool = remaining;
     return { key: c.id, label, level: c.level, group: taken };
   });
 
   return (
     <>
+      {skippedLocks.length > 0 && (
+        <div className="warning gender-banner" role="alert">
+          <CircleAlert size={16} />
+          <span>
+            {skippedLocks.length === 1 ? "1 lock isn't" : `${skippedLocks.length} locks aren't`} used in {mode}
+            ({skippedLocks.map(([a, b]) => `${a.name} + ${b.name}`).join(", ")}):{" "}
+            {mode === "Mixed Doubles" ? "teams are one man and one woman." : "each match stays on one skill level."}
+          </span>
+        </div>
+      )}
       {noGender.length > 0 && (
         <div className="warning gender-banner" role="alert">
           <CircleAlert size={16} />
@@ -441,7 +559,7 @@ export default function Dashboard({
           </div>
           <div className="courts">
             {upcomingPreviews.map((pv) => (
-              <CourtPreview key={pv.key} label={pv.label} level={pv.level} group={pv.group} need={need} mode={mode} avoidRepeats={rules.avoidRepeatPartners} players={players} queue={queue}
+              <CourtPreview key={pv.key} label={pv.label} level={pv.level} group={pv.group} draft={pv.draft} othersTaken={new Set(upcomingPreviews.filter((o) => o !== pv).flatMap((o) => o.group.map((p) => p.id)))} setDraft={(d) => setDrafts((cur) => ({ ...cur, [pv.key]: d }))} need={need} mode={mode} avoidRepeats={rules.avoidRepeatPartners} players={players} queue={queue}
                 notify={notify} onSwapOrder={onSwapQueueOrder} onSkip={onSkipQueued} onSendToCourt={onSendToCourt} canSend={hasOpenCourt} />
             ))}
           </div>
@@ -451,14 +569,21 @@ export default function Dashboard({
       <div className="lower">
         <div className="panel">
           <PanelHead title="Next Up" sub="Priority follows fewer games + wait time." button="View queue →" action={goQueue} />
-          {queue.slice(0, 4).map((p, i) => (
+          {Array.from({ length: LOWER_ROWS }, (_, i) => queue[i]).map((p, i) => !p ? (
+            <div className="next empty-slot" key={`open-${i}`}>
+              <strong>{i + 1}</strong>
+              <span>Open spot</span>
+            </div>
+          ) : (
             <div className="next" key={p.id}>
               <strong>{i + 1}</strong>
-              <PersonBadge name={p.name} warn={mixed && !hasGender(p) ? "Set gender to play Mixed Doubles" : null}>
+              <PersonBadge name={p.name} warn={mixed && !hasGender(p) ? "Set gender to play Mixed Doubles" : null}
+                lock={players.find((x) => x.id === p.lockedWithId)?.name}>
                 <div className="next-meta">
                   <StarDisplay value={p.skill} />
                   <span className="queue-stat games">{p.games} <small>games</small></span>
                   <span className="queue-stat wins">{p.wins} <small>wins</small></span>
+                  <span className="queue-stat losses">{p.losses || 0} <small>losses</small></span>
                 </div>
               </PersonBadge>
               <div className="next-actions">
@@ -471,7 +596,7 @@ export default function Dashboard({
         <div className="panel">
           <PanelHead title="Match Log" sub="Recent results this session." />
           {matchLog.length
-            ? matchLog.slice(0, 6).map((m) => <MatchLogRow match={m} key={m.id} />)
+            ? matchLog.slice(0, LOWER_ROWS).map((m, i) => <MatchLogRow match={m} latest={i === 0} key={m.id} />)
             : <div className="empty">No matches recorded yet.</div>}
         </div>
       </div>

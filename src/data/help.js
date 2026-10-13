@@ -116,7 +116,7 @@ export const MAJOR = [
       },
       {
         title: "The modes",
-        body: "Balanced rotates turns fairly and evens out each match by star rating: the strongest player teams with the weakest, and when the balance is equal it avoids repeat partners. Skill Separated keeps each match to one skill level; a court takes the first level in the queue that has enough players waiting, and anyone whose level is short keeps their place. Custom means the host builds every match, and nothing is picked automatically. Winners / Losers has winners play winners and losers play losers; winners stay on, challengers are recent winners first. New arrivals with no result yet are grouped together, so you may wait until enough other new players are in that group, or until a challenger spot opens. Mixed Doubles makes every team one man and one woman; a player with no gender set is skipped and shows an alert mark until the host fills it in.",
+        body: "Balanced rotates turns fairly and evens out each match by star rating: the strongest player teams with the weakest, and when the balance is equal it avoids repeat partners and opponents and evens out win records (never over the star rating). Every automatic mode also mixes up who plays with and against whom: the player who has waited longest always plays next, and the other seats go to people they have not met lately when the wait is about the same. Skill Separated keeps each match to one skill level; a court takes the first level in the queue that has enough players waiting, and anyone whose level is short keeps their place. Custom means the host builds every match, and nothing is picked automatically. Winners / Losers has winners play winners and losers play losers; winners stay on, challengers are recent winners first. New arrivals with no result yet are grouped together, so you may wait until enough other new players are in that group, or until a challenger spot opens. Mixed Doubles makes every team one man and one woman; a player with no gender set is skipped and shows an alert mark until the host fills it in.",
       },
       {
         title: "Winners stay on",
@@ -124,7 +124,7 @@ export const MAJOR = [
       },
       {
         title: "Partner locks",
-        body: "The host can lock two players as partners. A lock keeps them together whenever the queue picks automatically in doubles, on courts without a level limit. Mixed Doubles only accepts a lock between a man and a woman, and a Custom game places nobody by itself.",
+        body: "The host can lock two players as partners. A lock keeps them together (and the pair is picked as one unit, so many locks leave fewer partners to mix) whenever the queue picks automatically in doubles, on courts without a level limit. Mixed Doubles only accepts a lock between a man and a woman, and a Custom game places nobody by itself.",
       },
       {
         title: "Levels",
@@ -132,7 +132,7 @@ export const MAJOR = [
       },
       {
         title: "Game alerts and repeat partners",
-        body: "The club can switch on a game-length alert, which warns the host when a match runs long. Avoid repeat partners starts on for Skill Separated and Winners / Losers; Balanced always does it.",
+        body: "The club can switch on a game-length alert, which warns the host when a match runs long. Mix up partners and opponents starts on for Skill Separated and Winners / Losers; Balanced always does it.",
       },
       {
         title: "The Live Board",

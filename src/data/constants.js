@@ -1,5 +1,5 @@
 export const MODE_DESCRIPTIONS = {
-  "Balanced": "Rotates turns fairly and evens out each match by star rating: the strongest player teams with the weakest, so similar levels face each other. Avoids repeat partners when it can.",
+  "Balanced": "Rotates turns fairly and evens out each match by star rating: the strongest player teams with the weakest, so similar levels face each other. Avoids repeat partners and opponents when it can.",
   "Skill Separated": "Keeps each match to one skill level. A court takes the first level with enough players waiting; anyone whose level is short keeps their place. If no level has enough, the front player plays with the closest levels so courts never sit empty. Winners who stay on are challenged by their own level.",
   "Custom": "You build every match yourself: nothing is picked automatically. Add players to a court from the Queue or a court card; results still update stats and the queue, and the court empties.",
   "Winners / Losers": "Winners stay on until they reach the win-streak limit (2 by default, set in Settings), then rest at the back. Challengers are recent winners first, and they come on automatically.",
@@ -23,6 +23,7 @@ export const DEFAULT_RULES = {
   winnersStay: false,
   maxWinStreak: 2, // only used when winnersStay is on
   avoidRepeatPartners: true, // Balanced mode always does this
+  historyGames: 10, // recent games of partners / opponents the shuffle remembers
 };
 export const RULE_DEFAULTS_VERSION = 1;
 export const DEFAULT_COST = { rate: 0, roundTo: 0 }; // roundTo 0 = exact split

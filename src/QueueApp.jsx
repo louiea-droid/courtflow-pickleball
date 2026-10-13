@@ -7,8 +7,8 @@ import { matchCount } from "./utils/stats";
 import { matchesCourtLevel } from "./utils/courtLevels";
 import { checkInFields } from "./utils/gameSession";
 import {
-  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, selectToJoin,
-  shouldWinnersStay, splitTeams,
+  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, seatJoiners, selectForCourt, selectToJoin,
+  shouldWinnersStay, splitTeams, trimHistory, validLock,
 } from "./utils/rotationModes";
 import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES, normalizeMode } from "./data/constants";
 import { useSessionData } from "./hooks/useSessionData";
@@ -153,10 +153,18 @@ export default function QueueApp({
     batch.update(at("players", player.id), { lockedWithId: newPartnerId });
   }
 
+  // A player who is deleted or checked out must not stay seated on a court (the court would count a ghost).
+  function leaveCourts(batch, id) {
+    courts.filter((c) => (c.teamA || []).includes(id) || (c.teamB || []).includes(id)).forEach((c) => {
+      batch.update(at("courts", c.id), { teamA: (c.teamA || []).filter((x) => x !== id), teamB: (c.teamB || []).filter((x) => x !== id) });
+    });
+  }
+
   async function deletePlayer(id) {
     const p = players.find((x) => x.id === id);
     const batch = writeBatch(db);
     batch.delete(at("players", id));
+    leaveCourts(batch, id);
     if (p?.lockedWithId) {
       batch.update(at("players", p.lockedWithId), { lockedWithId: null });
     }
@@ -179,44 +187,56 @@ export default function QueueApp({
   }
 
   async function checkOutPlayer(id) {
-    await updateDoc(at("players", id), { checked: false });
+    const batch = writeBatch(db);
+    batch.update(at("players", id), { checked: false });
+    leaveCourts(batch, id);
+    await batch.commit();
     notify(`${players.find((p) => p.id === id)?.name || "Player"} checked out.`);
   }
 
   async function callPlayer(id) {
     const need = session.format === "Singles" ? 2 : 4;
+    const cap = need / 2;
     const p = players.find((x) => x.id === id);
     if (mixedTeams && !hasGender(p)) {
       return notify(`${p?.name || "This player"} has no gender set. Set it first to play Mixed Doubles.`, 4500);
     }
-    const sideOn = (x) => (mixedTeams ? mixedSideFor(p, playersOf(x.teamA), playersOf(x.teamB)) : null);
-    const c = courts.find((x) => (x.teamA?.length || 0) + (x.teamB?.length || 0) < need
-      && matchesCourtLevel(p?.skill, x.level) && (!mixedTeams || sideOn(x)));
+    // A locked partner who is waiting comes along, so the pair is never called apart.
+    const mate = need === 4 && p?.lockedWithId ? queue.find((x) => x.id === p.lockedWithId && validLock(p, x, mode)) : null;
+    const joiners = mate ? [p, mate] : [p];
+    const free = (x) => need - (x.teamA?.length || 0) - (x.teamB?.length || 0);
+    const sideFor = mixedTeams && !mate ? (q, A, B) => mixedSideFor(q, playersOf(A), playersOf(B)) : null;
+    const c = courts.find((x) => free(x) >= joiners.length
+      && joiners.every((q) => matchesCourtLevel(q.skill, x.level))
+      && (!mate || [x.teamA, x.teamB].some((t) => cap - (t?.length || 0) >= 2))
+      && (!sideFor || sideFor(p, x.teamA || [], x.teamB || [])));
     if (!c) {
-      return notify(mixedTeams
-        ? "No open court has a team that needs this player's gender."
-        : "No open court matches this player's level.");
+      return notify(mate ? `No open court has room for ${p.name} and ${mate.name} together.`
+        : mixedTeams ? "No open court has a team that needs this player's gender."
+          : "No open court matches this player's level.");
     }
-    const wasEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
-    const a = [...(c.teamA || [])], b = [...(c.teamB || [])];
-    const side = sideOn(c);
-    if (side) (side === "A" ? a : b).push(id);
-    else if (need === 2) { if (!a.length) a.push(id); else b.push(id); }
-    else if (a.length < 2) a.push(id);
-    else b.push(id);
-    await updateDoc(at("courts", c.id), {
-      teamA: a, teamB: b, ...(wasEmpty ? { start: Date.now() } : {}),
-    });
-    notify(`Called ${players.find((p) => p.id === id)?.name || "player"} to Court ${c.courtNumber}.`);
+    const wasEmpty = free(c) === need;
+    const [a, b] = seatJoiners(c.teamA || [], c.teamB || [], joiners, need, sideFor);
+    const sideOf = (x) => (a.includes(x) ? a : b);
+    if (p.lockedWithId && [...a, ...b].includes(p.lockedWithId) && sideOf(p.id) !== sideOf(p.lockedWithId)) {
+      return notify(`${p.name} is locked in with ${players.find((x) => x.id === p.lockedWithId)?.name || "their partner"}, whose team is full.`, 4000);
+    }
+    await updateDoc(at("courts", c.id), { teamA: a, teamB: b, ...(wasEmpty ? { start: Date.now() } : {}) });
+    notify(`Called ${joiners.map((q) => q.name).join(" and ")} to Court ${c.courtNumber}.`);
   }
 
   async function removePlayer(courtId, id) {
     const c = courts.find((x) => x.id === courtId);
-    await updateDoc(at("courts", courtId), {
-      teamA: c.teamA.filter((x) => x !== id), teamB: c.teamB.filter((x) => x !== id),
-    });
-    await updateDoc(at("players", id), { checkedAt: Date.now() });
-    notify("Player returned to queue.");
+    const p = players.find((x) => x.id === id);
+    const onCourt = [...(c.teamA || []), ...(c.teamB || [])];
+    // A locked pair leaves together: removing one would strand the other, who can't be added back alone.
+    const mate = p?.lockedWithId && onCourt.includes(p.lockedWithId) ? p.lockedWithId : null;
+    const gone = new Set([id, mate].filter(Boolean));
+    const batch = writeBatch(db);
+    batch.update(at("courts", courtId), { teamA: c.teamA.filter((x) => !gone.has(x)), teamB: c.teamB.filter((x) => !gone.has(x)) });
+    gone.forEach((g) => batch.update(at("players", g), { checkedAt: Date.now() }));
+    await batch.commit();
+    notify(mate ? `${p.name} and ${players.find((x) => x.id === mate)?.name || "their partner"} returned to queue.` : "Player returned to queue.");
   }
 
   async function addPlayerToCourt(courtId, team, id) {
@@ -231,16 +251,24 @@ export default function QueueApp({
     // A locked pair must land on the same team — block if the partner isn't
     // already seated on this specific side (whether they're unseated or, worse,
     // seated on the opposing team, which would split the lock).
+    let mate = null;
     if (player?.lockedWithId && !destTeamIds.has(player.lockedWithId)) {
-      const partnerName = players.find((p) => p.id === player.lockedWithId)?.name || "their locked partner";
-      return notify(`${player.name} is locked in with ${partnerName} — can't add them without their partner on this team.`, 4000);
+      // The waiting partner comes along when this team has room for both.
+      mate = queue.find((x) => x.id === player.lockedWithId && validLock(player, x, mode)
+        && matchesCourtLevel(x.skill, c.level));
+      const room = (session.format === "Singles" ? 1 : 2) - (c[key] || []).length;
+      if (!mate || room < 2) {
+        const partnerName = players.find((p) => p.id === player.lockedWithId)?.name || "their locked partner";
+        return notify(`${player.name} is locked in with ${partnerName}, who can't join this team too (needs two free seats on the same team).`, 4000);
+      }
     }
     const wasEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
-    await updateDoc(at("courts", courtId), {
-      [key]: [...(c[key] || []), id], ...(wasEmpty ? { start: Date.now() } : {}),
-    });
-    await updateDoc(at("players", id), { checkedAt: Date.now() });
-    notify(`Added ${player?.name || "Player"} to Court ${c.courtNumber}.`);
+    const added = mate ? [id, mate.id] : [id];
+    const batch = writeBatch(db);
+    batch.update(at("courts", courtId), { [key]: [...(c[key] || []), ...added], ...(wasEmpty ? { start: Date.now() } : {}) });
+    added.forEach((a) => batch.update(at("players", a), { checkedAt: Date.now() }));
+    await batch.commit();
+    notify(`Added ${mate ? `${player.name} and ${mate.name}` : player?.name || "Player"} to Court ${c.courtNumber}.`);
   }
 
   async function swapPlayer(courtId, oldId, newId) {
@@ -252,8 +280,19 @@ export default function QueueApp({
     // A locked pair currently playing together can't be split by a manual
     // swap — unlock them first (Players tab or the Queue lock button) if you
     // really want to change one half.
-    if (oldPlayer?.lockedWithId && onCourtNow.has(oldPlayer.lockedWithId)) {
-      return notify(`${oldPlayer.name} is locked in with ${nameOf(oldPlayer.lockedWithId)} — can't swap them out this match.`, 4000);
+    const oldMate = oldPlayer?.lockedWithId && onCourtNow.has(oldPlayer.lockedWithId) ? players.find((p) => p.id === oldPlayer.lockedWithId) : null;
+    if (oldMate) {
+      // A locked pair is swapped as a pair, for another locked pair that is waiting.
+      const newMate = newPlayer?.lockedWithId && queue.find((x) => x.id === newPlayer.lockedWithId);
+      if (!newMate || !validLock(newPlayer, newMate, mode) || !matchesCourtLevel(newMate.skill, c.level)) {
+        return notify(`${oldPlayer.name} is locked in with ${oldMate.name}. Swap them for another waiting locked pair, or remove the pair first.`, 4500);
+      }
+      const swap = { [oldId]: newId, [oldMate.id]: newMate.id };
+      const batch = writeBatch(db);
+      batch.update(at("courts", courtId), { teamA: (c.teamA || []).map((x) => swap[x] || x), teamB: (c.teamB || []).map((x) => swap[x] || x) });
+      [oldId, oldMate.id].forEach((g) => batch.update(at("players", g), { checkedAt: Date.now() }));
+      await batch.commit();
+      return notify(`Swapped in ${newPlayer.name} and ${newMate.name}.`);
     }
     const inTeamA = (c.teamA || []).includes(oldId);
     // Same rule as addPlayerToCourt: the incoming player's locked partner, if
@@ -319,7 +358,7 @@ export default function QueueApp({
   async function startNextMatch(courtId) {
     const need = session.format === "Singles" ? 2 : 4;
     const c = courts.find((x) => x.id === courtId);
-    const { taken: next } = selectForCourt({ pool: queue, court: c, mode, need });
+    const { taken: next } = selectForCourt({ pool: queue, court: c, mode, need, now: Date.now() });
     if (next.length < need) {
       if (next.length === 0 && queue.length > 0) {
         return notify("Not enough matching players are checked in yet for this court/mode.");
@@ -418,7 +457,7 @@ export default function QueueApp({
       if (openSlots > 0) {
         if (wasEmpty) {
           // Fresh match: let the session mode decide how the group is formed.
-          const { taken, remaining } = selectForCourt({ pool, court: c, mode, need });
+          const { taken, remaining } = selectForCourt({ pool, court: c, mode, need, now: Date.now() });
           if (taken.length === need) {
             pool = remaining;
             const [a, b] = splitTeams(taken, mode, rules.avoidRepeatPartners);
@@ -429,16 +468,18 @@ export default function QueueApp({
         } else {
           // Topping up a partially-filled court: just match the court's level.
           const seated = [...teamA, ...teamB].map((id) => players.find((p) => p.id === id)).filter(Boolean);
-          const { taken, remaining } = selectToJoin({ pool, court: c, seated, mode, need: openSlots });
-          pool = remaining;
-          taken.forEach((p) => {
-            const side = mixedTeams ? mixedSideFor(p, playersOf(teamA), playersOf(teamB)) : null;
-            if (side) (side === "A" ? teamA : teamB).push(p.id);
-            else if (need === 2) { if (!teamA.length) teamA.push(p.id); else teamB.push(p.id); }
-            else if (teamA.length < 2) teamA.push(p.id);
-            else teamB.push(p.id);
+          // Only a seated player whose team still has a free seat can have a waiting locked partner pulled in beside them.
+          const room = seated.filter((p) => (teamA.includes(p.id) ? teamA : teamB).length < need / 2);
+          // ...and the waiting partner of a seated player on a full team is not picked at all (they'd land on the other team).
+          const blocked = new Set(seated.filter((p) => p.lockedWithId && !room.includes(p)).map((p) => p.lockedWithId));
+          const { taken } = selectToJoin({ pool: pool.filter((p) => !blocked.has(p.id)), court: c, seated, mode, need: openSlots, pullSeatedPartners: room });
+          const pickedIds = new Set(taken.map((p) => p.id));
+          pool = pool.filter((p) => !pickedIds.has(p.id));
+          if (taken.length) {
+            [teamA, teamB] = seatJoiners(teamA, teamB, taken, need,
+              mixedTeams ? (p, A, B) => mixedSideFor(p, playersOf(A), playersOf(B)) : null);
             filledAny = true;
-          });
+          }
         }
       }
       if (teamA.length !== (c.teamA || []).length || teamB.length !== (c.teamB || []).length) {
@@ -463,6 +504,7 @@ export default function QueueApp({
     const partnerOf = {};
     if (winners.length === 2) { partnerOf[winners[0]] = winners[1]; partnerOf[winners[1]] = winners[0]; }
     if (losers.length === 2) { partnerOf[losers[0]] = losers[1]; partnerOf[losers[1]] = losers[0]; }
+    const after = {}; // each player as the result leaves them, for the next pick
     [...winners, ...losers].forEach((id) => {
       const p = players.find((x) => x.id === id);
       if (!p) return;
@@ -473,7 +515,13 @@ export default function QueueApp({
         checkedAt: Date.now(),
         lastResult: winners.includes(id) ? "win" : "loss",
       };
-      if (partnerOf[id]) update.partners = [...(p.partners || []).slice(-4), partnerOf[id]];
+      const hist = trimHistory(
+        partnerOf[id] ? [...(p.partners || []), partnerOf[id]] : p.partners || [],
+        [...(p.opponents || []), ...(winners.includes(id) ? losers : winners)], rules.historyGames);
+      if (partnerOf[id]) update.partners = hist.partners;
+      // Recent opponents too, so the next pick can avoid rematches.
+      update.opponents = hist.opponents;
+      after[id] = { ...p, ...update };
       batch.update(at("players", id), update);
       undo.update(at("players", id),
         Object.fromEntries(Object.keys(update).map((k) => [k, was(p[k])])));
@@ -499,23 +547,33 @@ export default function QueueApp({
     const sameTeam = (c.stayingIds || []).length === winners.length
       && winners.every((id) => c.stayingIds.includes(id));
     const streak = sameTeam ? (c.winStreak || 0) + 1 : 1;
-    const stay = shouldWinnersStay({ rules, mode, streak, winners });
-    const capped = winners.length > 0 && !stay && streak >= rules.maxWinStreak && (rules.winnersStay || mode === "Winners / Losers");
+    const wantStay = shouldWinnersStay({ rules, mode, streak, winners });
+    const capped = winners.length > 0 && !wantStay && streak >= rules.maxWinStreak && (rules.winnersStay || mode === "Winners / Losers");
+    // Winners / Losers always brings the challengers on, whatever the auto-rotation switch says.
+    const autoPick = autoRotateOn || mode === "Winners / Losers";
+    const challengers = wantStay && autoPick
+      ? selectToJoin({
+        pool: queue, court: c, mode, need: need / 2, pullSeatedPartners: false,
+        seated: winners.map((id) => players.find((p) => p.id === id)).filter(Boolean),
+      }).taken.map((p) => p.id)
+      : [];
+    // No challenger can come on (e.g. nobody of the winners' level is waiting): rotate as normal
+    // instead of leaving the winners on a court with an empty side.
+    const stay = wantStay && (!autoPick || challengers.length === need / 2);
     if (stay) {
-      // Winners / Losers always brings the challengers on, whatever the auto-rotation switch says.
-      const challengers = autoRotateOn || mode === "Winners / Losers"
-        ? selectToJoin({
-          pool: queue, court: c, mode, need: need / 2,
-          seated: winners.map((id) => players.find((p) => p.id === id)).filter(Boolean),
-        }).taken.map((p) => p.id)
-        : [];
       batch.update(courtRef, {
         [side === "A" ? "teamA" : "teamB"]: winners,
         [side === "A" ? "teamB" : "teamA"]: challengers,
         start: Date.now(), winStreak: streak, stayingIds: winners,
       });
     } else if (autoRotateOn) {
-      const { taken: next } = selectForCourt({ pool: queue, court: c, mode, need });
+      // With fewer than a full match waiting, the players who just finished queue up behind them.
+      const now = Date.now();
+      const finished = queue.length < need
+        ? [...winners, ...losers].map((id) => after[id]).filter(Boolean)
+        : [];
+      const pool = [...queue, ...finished];
+      const { taken: next } = selectForCourt({ pool, court: c, mode, need, now });
       const [teamA, teamB] = splitTeams(next, mode, rules.avoidRepeatPartners);
       batch.update(courtRef, { teamA, teamB, start: Date.now(), winStreak: 0, stayingIds: [] });
     } else {
@@ -531,7 +589,8 @@ export default function QueueApp({
     notify(
       stay ? `Winners stay on Court ${c.courtNumber} (${streak} in a row).`
         : capped ? `Court ${c.courtNumber}: ${streak} wins in a row, so the winners rest at the back of the queue.`
-          : `Court ${c.courtNumber} rotated.`,
+          : wantStay ? `Court ${c.courtNumber}: nobody matching is waiting to challenge, so the court rotated.`
+            : `Court ${c.courtNumber} rotated.`,
       10000, { label: "Undo", run: undoResult },
     );
   }
