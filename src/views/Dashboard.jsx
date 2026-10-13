@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, ArrowLeftRight, Zap, Play, Plus, Pencil, Hash } from "lucide-react";
+import { X, ArrowLeftRight, Zap, Play, Plus, Pencil, Hash, UserCheck } from "lucide-react";
 import LockMark from "../components/LockMark";
 import PanelHead from "../components/PanelHead";
 import PersonBadge from "../components/PersonBadge";
@@ -464,7 +464,7 @@ export default function Dashboard({
   session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer, addPlayerToCourt, notify,
   autoRotateOn, onToggleAutoRotate, onAutoFill, onAddCourt, onRemoveCourt, onSetCourtLevel, onRenameCourt,
   onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue, rules,
-  claims = [], onScore,
+  claims = [], onScore, onOpenUmpires,
 }) {
   const scoreSettings = { style: rules.scoreStyle, to: rules.scoreTo, singles: session.format === "Singles" };
   const need = session.format === "Singles" ? 2 : 4;
@@ -556,6 +556,7 @@ export default function Dashboard({
       <div className="heading">
         <div><h2>Live Courts</h2><p>{manual ? "Custom mode: record a winner to clear the court, then build the next match yourself." : "Record a winner to rotate the completed players."}</p></div>
         <div className="heading-actions">
+          <button className="outline" onClick={onOpenUmpires}><UserCheck size={14} /> Umpires</button>
           <button className="outline" onClick={onAddCourt} disabled={courts.length >= 8}>
             <Plus size={14} /> Add Court
           </button>

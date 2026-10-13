@@ -24,6 +24,7 @@ import PlayerModal from "./components/PlayerModal";
 import CheckInModal from "./components/CheckInModal";
 import SessionModal from "./components/SessionModal";
 import ShareModal from "./components/ShareModal";
+import UmpireModal from "./components/UmpireModal";
 import ConfirmDialog from "./components/ConfirmDialog";
 import Dashboard from "./views/Dashboard";
 import Queue from "./views/Queue";
@@ -57,6 +58,7 @@ export default function QueueApp({
   const [checkingInPlayer, setCheckingInPlayer] = useState(null);
   const [showSession, setShowSession] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showUmpires, setShowUmpires] = useState(false);
   const [showEndSession, setShowEndSession] = useState(false);
   const [showErase, setShowErase] = useState(false);
   const [toast, setToast] = useState(null);
@@ -767,7 +769,7 @@ export default function QueueApp({
               onAddCourt={addCourt} onRemoveCourt={removeCourt} onSetCourtLevel={setCourtLevel} onRenameCourt={renameCourt}
               onStartNext={startNextMatch} onSwapQueueOrder={swapQueueOrder} onSkipQueued={skipQueuedPlayer}
               onEditPlayer={setEditingPlayer} onSendToCourt={sendPreviewToCourt} rules={rules}
-              claims={claims} onScore={scoreCourt}
+              claims={claims} onScore={scoreCourt} onOpenUmpires={() => setShowUmpires(true)}
               goQueue={() => setTab("queue")} />
           )}
           {tab === "queue" && (
@@ -831,6 +833,11 @@ export default function QueueApp({
         )}
         {showShare && kind === "quick" && (
           <ShareModal url={`${window.location.origin}/live?club=${base[1]}${live.key ? `&key=${live.key}` : ""}`} close={() => setShowShare(false)} />
+        )}
+        {showUmpires && (
+          <UmpireModal base={base} kind={kind} courts={courts} claims={claims} umpiresOn={session.umpireOn === true}
+            settings={{ style: rules.scoreStyle, to: rules.scoreTo }} close={() => setShowUmpires(false)} notify={notify}
+            onToggle={(on) => updateDoc(at(), { umpireOn: on }).catch(() => notify("Couldn't change that. Try again.", 4000))} />
         )}
         {showErase && (
           <ConfirmDialog
