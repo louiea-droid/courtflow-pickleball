@@ -30,6 +30,7 @@ import Cost from "./views/Cost";
 import Stats from "./views/Stats";
 import Guide from "./views/Guide";
 import Settings from "./views/Settings";
+import { queueOrder } from "./utils/queueStatus";
 
 // The queue app on one session. `base` is the Firestore path of the document that holds it
 // (utils/paths.js): the quick session at /club today. Every read and write goes through
@@ -90,15 +91,7 @@ export default function QueueApp({
 
   const selectTab = (t) => { setTab(t); setMenuOpen(false); };
 
-  const playing = useMemo(
-    () => new Set(courts.flatMap((c) => [...(c.teamA || []), ...(c.teamB || [])])),
-    [courts]
-  );
-  const queue = useMemo(
-    () => players.filter((p) => p.checked && !playing.has(p.id))
-      .sort((a, b) => a.games - b.games || a.checkedAt - b.checkedAt),
-    [players, playing]
-  );
+  const queue = useMemo(() => queueOrder(players, courts), [players, courts]);
   const notCheckedIn = useMemo(() => players.filter((p) => !p.checked), [players]);
 
   // action: optional { label, run } button (e.g. Undo). One timer, so an older
@@ -493,7 +486,9 @@ export default function QueueApp({
     notify("Filled open seats from the queue.");
   }
 
-  async function recordWin(courtId, side) {
+  // nextIds: the host's edited Up Next for this court (Dashboard), seat for seat, used instead of a fresh pick
+  // when the court rotates. Returns true when it was used, so the Dashboard can drop the edit.
+  async function recordWin(courtId, side, nextIds = null) {
     const c = courts.find((x) => x.id === courtId);
     const winners = side === "A" ? c.teamA : c.teamB;
     const losers = side === "A" ? c.teamB : c.teamA;
@@ -560,6 +555,7 @@ export default function QueueApp({
     // No challenger can come on (e.g. nobody of the winners' level is waiting): rotate as normal
     // instead of leaving the winners on a court with an empty side.
     const stay = wantStay && (!autoPick || challengers.length === need / 2);
+    let usedEdit = false;
     if (stay) {
       batch.update(courtRef, {
         [side === "A" ? "teamA" : "teamB"]: winners,
@@ -573,8 +569,10 @@ export default function QueueApp({
         ? [...winners, ...losers].map((id) => after[id]).filter(Boolean)
         : [];
       const pool = [...queue, ...finished];
-      const { taken: next } = selectForCourt({ pool, court: c, mode, need, now });
-      const [teamA, teamB] = splitTeams(next, mode, rules.avoidRepeatPartners);
+      const waitingIds = new Set(queue.map((p) => p.id));
+      usedEdit = Boolean(nextIds) && nextIds.length === need && nextIds.every((id) => waitingIds.has(id));
+      const { taken: next } = usedEdit ? { taken: [] } : selectForCourt({ pool, court: c, mode, need, now });
+      const [teamA, teamB] = usedEdit ? [nextIds.slice(0, need / 2), nextIds.slice(need / 2)] : splitTeams(next, mode, rules.avoidRepeatPartners);
       batch.update(courtRef, { teamA, teamB, start: Date.now(), winStreak: 0, stayingIds: [] });
     } else {
       batch.update(courtRef, { teamA: [], teamB: [], start: Date.now(), winStreak: 0, stayingIds: [] });
@@ -593,6 +591,7 @@ export default function QueueApp({
             : `Court ${c.courtNumber} rotated.`,
       10000, { label: "Undo", run: undoResult },
     );
+    return usedEdit;
   }
 
   async function newSession(data) {

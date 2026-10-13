@@ -124,7 +124,7 @@ export const MAJOR = [
       },
       {
         title: "Partner locks",
-        body: "The host can lock two players as partners. A lock keeps them together (and the pair is picked as one unit, so many locks leave fewer partners to mix) whenever the queue picks automatically in doubles, on courts without a level limit. Mixed Doubles only accepts a lock between a man and a woman, and a Custom game places nobody by itself.",
+        body: "The host can lock two players as partners. A lock keeps them together (and the pair is picked as one unit, so many locks leave fewer partners to mix) whenever the queue picks automatically in doubles, on courts without a level limit. Mixed Doubles only accepts a lock between a man and a woman. In Skill Separated, partners one star apart (say 2 and 3 stars) still play together: against one player from each of their levels (or another pair like them), or against two of the higher level when nobody like that is waiting; partners further apart are left to their own levels. A Custom game places nobody by itself.",
       },
       {
         title: "Levels",

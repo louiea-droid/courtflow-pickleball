@@ -156,6 +156,70 @@ function clusterPick(pool, keyFn, need, distFn = () => 0, now = null, shuffle = 
   return { taken, remaining };
 }
 
+// ---- Skill Separated with a locked pair one star apart (e.g. 2★ + 3★): the pair still plays together.
+// Their opponents are one player from each of the pair's two levels (or another pair with the same two
+// ratings), so both sides have the same stars; with nobody like that waiting, the pair plays up against two
+// of the higher level; with neither for STARVE_MS, the closest players. Pairs further apart stay ignored.
+const rated = (p) => Number.isInteger(p?.skill) && p.skill > 0;
+export const bridgeLock = (a, b) => Boolean(a && b) && lockedTogether(a, b) && rated(a) && rated(b) && Math.abs(a.skill - b.skill) === 1;
+
+// Locked pairs one star apart with both partners in `pool`, [lower, higher], in queue order.
+function bridgePairs(pool) {
+  const seen = new Set();
+  const out = [];
+  for (const p of pool) {
+    const mate = pool.find((x) => x.id === partnerId(p));
+    if (seen.has(p.id) || !bridgeLock(p, mate)) continue;
+    seen.add(p.id); seen.add(mate.id);
+    out.push(p.skill < mate.skill ? [p, mate] : [mate, p]);
+  }
+  return out;
+}
+
+// Two opponents for the pair [lo, hi] from `others` (in queue order), or null. A player whose locked partner
+// is also waiting only comes with that partner (as a unit), so no other lock is split.
+function bridgeOpponents(others, [lo, hi], now) {
+  const at = (p) => others.indexOf(p);
+  const units = toUnits(others, "Skill Separated");
+  const singles = units.filter((u) => u.length === 1).map((u) => u[0]);
+  const deepest = (g) => Math.max(...g.map(at));
+  const options = [];
+  // C: one from each level, or another pair with the same two ratings.
+  const l = singles.find((p) => p.skill === lo.skill), h = singles.find((p) => p.skill === hi.skill);
+  if (l && h) options.push([l, h]);
+  const twin = units.find((u) => u.length === 2 && bridgeLock(u[0], u[1]) && Math.min(u[0].skill, u[1].skill) === lo.skill);
+  if (twin) options.push(twin);
+  if (options.length) return options.sort((a, b) => deepest(a) - deepest(b))[0];
+  // B: play up, two of the higher level.
+  const up = [];
+  for (const u of units) if (u.every((p) => p.skill === hi.skill) && up.length + u.length <= 2) up.push(...u);
+  if (up.length === 2) return up;
+  // Nobody fits for a long while: the closest players, so the pair can't wait for ever.
+  const waited = now != null && Math.min(lo.checkedAt ?? now, hi.checkedAt ?? now) < now - STARVE_MS;
+  if (!waited || singles.length < 2) return null;
+  return singles.map((p, i) => ({ p, i, d: Math.abs((p.skill || 0) - hi.skill) })).sort((a, b) => a.d - b.d || a.i - b.i).slice(0, 2).map((x) => x.p);
+}
+
+// Skill Separated: the usual one-level pick, with pairs one star apart held out of it (so they're never split)
+// and given the court instead when the pair has waited longer than everyone that pick would take.
+function skillSeparatedPick(pool, need, now, shuffle) {
+  const pairs = need === 4 ? bridgePairs(pool) : [];
+  const held = new Set(pairs.flat().map((p) => p.id));
+  const normal = clusterPick(pool.filter((p) => !held.has(p.id)), (p) => skillLevelLabel(p.skill), need,
+    (a, b) => Math.abs((a.skill || 0) - (b.skill || 0)), now, shuffle, "Skill Separated");
+  const without = (ids) => pool.filter((p) => !ids.has(p.id));
+  const normalAt = normal.taken.length ? Math.min(...normal.taken.map((p) => pool.indexOf(p))) : Infinity;
+  for (const pair of pairs) {
+    if (Math.min(...pair.map((p) => pool.indexOf(p))) > normalAt) break;
+    const opp = bridgeOpponents(pool.filter((p) => !pair.includes(p)), pair, now);
+    if (opp) {
+      const taken = [...pair, ...opp];
+      return { taken, remaining: without(new Set(taken.map((p) => p.id))) };
+    }
+  }
+  return { taken: normal.taken, remaining: without(new Set(normal.taken.map((p) => p.id))) };
+}
+
 // Pulls pairs so the result reads [M, F, M, F, ...] — splitting that in half
 // down the middle naturally gives each side one of each.
 function mixedDoublesPick(pool, need) {
@@ -181,14 +245,15 @@ function partnerId(p) {
 export const hasGender = (p) => p?.gender === "M" || p?.gender === "F";
 
 // Locks that the current mode can't honor between two checked-in players (so the host can be told): a
-// same-gender lock in Mixed Doubles, a lock across skill levels in Skill Separated. Sorted [idA, idB] pairs.
+// same-gender lock in Mixed Doubles, a lock more than one star apart in Skill Separated. Sorted [idA, idB] pairs.
 export function ignoredLocks(players, mode) {
   const byId = new Map(players.filter((p) => p.checked).map((p) => [p.id, p]));
   const out = new Map();
   for (const p of byId.values()) {
     const q = byId.get(partnerId(p));
     if (!q) continue;
-    const bad = !validLock(p, q, mode) || (mode === "Skill Separated" && skillLevelLabel(p.skill) !== skillLevelLabel(q.skill));
+    const bad = !validLock(p, q, mode)
+      || (mode === "Skill Separated" && skillLevelLabel(p.skill) !== skillLevelLabel(q.skill) && !bridgeLock(p, q));
     if (bad) out.set([p.id, q.id].sort().join("|"), [p, q]);
   }
   return [...out.values()];
@@ -274,7 +339,7 @@ function enforceLockedPairs(taken, remaining, mode, fixed = []) {
     if (poolIdx === -1) continue; // partner not available this round
     const incoming = pool[poolIdx];
     if (!validLock(p, incoming, mode)) continue; // Mixed Doubles ignores a same-gender lock
-    // Skill Separated keeps one skill level per match, so a lock across levels is left alone.
+    // Skill Separated: a pair one star apart is placed by skillSeparatedPick; one further apart is left alone.
     if (mode === "Skill Separated" && skillLevelLabel(p.skill) !== skillLevelLabel(incoming.skill)) continue;
     let bumpIdx = -1;
     for (let i = working.length - 1; i >= 0; i--) {
@@ -304,7 +369,7 @@ export function selectForCourt({ pool, court, mode, need, now = null, shuffle = 
   if (levelRestricted) {
     result = pickForLevel(pool, court.level, need);
   } else if (mode === "Skill Separated") {
-    result = clusterPick(pool, (p) => skillLevelLabel(p.skill), need, (a, b) => Math.abs((a.skill || 0) - (b.skill || 0)), now, shuffle, mode);
+    result = skillSeparatedPick(pool, need, now, shuffle);
   } else if (mode === "Winners / Losers") {
     result = clusterPick(pool, (p) => p.lastResult || "new", need, undefined, now, shuffle, mode);
   } else if (mode === "Mixed Doubles" && need % 2 === 0) {
@@ -329,6 +394,21 @@ export function selectForCourt({ pool, court, mode, need, now = null, shuffle = 
   return result;
 }
 
+// Who goes on each court next, by court id: the Dashboard's Up Next preview, also used by the Live Board, the
+// members' queue page and the Home card so they all agree. Open courts pick first, then the busy ones, each from
+// what the earlier courts left, so nobody is counted twice. A court without a full group gets [].
+export function upNextByCourt({ pool, courts, mode, need, now = null }) {
+  const isOpen = (c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
+  const out = {};
+  let rest = pool;
+  for (const c of [...courts.filter(isOpen), ...courts.filter((c) => !isOpen(c))]) {
+    const { taken, remaining } = selectForCourt({ pool: rest, court: c, mode, need, now });
+    out[c.id] = taken;
+    rest = remaining;
+  }
+  return out;
+}
+
 // Picks who joins a court that already has players: the challengers when winners stay on, or
 // whoever tops up an open seat. An explicit court level still wins. Otherwise:
 // - Custom: nobody (the host adds players).
@@ -341,7 +421,17 @@ function pickToJoin({ pool, court, seated, mode, need }) {
   if (mode === "Custom") return { taken: [], remaining: pool };
   const levelRestricted = Boolean(court?.level && court.level !== "Any Level");
   if (!levelRestricted && mode === "Skill Separated" && seated.length) {
-    return pickForLevel(pool, skillLevelLabel(seated[0].skill), need);
+    // A pair one star apart staying on is challenged like it was picked (bridgeOpponents).
+    if (need === 2 && seated.length === 2 && bridgeLock(seated[0], seated[1])) {
+      const taken = bridgeOpponents(pool, [...seated].sort((a, b) => a.skill - b.skill), null) || [];
+      const ids = new Set(taken.map((p) => p.id));
+      return { taken, remaining: pool.filter((p) => !ids.has(p.id)) };
+    }
+    // ...and is never split up to fill a one-level court.
+    const held = new Set(bridgePairs(pool).flat().map((p) => p.id));
+    const picked = pickForLevel(pool.filter((p) => !held.has(p.id)), skillLevelLabel(seated[0].skill), need);
+    const ids = new Set(picked.taken.map((p) => p.id));
+    return { taken: picked.taken, remaining: pool.filter((p) => !ids.has(p.id)) };
   }
   if (!levelRestricted && mode === "Mixed Doubles" && seated.length > 0 && seated.length + need === 4) {
     const count = (g) => seated.filter((x) => x.gender === g).length;

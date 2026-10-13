@@ -210,6 +210,8 @@ button.acct-brand:hover{background:var(--side-hover)}
 .queue-row.me{font-weight:800;color:var(--accent-ink)}
 .queue-pos{min-width:28px;color:var(--muted);font-variant-numeric:tabular-nums}
 .queue-name{flex:1;min-width:0;overflow-wrap:anywhere}
+.queue-next{flex-shrink:0;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent-ink);font-size:12px;font-weight:700;white-space:nowrap}
+.queue-court p.queue-court-next{margin-top:4px;color:var(--muted)}
 .queue-games{color:var(--muted);font-size:13px;font-weight:500}
 .queue-courts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .queue-court b{display:block;margin:0 0 4px;font:700 14px "Space Grotesk"}

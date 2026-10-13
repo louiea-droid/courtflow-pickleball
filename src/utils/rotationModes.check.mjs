@@ -1,7 +1,7 @@
 // Self-check for Balanced team splitting. Run: node src/utils/rotationModes.check.mjs
 import assert from "node:assert";
 import {
-  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, ignoredLocks, seatJoiners, selectToJoin, trimHistory, shouldWinnersStay, STARVE_MS, splitTeams, validLock,
+  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, ignoredLocks, seatJoiners, selectToJoin, trimHistory, shouldWinnersStay, STARVE_MS, splitTeams, upNextByCourt, validLock,
 } from "./rotationModes.js";
 import { normalizeMode } from "../data/constants.js";
 
@@ -305,5 +305,48 @@ assert.equal(ignoredLocks([lk("a", 3, "M", "b"), lk("b", 5, "F", "a")], "Balance
 const th = trimHistory(["1", "2", "3", "4"], ["a", "b", "c", "d", "e", "f", "g", "h"], 2);
 assert.deepEqual(th, { partners: ["3", "4"], opponents: ["e", "f", "g", "h"] });
 assert.equal(trimHistory(Array(15).fill("x"), Array(40).fill("y")).partners.length, 10);
+
+// upNextByCourt: open courts pick first, then busy ones, and nobody is picked twice
+{
+  const q = Array.from({ length: 9 }, (_, i) => p(`q${i}`, 3, { games: 0, checkedAt: i }));
+  const busy = { id: "c1", courtNumber: 1, teamA: ["x1", "x2"], teamB: ["x3", "x4"] };
+  const open = { id: "c2", courtNumber: 2, teamA: [], teamB: [] };
+  const up = upNextByCourt({ pool: q, courts: [busy, open], mode: "Balanced", need: 4 });
+  assert.equal(ids({ taken: up.c2 }), "q0,q1,q2,q3"); // the open court takes the front of the line
+  assert.equal(up.c1.length, 4);
+  assert.ok(!up.c1.some((x) => up.c2.includes(x)));
+  assert.deepEqual(upNextByCourt({ pool: q, courts: [busy, open], mode: "Custom", need: 4 }), { c1: [], c2: [] });
+}
+
+// Skill Separated, a locked pair one star apart (2★ + 3★) plays together.
+{
+  const SS = "Skill Separated";
+  const L = (id, skill, mate, o = {}) => p(id, skill, { lockedWithId: mate, ...o });
+  const set = (r) => r.taken.map((x) => x.id).sort().join(",");
+  const pick = (pool, o = {}) => selectForCourt({ pool, court, mode: SS, need: 4, ...o });
+  // C: against one player from each of their levels
+  assert.equal(set(pick([L("a", 2, "b"), L("b", 3, "a"), p("c", 3), p("d", 2), p("e", 3), p("f", 2)])), "a,b,c,d");
+  // C: or another pair with the same two ratings, whoever waited longer
+  assert.equal(set(pick([L("a", 2, "b"), L("b", 3, "a"), L("c", 2, "d"), L("d", 3, "c"), p("e", 2), p("f", 3)])), "a,b,c,d");
+  // B: nobody like them waiting, so they play up against the higher level
+  assert.equal(set(pick([L("a", 2, "b"), L("b", 3, "a"), p("c", 3), p("d", 3), p("e", 4)])), "a,b,c,d");
+  // neither: the pair waits and is never split into a one-level match...
+  assert.equal(set(pick([L("a", 2, "b"), p("c", 2), p("d", 2), p("e", 2), L("b", 3, "a")])), "");
+  assert.equal(set(pick([L("a", 2, "b"), L("b", 3, "a"), p("c", 5), p("d", 5), p("e", 5)])), "");
+  // ...until it has waited STARVE_MS, then the closest players
+  const T = 1e9;
+  assert.equal(set(pick([L("a", 2, "b", { checkedAt: T }), L("b", 3, "a", { checkedAt: T }), p("c", 5), p("d", 4), p("e", 6)], { now: T + STARVE_MS + 1 })), "a,b,c,d");
+  // not their turn yet: the usual one-level match goes first, without them
+  assert.equal(set(pick([p("w", 3), p("x", 3), p("y", 3), p("z", 3), L("a", 2, "b"), L("b", 3, "a"), p("c", 2), p("d", 3)])), "w,x,y,z");
+  // teams: the pair stays on one side
+  const [ta, tb] = splitTeams([L("a", 2, "b"), L("b", 3, "a"), p("c", 3), p("d", 2)], SS);
+  assert.ok([ta, tb].some((t) => t.includes("a") && t.includes("b")));
+  // not flagged as an ignored lock any more; two stars apart still is
+  assert.equal(ignoredLocks([L("a", 2, "b", { checked: true }), L("b", 3, "a", { checked: true })], SS).length, 0);
+  assert.equal(ignoredLocks([L("a", 2, "b", { checked: true }), L("b", 4, "a", { checked: true })], SS).length, 1);
+  // winners stay on: the pair is challenged the same way, and a waiting pair isn't split to challenge others
+  assert.equal(ids(selectToJoin({ pool: [p("c", 3), p("d", 2), p("e", 3)], court, seated: [L("a", 2, "b"), L("b", 3, "a")], mode: SS, need: 2, pullSeatedPartners: false })).split(",").sort().join(","), "c,d");
+  assert.equal(ids(selectToJoin({ pool: [L("a", 3, "b"), L("b", 2, "a"), p("c", 3), p("d", 3)], court, seated: [p("w", 3), p("x", 3)], mode: SS, need: 2, pullSeatedPartners: false })), "c,d");
+}
 
 console.log("rotationModes checks passed");

@@ -10,7 +10,9 @@ import StarDisplay from "./components/StarDisplay";
 import ElapsedTimer from "./components/ElapsedTimer";
 import { applyDisplayPrefs, money } from "./utils/format";
 import { applyGlobalTheme } from "./utils/theme";
-import { DEFAULT_LIVE } from "./data/constants";
+import { DEFAULT_LIVE, normalizeMode } from "./data/constants";
+import { upNextByCourt } from "./utils/rotationModes";
+import { queueOrder } from "./utils/queueStatus";
 
 function LiveTeam({ label, color, ids, players, showSkill }) {
   return (
@@ -141,15 +143,18 @@ export default function LiveBoard() {
     return <div className="loading">This link is no longer active. Ask the club for the new Live Board link.</div>;
   }
 
-  const playing = new Set(courts.flatMap((c) => [...(c.teamA || []), ...(c.teamB || [])]));
-  const queue = players.filter((p) => p.checked && !playing.has(p.id))
-    .sort((a, b) => a.games - b.games || a.checkedAt - b.checkedAt);
+  const queue = queueOrder(players, courts);
   const visibleCosts = costs.filter((c) => c.visibleOnLive);
+  // "Next" is the queue app's own pick for each court (the host's Up Next), so the board agrees with the Dashboard.
+  const picks = upNextByCourt({ pool: queue, courts, mode: normalizeMode(session.mode || session.rotation) || "Balanced",
+    need: session.format === "Singles" ? 2 : 4, now: Date.now() });
+  const nextCourt = Object.fromEntries(courts.flatMap((c) => (picks[c.id] || []).map((p) => [p.id, c.name || `Court ${c.courtNumber}`])));
 
   const queueRows = queue.map((p, i) => (
     <div className="queue-row" key={p.id}>
       {live.showQueueRank && <span className="queue-rank">{i + 1}</span>}
       <b>{p.name}</b>
+      {nextCourt[p.id] && <span className="queue-next">Next · {nextCourt[p.id]}</span>}
       {live.showSkill && <StarDisplay value={p.skill} />}
       {live.showStats && (
         <span className="queue-stats">

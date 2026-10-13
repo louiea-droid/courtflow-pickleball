@@ -127,7 +127,7 @@ Still open from the queue and cost ideas:
   groups are unavoidable. Simulation (120 matches): 16 players / 3 courts, same 4-player groups 119 -> 29, opponent repeats 476 -> 241,
   longest wait unchanged; 12 players / 3 courts unchanged (no spare players); Skill Separated with small levels improves little.
 - Queue fixes already made (2026-10-12): after `STARVE_MS` (15 min) a player in a short skill level plays with the closest levels;
-  Skill Separated ignores a lock across skill levels; `selectToJoin` and `seatJoiners` keep locked pairs together when topping up or
+  Skill Separated plays a locked pair one star apart together (owner's pick, 2026-10-13: against one player from each of their levels or a pair like them, else two of the higher level, else after `STARVE_MS` the closest; `skillSeparatedPick` / `bridgeOpponents`, never split into a one-level match) and ignores a lock two or more stars apart; `selectToJoin` and `seatJoiners` keep locked pairs together when topping up or
   seating challengers; winners who can't get a challenger rotate instead of leaving an empty side; with fewer than a full match
   waiting the players who just finished queue up behind them; deleting, checking out or calling a locked player keeps the courts
   consistent. Demo: `node scripts/queue-demo.mjs`, and `node scripts/seed-queue.mjs` seeds `sq1`-`sq5@demo.test` (password

@@ -5,9 +5,12 @@ import { db, firebaseConfigured } from "../firebase";
 import PageTitle from "../components/PageTitle";
 import { useDocs } from "../hooks/useLiveDocs";
 import { queueOrder } from "../utils/queueStatus";
+import { upNextByCourt } from "../utils/rotationModes";
+import { normalizeMode } from "../data/constants";
 
 // The read-only queue of a live game, for the club's members: who is waiting, in order, and who is on each
-// court. The order is the queue app's default; a host who picks by hand can change who goes next.
+// court. The line is the queue app's order and "Next" is the queue app's own pick for each court (same as the
+// host's Up Next), though a host who edits Up Next or picks by hand can still change it.
 export default function QueueView({ clubId, base, eventId, uid, navigate }) {
   const [state, setState] = useState({ event: null, ready: false });
   useEffect(() => {
@@ -39,6 +42,9 @@ export default function QueueView({ clubId, base, eventId, uid, navigate }) {
 
   const queue = queueOrder(players, courts);
   const names = Object.fromEntries(players.map((p) => [p.id, p.name]));
+  const mode = normalizeMode(state.event.mode) || "Balanced";
+  const picks = upNextByCourt({ pool: queue, courts, mode, need: state.event.format === "Singles" ? 2 : 4, now: Date.now() });
+  const nextCourt = Object.fromEntries(courts.flatMap((c) => (picks[c.id] || []).map((p) => [p.id, c.courtNumber])));
   return (
     <>
       {back}
@@ -53,6 +59,7 @@ export default function QueueView({ clubId, base, eventId, uid, navigate }) {
               <li key={p.id} className={`queue-row${p.uid === uid ? " me" : ""}`}>
                 <span className="queue-pos">{i + 1}</span>
                 <span className="queue-name">{p.name}{p.uid === uid ? " (you)" : ""}</span>
+                {nextCourt[p.id] && <span className="queue-next">Next · Court {nextCourt[p.id]}</span>}
                 <span className="queue-games">{p.games || 0} {p.games === 1 ? "game" : "games"}</span>
               </li>
             ))}
@@ -68,6 +75,7 @@ export default function QueueView({ clubId, base, eventId, uid, navigate }) {
               <div className="queue-court" key={c.id}>
                 <b>Court {c.courtNumber}</b>
                 <p>{on.length ? on.join(", ") : "Free"}</p>
+                {on.length > 0 && picks[c.id]?.length > 0 && <p className="queue-court-next">Next: {picks[c.id].map((p) => p.name).join(", ")}</p>}
               </div>
             );
           })}

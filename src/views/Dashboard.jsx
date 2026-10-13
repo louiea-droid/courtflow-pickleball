@@ -11,7 +11,7 @@ import ElapsedTimer from "../components/ElapsedTimer";
 import { rankPlayers, waitMinutes, winPct } from "../utils/format";
 import { matchesCourtLevel } from "../utils/courtLevels";
 import { CircleAlert } from "lucide-react";
-import { hasGender, ignoredLocks, selectForCourt, splitTeams } from "../utils/rotationModes";
+import { hasGender, ignoredLocks, splitTeams, upNextByCourt } from "../utils/rotationModes";
 import { normalizeMode } from "../data/constants";
 
 // Closes an open swap menu when clicking/tapping outside the given
@@ -456,15 +456,19 @@ export default function Dashboard({
   // per live court for the "Up Next" preview below — so no player, and no
   // level-restricted seat, is double-counted across courts.
   // Players held in an edited (draft) match are reserved first, so no other preview can pick them too.
+  // A result seats this court's edited Up Next (when every seat is filled) instead of a fresh pick; then the edit is done.
+  const winWithEdit = async (courtId, side) => {
+    const edit = draftOf(courtId);
+    if (await recordWin(courtId, side, edit?.every(Boolean) ? edit : null)) setDrafts(({ [courtId]: _, ...rest }) => rest);
+  };
   const held = new Set(courts.flatMap((c) => draftOf(c.id) || []).filter(Boolean));
-  let pool = queue.filter((p) => !held.has(p.id));
-  const courtViews = courts.map((c) => {
-    const isEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
-    if (!isEmpty) return { court: c, upNext: [] };
-    const { taken, remaining } = selectForCourt({ pool, court: c, mode, need, now: Date.now() });
-    pool = remaining;
-    return { court: c, upNext: taken };
+  const isEmptyCourt = (c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
+  const picks = upNextByCourt({
+    pool: queue.filter((p) => !held.has(p.id)),
+    courts: courts.filter((c) => isEmptyCourt(c) || !draftOf(c.id)), // an edited busy court keeps its own seats
+    mode, need, now: Date.now(),
   });
+  const courtViews = courts.map((c) => ({ court: c, upNext: isEmptyCourt(c) ? picks[c.id] || [] : [] }));
   // One "Up Next" preview per court, always — so adding/removing a court
   // immediately adds/removes its preview box too. An open court just mirrors
   // the same "ready now" group already shown inline on its own card; a live
@@ -477,10 +481,7 @@ export default function Dashboard({
       const mine = draft.filter(Boolean);
       return { key: c.id, label, level: c.level, draft, group: mine.map((id) => players.find((p) => p.id === id)) };
     }
-    if (isEmpty) return { key: c.id, label, level: c.level, group: emptyUpNext };
-    const { taken, remaining } = selectForCourt({ pool, court: c, mode, need, now: Date.now() });
-    pool = remaining;
-    return { key: c.id, label, level: c.level, group: taken };
+    return { key: c.id, label, level: c.level, group: isEmpty ? emptyUpNext : picks[c.id] || [] };
   });
 
   return (
@@ -491,7 +492,7 @@ export default function Dashboard({
           <span>
             {skippedLocks.length === 1 ? "1 lock isn't" : `${skippedLocks.length} locks aren't`} used in {mode}
             ({skippedLocks.map(([a, b]) => `${a.name} + ${b.name}`).join(", ")}):{" "}
-            {mode === "Mixed Doubles" ? "teams are one man and one woman." : "each match stays on one skill level."}
+            {mode === "Mixed Doubles" ? "teams are one man and one woman." : "partners more than one star apart can't get a fair match, so each plays in their own level."}
           </span>
         </div>
       )}
@@ -546,7 +547,7 @@ export default function Dashboard({
       <div className="courts">
         {courtViews.map(({ court: c, upNext }) => (
           <Court key={c.id} c={c} players={players} queue={queue} need={need} upNext={upNext}
-            win={recordWin} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={onStartNext} onSetLevel={onSetCourtLevel}
+            win={winWithEdit} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={onStartNext} onSetLevel={onSetCourtLevel}
             onRemoveCourt={onRemoveCourt} canRemove={courts.length > 1} onRenameCourt={onRenameCourt}
             alertAfterMin={rules.gameAlertMinutes} manual={manual} />
         ))}

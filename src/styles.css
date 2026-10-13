@@ -1158,6 +1158,9 @@ form.confirm-modal .modalactions{margin-top:4px}
   .liveboard-courts-grid{display:grid;grid-template-columns:1fr}
   .liveboard-bottom-row{display:block}
   .liveboard-queue-col{margin-bottom:28px}
+  /* The name keeps its room; the Next tag, stars and stats wrap under it instead of squeezing it away. */
+  .liveboard-queue-col .queue-row{flex-wrap:wrap;row-gap:6px}
+  .liveboard-queue-col .queue-row b{min-width:9em}
   .liveboard-box{overflow:visible}
   .ticker,.matchlog-list{mask-image:none;-webkit-mask-image:none}
 

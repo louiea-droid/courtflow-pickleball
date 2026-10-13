@@ -3,6 +3,7 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db, firebaseConfigured } from "../firebase";
 import { docsOf } from "../hooks/useLiveDocs";
 import { queueStatus } from "../utils/queueStatus";
+import { normalizeMode } from "../data/constants";
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -26,7 +27,7 @@ export function useActiveGames(uid, clubs) {
         (clubEvents.get(clubId) || []).forEach((eventId) => {
           const game = liveGames.get(`${clubId}/${eventId}`);
           if (!game) return;
-          const status = queueStatus({ players: game.players, courts: game.courts, uid, format: game.event.format });
+          const status = queueStatus({ players: game.players, courts: game.courts, uid, format: game.event.format, mode: normalizeMode(game.event.mode) || "Balanced", now: Date.now() });
           if (!status) return;
           const clubPath = `/clubs/${encodeURIComponent(clubId)}/event/${encodeURIComponent(eventId)}`;
           next.push({
@@ -115,7 +116,8 @@ export default function ActiveQueue({ games, navigate }) {
         </p>
         <p className="queue-card-line">
           {status.state === "playing" ? <>You're on <b>court {status.court}</b></>
-            : status.upNext ? <b>You're up next</b>
+            : status.upNext ? <b>You're up next{status.nextOn ? ` on court ${status.nextOn}` : ""}</b>
+              : status.nextOn ? <><b>Next on court {status.nextOn}</b> · about {status.waitMins} min</>
               : <><b>You're #{status.position} in line</b> · {plural(status.ahead, "player")} ahead · about {status.waitMins} min</>}
         </p>
       </div>
