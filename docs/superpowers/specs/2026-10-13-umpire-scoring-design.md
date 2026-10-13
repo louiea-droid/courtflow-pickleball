@@ -7,12 +7,22 @@ the Dashboard and the Live Board, and confirming the end of the game records the
 
 - **Managers** (and the quick-session owner): a **Score** button on each Dashboard court card opens the umpire screen for
   that court. Their writes already pass the rules.
-- **Volunteers, no account**: for an event game the host gets an **Umpire link + QR code** (Game screen, beside the
-  Live Board link). It opens `/umpire?club={clubId}&event={eventId}&code={code}`. The page signs the visitor in
-  anonymously (as `useClub` does; an already signed-in account is reused, never signed out) and writes
-  `clubs/{c}/events/{e}/umpires/{uid}` = `{ code, at }`. **New link** replaces the code, so every old link and every
-  registered umpire stops at once. An ended game (`status != "live"`) refuses umpire writes.
-- Volunteer links are for event games only. The quick session (`/club`) is scored by its owner from the Dashboard.
+- **Volunteers, no account**: the host (event game) or the owner (quick session) gets an **Umpire link + QR code**; in the
+  quick session it sits behind an **Allow volunteer umpires** switch in Settings (off by default, the owner decides).
+  The link is `/umpire?game={clubId}.{eventId}` (event) or `/umpire?game={uid}` (quick session), plus `&code={code}`. The page
+  signs the visitor in anonymously (as `useClub` does; a signed-in account is reused, never signed out), asks for a name and
+  writes `{base}/umpires/{uid}` = `{ code, name, at }`. **New link** replaces the code (`{base}/private/umpire`, managers /
+  owner only), so every old link and registered umpire stops at once. An ended game, or the switch turned off, refuses
+  umpire writes.
+
+## One umpire per court
+
+- A court has at most one umpire, held in `{base}/courtClaims/{courtId}` = `{ uid, name }`.
+- A volunteer opens the link, picks a free court and **claims** it. A claim is a create, so two people can't take the same
+  court (the rule only allows creating a missing doc). They can **release** it, and only see and score the court they hold.
+- A manager sees who holds each court (court card: "Umpire: Sam"), can **release** it, or **assign** a registered umpire
+  (list from `umpires`, by name) to a court, replacing the holder. Managers score any court without a claim.
+- A claim stops working when the umpire record is removed or the code is renewed (the rule checks the record's code).
 
 ## Scoring logic (`utils/scoring.js`, pure, check `node src/utils/scoring.check.mjs`)
 
@@ -52,18 +62,20 @@ State on the court doc: `score = { start, t1, t2, serving, server, style, to, lo
 
 ## Rules (`firestore.rules`, re-publish after)
 
-Under `clubs/{c}/events/{e}`:
-- `private/umpire` `{ code }`: managers only (already covered by the managers-only wildcard; `private` is not readable by
-  members).
-- `umpires/{uid}`: create by `request.auth.uid == uid` when `code == get(private/umpire).data.code` and the event is
-  live; managers delete.
-- `isUmpire(c, e)`: the umpire record exists, its code equals the current code, and the event is live.
-- Umpires read `players` and `courts`, and update a court only when `affectedKeys().hasOnly(['score'])`.
+For both bases (`sessions/{uid}` and `clubs/{c}/events/{e}`):
+- `private/umpire` `{ code }`: managers / owner only. Quick sessions are public-read today, so `private` joins
+  `bookingRequests` as owner-only read.
+- `umpires/{uid}`: create by `request.auth.uid == uid` when `code` equals the current code and the game is live (event) or
+  volunteer umpires are on (quick session); delete by that uid or a manager.
+- `courtClaims/{courtId}`: read by an umpire record holder or a manager; create (only if missing) by an umpire with
+  `uid == request.auth.uid`; delete by the holder or a manager; managers may also write (assign).
+- A court update by a non-manager is allowed only when `affectedKeys().hasOnly(['score'])`, the caller holds the court's
+  claim, their umpire record's code is current, and the game is live / switch on. Umpires read `players` and `courts`.
 
-Test: `tests/umpire.test.mjs` (`npm run test:rules`): an umpire with the current code scores; an old code, an ended game,
-or any field besides `score` is refused; a stranger can't register without the code.
+Test: `tests/umpire.test.mjs` (`npm run test:rules`): the claim holder scores; a second claim on the same court, another
+court, an old code, an ended game or any field besides `score` is refused; a stranger can't register without the code;
+a manager can release and assign.
 
 ## Not in this version
 
-Per-court umpire assignment (any umpire can pick any court), timeouts, match-of-3-games, score history beyond the match
-log line.
+Several umpires on one court, timeouts, match-of-3-games, score history beyond the match log line.
