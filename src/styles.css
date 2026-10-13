@@ -1585,8 +1585,15 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .court-top .score-chip .t1{color:var(--team1)}.court-top .score-chip .t2{color:var(--team2)}
 .court-top .score-chip i{font-style:normal;color:var(--faint)}
 /* Live Board: each team's live score in its own header bar, the serving team's badge beside its name. */
-.live-team-head{display:flex;align-items:center;gap:8px;min-height:2.2em}
-.live-team-head .live-points{margin-left:auto;font:700 clamp(28px,4.6vh,52px)/1 "Space Grotesk";font-variant-numeric:tabular-nums}
+.live-team-head{display:flex;align-items:center;gap:8px;min-height:2.2em;box-sizing:border-box}
+.liveboard .teams.live-scored .live-team-head{height:clamp(30px,4.2vh,42px);padding-top:0;padding-bottom:0}
+.liveboard .teams.live-scored{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+.live-mid{display:flex;align-items:center;justify-content:center;gap:clamp(4px,0.8vw,12px);padding:0 clamp(4px,1vw,16px);font:700 clamp(30px,min(7vh,10vw),84px)/1 "Space Grotesk";font-variant-numeric:tabular-nums}
+.live-team-name{white-space:nowrap}
+@media (max-width:560px){.live-serve-word{display:none}.live-team-head .live-serve{padding:2px 6px}}
+.live-mid .t1{color:color-mix(in srgb,var(--team1) 85%,var(--ink))}
+.live-mid .t2{color:color-mix(in srgb,var(--team2) 85%,var(--ink))}
+.live-mid i{font-style:normal;color:var(--faint);font-size:.6em}
 .live-team-head .live-serve{display:inline-flex;align-items:center;gap:4px;font-style:normal;font-size:clamp(10px,1.1vh,12px);font-weight:800;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,currentColor 18%,transparent);white-space:nowrap}
 .team.live-lost{opacity:.5}
 .liveboard .court-top .live-call{margin-left:auto;font-style:normal;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:clamp(12px,1.5vh,16px);letter-spacing:.04em}

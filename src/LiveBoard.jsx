@@ -20,15 +20,14 @@ import { DEFAULT_LIVE, normalizeMode } from "./data/constants";
 import { upNextByCourt } from "./utils/rotationModes";
 import { queueOrder } from "./utils/queueStatus";
 
-// points: this team's score (null when nobody is scoring); serving: "Server 2" / "Serving"; state: "winner" / "lost".
-function LiveTeam({ label, color, ids, players, showSkill, points = null, serving = null, state = null }) {
+// serving: "Server 2" / "Serving" on the serving team; state: "winner" / "lost" once a game is decided.
+function LiveTeam({ label, color, ids, players, showSkill, serving = null, state = null }) {
   return (
     <div className={`team${state === "lost" ? " live-lost" : ""}`}>
       <div className={`${color} live-team-head`}>
-        <span>{label}</span>
-        {serving && <em className="live-serve"><CircleDot size={12} /> {serving}</em>}
+        <span className="live-team-name">{label}</span>
+        {serving && <em className="live-serve"><CircleDot size={12} /> {serving.startsWith("Server ") ? <><span className="live-serve-word">Server </span>{serving.slice(7)}</> : serving}</em>}
         {state === "winner" && <em className="live-serve">Winner</em>}
-        {points != null && <b className="live-points">{points}</b>}
       </div>
       {ids.map((id) => {
         const p = players.find((x) => x.id === id);
@@ -46,11 +45,11 @@ function LiveTeam({ label, color, ids, players, showSkill, points = null, servin
 function LiveCourt({ c, players, showSkill }) {
   const isEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
   const sc = c.score && c.score.start === c.start ? c.score : null; // an old match's score never shows
-  // Each team's score sits in its own bar (it never changes sides); the official call is small in the top row.
+  // The score sits in the middle between the two teams, each number in its team's color (Team 1 left, so it never swaps
+  // sides); the serving badge is on the serving team's bar and the official call is small in the top row.
   const won = sc ? winner(sc) : 0;
   const serving = sc && !won ? (sc.style !== "rally" && !sc.singles ? `Server ${sc.server}` : "Serving") : null;
   const teamProps = (n) => (sc ? {
-    points: n === 1 ? sc.t1 : sc.t2,
     serving: sc.serving === n ? serving : null,
     state: won ? (won === n ? "winner" : "lost") : null,
   } : {});
@@ -66,8 +65,13 @@ function LiveCourt({ c, players, showSkill }) {
       {isEmpty ? (
         <div className="court-empty"><p>Court is open.</p></div>
       ) : (
-        <div className="teams">
+        <div className={`teams${sc ? " live-scored" : ""}`}>
           <LiveTeam label="Team 1" color="team1" ids={c.teamA || []} players={players} showSkill={showSkill} {...teamProps(1)} />
+          {sc && (
+            <div className="live-mid" aria-label={`Score: Team 1 ${sc.t1}, Team 2 ${sc.t2}`}>
+              <b className="t1">{sc.t1}</b><i>-</i><b className="t2">{sc.t2}</b>
+            </div>
+          )}
           <LiveTeam label="Team 2" color="team2" ids={c.teamB || []} players={players} showSkill={showSkill} {...teamProps(2)} />
         </div>
       )}
