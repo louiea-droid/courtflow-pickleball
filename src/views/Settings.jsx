@@ -6,6 +6,7 @@ import Select from "../components/Select";
 import { ACCENT_PRESETS, MODE_SELECT_OPTIONS, TEAM_PRESETS, normalizeMode } from "../data/constants";
 import { money } from "../utils/format";
 import { readableOn } from "../utils/theme";
+import { SCORE_TARGETS } from "../utils/scoring";
 
 const FALLBACK_DEFAULTS = { courts: 2, format: "Doubles", mode: "Balanced" };
 
@@ -19,6 +20,8 @@ const AFTER_GAME_OPTIONS = [
 ];
 const STREAK_OPTIONS = [2, 3, 4, 5].map((n) => ({ value: n, label: `${n} wins in a row` }));
 const HISTORY_OPTIONS = [5, 10, 15, 20].map((n) => ({ value: n, label: `Last ${n} games` }));
+const SCORE_STYLE_OPTIONS = [{ value: "sideout", label: "Side-out (serving team scores)" }, { value: "rally", label: "Rally (every rally scores)" }];
+const SCORE_TO_OPTIONS = SCORE_TARGETS.map((n) => ({ value: n, label: `Play to ${n}` }));
 const ON_OFF = [{ value: "off", label: "Off" }, { value: "on", label: "On" }];
 const SHOW_HIDE = [{ value: "show", label: "Shown" }, { value: "hide", label: "Hidden" }];
 const CLOCK_OPTIONS = [{ value: "12", label: "12-hour" }, { value: "24", label: "24-hour" }];
@@ -244,6 +247,16 @@ export default function Settings({
           >
             <div className="account-select">
               <Select value={rules.historyGames || 10} onChange={(historyGames) => onSetRules({ historyGames })} options={HISTORY_OPTIONS} />
+            </div>
+          </SettingsRow>
+          <SettingsRow title="Scoring style" body="How the umpire&apos;s score works. Side-out is the official pickleball way: only the serving team scores, and the serve passes from server 1 to server 2 to the other team. Rally scores on every rally.">
+            <div className="account-select">
+              <Select value={rules.scoreStyle} onChange={(scoreStyle) => onSetRules({ scoreStyle })} options={SCORE_STYLE_OPTIONS} />
+            </div>
+          </SettingsRow>
+          <SettingsRow title="Play to" body="A game ends at this score, and the winner must lead by 2.">
+            <div className="account-select">
+              <Select value={rules.scoreTo} onChange={(scoreTo) => onSetRules({ scoreTo })} options={SCORE_TO_OPTIONS} />
             </div>
           </SettingsRow>
         </div>

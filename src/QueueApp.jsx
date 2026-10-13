@@ -493,7 +493,7 @@ export default function QueueApp({
     notify("Filled open seats from the queue.");
   }
 
-  async function recordWin(courtId, side) {
+  async function recordWin(courtId, side, scoreText = null) {
     const c = courts.find((x) => x.id === courtId);
     const winners = side === "A" ? c.teamA : c.teamB;
     const losers = side === "A" ? c.teamB : c.teamA;
@@ -534,12 +534,13 @@ export default function QueueApp({
       winners: winners.map(nameOf),
       losers: losers.map(nameOf),
       recordedAt: Date.now(),
+      ...(scoreText ? { score: scoreText } : {}),
     });
     const need = session.format === "Singles" ? 2 : 4;
     const courtRef = at("courts", c.id);
     undo.update(courtRef, {
       teamA: c.teamA || [], teamB: c.teamB || [], start: was(c.start),
-      winStreak: was(c.winStreak), stayingIds: was(c.stayingIds),
+      winStreak: was(c.winStreak), stayingIds: was(c.stayingIds), score: was(c.score),
     });
     // Winners-stay: count consecutive wins by the exact same team, and keep
     // them on until they hit the club's cap. Challengers come straight off
@@ -579,6 +580,8 @@ export default function QueueApp({
     } else {
       batch.update(courtRef, { teamA: [], teamB: [], start: Date.now(), winStreak: 0, stayingIds: [] });
     }
+    // The result ends the match, so its live score goes with it.
+    batch.update(courtRef, { score: deleteField() });
     await batch.commit();
     // ponytail: restores the court as it was; anything done to that court in the
     // 10s window (a swap, a manual add) is overwritten. Fine for a mis-tap fix.

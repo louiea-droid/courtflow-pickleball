@@ -947,6 +947,7 @@ form.confirm-modal .modalactions{margin-top:4px}
   color:var(--faint);font-size:clamp(10.5px,1.1vh,12px);font-weight:700;white-space:nowrap
 }
 .matchlog-time{margin-left:auto;font-weight:600}
+.matchlog-score{font-weight:700;font-variant-numeric:tabular-nums}
 .matchlog-line{display:flex;align-items:center;gap:8px;min-width:0}
 .matchlog-won,.matchlog-lost{
   display:inline-flex;align-items:center;justify-content:center;gap:4px;flex-shrink:0;
