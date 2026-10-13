@@ -197,7 +197,7 @@ function CourtTitle({ court, onRename }) {
   return <b className="court-name" title="Click to rename" onClick={startEdit}>{displayName}</b>;
 }
 
-function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, onStartNext, onSetLevel, onRemoveCourt, canRemove, onRenameCourt, alertAfterMin, manual, claims, scoreSettings, onScore, onStopScore }) {
+function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, onStartNext, onSetLevel, onRemoveCourt, canRemove, onRenameCourt, alertAfterMin, manual, claims, scoreSettings, onScore, onStopScore, autoRecord }) {
   const [swapOpen, setSwapOpen] = useState(null);
   const [scoring, setScoring] = useState(false);
   const claim = claims.find((x) => x.id === c.id);
@@ -253,9 +253,9 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, 
               swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} remove={(id) => remove(c.id, id)}
               onAdd={(id) => handleAdd("B", id)} />
           </div>
-          {/* A kept score decides the result, so the plain win buttons only show for matches nobody is scoring. A game the
-              umpire confirmed records by itself (see Dashboard); one that was never confirmed keeps a Record button. */}
-          {done && sc.confirmed && c.recordedConfirm !== sc.confirmed ? (
+          {/* A kept score decides the result, so the plain win buttons only show for matches nobody is scoring. A finished
+              game (the umpire's screen saves it after a short countdown) waits for the host to confirm it here. */}
+          {done && autoRecord && sc.confirmed && c.recordedConfirm !== sc.confirmed ? (
             <p className="court-recording">Recording: Team {done} won {finalText(sc)}...</p>
           ) : done ? (
             <div className="court-score">
@@ -274,7 +274,7 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, 
       )}
       {scoring && (
         <Modal title={c.name || `Court ${c.courtNumber}`} label={claim ? `SCORE · UMPIRE ${claim.name.toUpperCase()}` : "SCORE"} close={() => setScoring(false)}>
-          <ScoreKeeper court={c} players={players} settings={scoreSettings}
+          <ScoreKeeper court={c} players={players} settings={scoreSettings} autoRecord={autoRecord}
             onScore={(next) => onScore(c.id, next)}
             onConfirm={(side) => { setScoring(false); win(c.id, side, finalText(liveScore(c, scoreSettings))); }}
             onStop={sc ? () => { setScoring(false); onStopScore(c.id); } : undefined} />
@@ -471,7 +471,7 @@ export default function Dashboard({
   session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer, addPlayerToCourt, notify,
   autoRotateOn, onToggleAutoRotate, onAutoFill, onAddCourt, onRemoveCourt, onSetCourtLevel, onRenameCourt,
   onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue, rules,
-  claims = [], onScore, onOpenUmpires, claimRecording, onStopScore,
+  claims = [], onScore, onOpenUmpires, onStopScore, claimRecording,
 }) {
   const scoreSettings = { style: rules.scoreStyle, to: rules.scoreTo, singles: session.format === "Singles" };
   const need = session.format === "Singles" ? 2 : 4;
@@ -498,11 +498,12 @@ export default function Dashboard({
     const edit = draftOf(courtId);
     if (await recordWin(courtId, side, edit?.every(Boolean) ? edit : null, scoreText)) setDrafts(({ [courtId]: _, ...rest }) => rest);
   };
-  // A game the umpire confirmed records itself: the first open Dashboard to claim the court records it (claimRecording
-  // is a transaction, so two hosts never record it twice). An Undo of that result keeps the claim, so it doesn't repeat.
+  // "Record umpire results automatically" (Settings): a game the umpire's screen saved records itself. The first open
+  // Dashboard to claim the court records it (a transaction, so two hosts never record it twice); an Undo of that result
+  // keeps the claim, so it doesn't repeat. Off: the court card shows a Confirm button instead.
   const recording = useRef(new Set());
   useEffect(() => {
-    if (!claimRecording) return;
+    if (!rules.autoRecord || !claimRecording) return;
     courts.forEach((c) => {
       const sc = c.score && c.score.start === c.start ? c.score : null;
       const won = sc?.confirmed ? winner(sc) : 0;
@@ -510,10 +511,10 @@ export default function Dashboard({
       recording.current.add(sc.confirmed);
       claimRecording(c.id, sc.confirmed)
         .then((mine) => mine && winWithEdit(c.id, won === 1 ? "A" : "B", finalText(sc)))
-        .catch(() => {}) // offline or refused: the card keeps its Record button
+        .catch(() => {}) // offline or refused: the card keeps its Confirm button
         .finally(() => recording.current.delete(sc.confirmed));
     });
-  }, [courts]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [courts, rules.autoRecord]); // eslint-disable-line react-hooks/exhaustive-deps
   const held = new Set(courts.flatMap((c) => draftOf(c.id) || []).filter(Boolean));
   const isEmptyCourt = (c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
   const picks = upNextByCourt({
@@ -604,7 +605,7 @@ export default function Dashboard({
             win={winWithEdit} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={onStartNext} onSetLevel={onSetCourtLevel}
             onRemoveCourt={onRemoveCourt} canRemove={courts.length > 1} onRenameCourt={onRenameCourt}
             alertAfterMin={rules.gameAlertMinutes} manual={manual}
-            claims={claims} scoreSettings={scoreSettings} onScore={onScore} onStopScore={onStopScore} />
+            claims={claims} scoreSettings={scoreSettings} onScore={onScore} onStopScore={onStopScore} autoRecord={!!rules.autoRecord} />
         ))}
       </div>
 

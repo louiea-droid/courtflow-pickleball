@@ -47,6 +47,7 @@ export default function Game({ clubId, club, event, ready, base, navigate, endGa
       onEndSession={() => endGame(event.id)}
       onSetAttendeePaid={(attendeeId, paid) => onSetAttendeePaid(event.id, attendeeId, paid)}
       memberChoices={memberChoices}
+      clubName={club?.name}
     />
   );
 }

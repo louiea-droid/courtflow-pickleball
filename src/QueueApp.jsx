@@ -26,6 +26,7 @@ import CheckInModal from "./components/CheckInModal";
 import SessionModal from "./components/SessionModal";
 import ShareModal from "./components/ShareModal";
 import UmpireModal from "./components/UmpireModal";
+import LiveLinkModal from "./components/LiveLinkModal";
 import ConfirmDialog from "./components/ConfirmDialog";
 import Dashboard from "./views/Dashboard";
 import Queue from "./views/Queue";
@@ -43,7 +44,7 @@ import { queueOrder } from "./utils/queueStatus";
 // settings, there is no Settings tab, and End game keeps all data.
 export default function QueueApp({
   base, kind = "quick", deriveSession, eyebrow, backLabel, onBack, onHome, onEndSession, onErase,
-  onSetAttendeePaid, memberChoices,
+  onSetAttendeePaid, memberChoices, clubName,
 }) {
   const at = (...rest) => doc(db, ...base, ...rest);
   const col = (name) => collection(db, ...base, name);
@@ -745,7 +746,7 @@ export default function QueueApp({
           onShare={() => setShowShare(true)}
           onAddPlayer={() => setShowPlayer(true)}
           eyebrow={eyebrow}
-          showShare={kind === "quick"}
+          showShare
         />
 
         {!firebaseConfigured && (
@@ -829,9 +830,13 @@ export default function QueueApp({
         {showShare && kind === "quick" && (
           <ShareModal url={`${window.location.origin}/live?club=${base[1]}${live.key ? `&key=${live.key}` : ""}`} close={() => setShowShare(false)} />
         )}
+        {showShare && kind === "event" && (
+          <LiveLinkModal base={base} close={() => setShowShare(false)} notify={notify}
+            info={{ clubName, title: session.location, date: session.date, format: session.format, mode, display: savedDisplay, live }} />
+        )}
         {showUmpires && (
           <UmpireModal base={base} kind={kind} courts={courts} claims={claims} umpiresOn={session.umpireOn === true}
-            settings={{ style: rules.scoreStyle, to: rules.scoreTo }} close={() => setShowUmpires(false)} notify={notify}
+            settings={{ style: rules.scoreStyle, to: rules.scoreTo, autoRecord: !!rules.autoRecord }} close={() => setShowUmpires(false)} notify={notify}
             onToggle={(on) => updateDoc(at(), { umpireOn: on }).catch(() => notify("Couldn't change that. Try again.", 4000))} />
         )}
         {showErase && (

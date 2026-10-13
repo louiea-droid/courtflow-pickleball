@@ -21,7 +21,7 @@ export async function renewLink(base, { style, to, umpires = [], claims = [] }) 
   await batch.commit();
   return code;
 }
-export const syncSettings = (base, { style, to }) => updateDoc(at(base, "private", "umpire"), { style, to }).catch(() => {});
+export const syncSettings = (base, { style, to, autoRecord = false }) => updateDoc(at(base, "private", "umpire"), { style, to, autoRecord }).catch(() => {});
 // Assigning moves the umpire off any other court they hold (one court per volunteer) and updates their record.
 export function assignCourt(base, courtId, umpire, claims = []) {
   const batch = writeBatch(db);
@@ -53,9 +53,9 @@ export const releaseCourt = (base, courtId) => deleteDoc(at(base, "courtClaims",
 export const writeScore = (base, courtId, score) => updateDoc(at(base, "courts", courtId), { score });
 // Stop keeping a score on this match: the court card goes back to the plain win buttons.
 export const clearScore = (base, courtId) => updateDoc(at(base, "courts", courtId), { score: deleteField() });
-// Two open Dashboards must not both record one confirmed game: the first device to mark the court records it.
-// Resolves to false when another device already did, or the score changed. Transactions need a connection, so an
-// offline device records nothing and the court keeps its Record button.
+// With "Record umpire results automatically" on, two open Dashboards must not both record one saved game: the first
+// device to mark the court records it. Resolves to false when another device already did, or the score changed.
+// Transactions need a connection, so an offline device records nothing and the court keeps its Confirm button.
 export function claimRecording(base, courtId, confirmedAt) {
   const ref = at(base, "courts", courtId);
   return runTransaction(db, async (tx) => {
@@ -65,3 +65,4 @@ export function claimRecording(base, courtId, confirmedAt) {
     return true;
   });
 }
+

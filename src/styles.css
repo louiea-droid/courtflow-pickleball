@@ -208,6 +208,9 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
    the whole card's width every time it crosses that boundary. */
 .ph-clock span{display:inline-block;min-width:9.5ch}
 .ph-clock b{font-size:9px;color:var(--faint);font-weight:900;letter-spacing:.04em}
+/* The top bar buttons match the clock pill beside them. */
+.topbar .actions > button{font-size:13px;padding:9px 12px;border-radius:10px;gap:6px;line-height:normal}
+.topbar .actions > button svg{width:15px;height:15px}
 
 .primary,.outline,.tiny,.icon,.text,.danger{
   border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:10px 14px;font-weight:800;
@@ -1256,6 +1259,17 @@ form.confirm-modal .modalactions{margin-top:4px}
 .op-header h1{margin:2px 0 0;font:700 32px "Space Grotesk";letter-spacing:-.8px}
 .openplay h2{font:700 16px "Space Grotesk";margin:0 0 10px}
 .op-mine{margin-bottom:24px}
+/* A game in progress on the booking page: live court scores, no names. */
+.op-live{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 2px}
+.op-live-tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--danger-ink);background:var(--danger-soft);border-radius:99px;padding:4px 10px}
+.op-live-tag i{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulseDot 1.8s ease-in-out infinite}
+.op-live-chip{display:inline-flex;align-items:baseline;gap:5px;font-size:13px;font-weight:700;color:var(--ink-2);background:var(--soft);border-radius:99px;padding:4px 10px;font-variant-numeric:tabular-nums}
+.op-live-chip b{font:700 15px "Space Grotesk"}
+.op-live-chip .t1{color:color-mix(in srgb,var(--team1) 80%,var(--ink))}
+.op-live-chip .t2{color:color-mix(in srgb,var(--team2) 80%,var(--ink))}
+.op-live-chip em{font-style:normal;color:var(--faint)}
+.op-live-none{font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.op-live-tag i{animation:none}}
 .op-status{
   display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;margin-bottom:8px;
   border:1px solid var(--line);border-left-width:4px;border-radius:12px;background:var(--panel)
@@ -1561,9 +1575,9 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .score-line small{color:var(--ink-2);font-weight:700}
 .court-score{display:flex;margin-top:10px}
 .court-score button{flex:1;min-height:40px}
-.court-score .court-confirm{border:0;border-radius:10px;font-weight:800;cursor:pointer}
-.court-score .court-confirm:hover{filter:brightness(1.06)}
 .court-recording{margin:10px 0 0;padding:10px;border-radius:10px;text-align:center;font-weight:700;color:var(--accent-ink);background:var(--accent-soft)}
+.court-confirm{border:0;border-radius:10px;font-weight:800;cursor:pointer;min-height:44px}
+.court-confirm:hover{filter:brightness(1.06)}
 .scorekeeper-stop{width:100%;margin-top:8px;min-height:40px}
 .court-top .score-chip{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:99px;padding:3px 9px;min-height:26px;background:var(--soft);color:var(--ink-2);font-weight:800;font-variant-numeric:tabular-nums;cursor:pointer;animation:none}
 .court-top .score-chip:hover{background:var(--accent-soft)}

@@ -259,6 +259,11 @@ export default function Settings({
               <Select value={rules.scoreTo} onChange={(scoreTo) => onSetRules({ scoreTo })} options={SCORE_TO_OPTIONS} />
             </div>
           </SettingsRow>
+          <SettingsRow title="Record umpire results automatically" body="When on, a game the umpire finishes is recorded and its court rotates by itself once the 5 second countdown ends. When off, the host taps Confirm on the court card.">
+            <div className="account-select">
+              <Select value={rules.autoRecord ? "on" : "off"} onChange={(v) => onSetRules({ autoRecord: v === "on" })} options={ON_OFF} />
+            </div>
+          </SettingsRow>
         </div>
       </div>
 

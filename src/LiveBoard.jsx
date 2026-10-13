@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { firebaseConfigured } from "./firebase";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { collection, doc, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import { auth, db, firebaseConfigured } from "./firebase";
+import { docsOf } from "./hooks/useLiveDocs";
+import { liveTarget } from "./utils/liveBoard";
+import { joinAsViewer } from "./utils/liveData";
 import { useSessionData } from "./hooks/useSessionData";
 import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
-import { sessionBase } from "./utils/paths";
 import MatchLogRow from "./components/MatchLogRow";
 import PhClock from "./components/PhClock";
 import StarDisplay from "./components/StarDisplay";
@@ -96,11 +100,64 @@ function QueueTicker({ rows, rowCount }) {
   );
 }
 
+// A game's board (/live?club=C&event=E&key=K): the screen signs in anonymously, registers with the link key, then listens
+// to the game. The event and club docs aren't readable here, so the title and settings come from events/{e}/private/live.
+// Any refused read (new link, game over for 12 hours, event deleted) ends the board.
+function useGameBoard(target) {
+  const active = target?.kind === "event";
+  const path = active ? target.base.join("/") : "";
+  const [state, setState] = useState({ busy: active, dead: false, info: null, players: [], courts: [], matchLog: [] });
+  useEffect(() => {
+    if (!active || !firebaseConfigured) return undefined;
+    const base = path.split("/");
+    let offs = [];
+    let stopped = false;
+    const dead = () => setState((s) => ({ ...s, busy: false, dead: true }));
+    const loaded = new Set();
+    const ready = (part) => { loaded.add(part); if (loaded.size === 3) setState((s) => ({ ...s, busy: false })); };
+    const unAuth = onAuthStateChanged(auth, async (user) => {
+      if (!user) { signInAnonymously(auth).catch(dead); return; }
+      if (offs.length) return;
+      try { await joinAsViewer(base, user.uid, target.key); } catch { dead(); return; }
+      if (stopped) return;
+      offs = [
+        onSnapshot(doc(db, ...base, "private", "live"), (s) => {
+          if (!s.exists()) { dead(); return; }
+          setState((st) => ({ ...st, info: s.data() }));
+          ready("info");
+        }, dead),
+        onSnapshot(collection(db, ...base, "players"), (s) => {
+          setState((st) => ({ ...st, players: docsOf(s).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)) }));
+          ready("players");
+        }, dead),
+        onSnapshot(collection(db, ...base, "courts"), (s) => {
+          setState((st) => ({ ...st, courts: docsOf(s).sort((a, b) => (a.courtNumber || 0) - (b.courtNumber || 0)) }));
+          ready("courts");
+        }, dead),
+        onSnapshot(query(collection(db, ...base, "matchLog"), orderBy("recordedAt", "desc"), limit(20)),
+          (s) => setState((st) => ({ ...st, matchLog: docsOf(s) })), dead),
+      ];
+    });
+    return () => { stopped = true; unAuth(); offs.forEach((off) => off()); };
+  }, [path]); // eslint-disable-line react-hooks/exhaustive-deps
+  const info = state.info || {};
+  const session = {
+    location: info.clubName && info.title ? `${info.clubName} · ${info.title}` : info.title || info.clubName || "Open play",
+    format: info.format || "Doubles", mode: info.mode, display: info.display, live: info.live,
+  };
+  return { active, ...state, session };
+}
+
 export default function LiveBoard() {
-  const clubId = new URLSearchParams(window.location.search).get("club");
-  const { session, players, courts, busy } = useSessionData(sessionBase(clubId));
-  const costs = useCosts(sessionBase(clubId));
-  const matchLog = useMatchLog(sessionBase(clubId));
+  const target = useMemo(() => liveTarget(window.location.search), []);
+  const quickBase = target?.kind === "quick" ? target.base : null;
+  const quick = useSessionData(quickBase);
+  const quickCosts = useCosts(quickBase);
+  const quickLog = useMatchLog(quickBase);
+  const game = useGameBoard(target);
+  const { session, players, courts, busy } = game.active ? game : quick;
+  const costs = game.active ? [] : quickCosts; // a game's costs stay with its managers
+  const matchLog = game.active ? game.matchLog : quickLog;
 
   // Keep a wall TV or tablet from dimming or sleeping while the board is up.
   // The browser drops the lock whenever the tab is hidden, so re-request on return.
@@ -122,7 +179,10 @@ export default function LiveBoard() {
   if (!firebaseConfigured) {
     return <div className="loading">Live board unavailable — Firebase isn't configured.</div>;
   }
-  if (!clubId) {
+  if (game.dead) {
+    return <div className="loading">This Live Board is no longer active. Ask the host for the new link.</div>;
+  }
+  if (!target) {
     return <div className="loading">No club specified. Ask for a fresh share link from the app.</div>;
   }
   if (busy) {
@@ -142,7 +202,7 @@ export default function LiveBoard() {
   if (!live.enabled) {
     return <div className="loading">This Live Board is turned off. Ask the club to switch it back on.</div>;
   }
-  if (live.key && new URLSearchParams(window.location.search).get("key") !== live.key) {
+  if (!game.active && live.key && new URLSearchParams(window.location.search).get("key") !== live.key) {
     return <div className="loading">This link is no longer active. Ask the club for the new Live Board link.</div>;
   }
 

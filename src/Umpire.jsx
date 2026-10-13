@@ -116,7 +116,7 @@ export default function Umpire() {
           <button className="outline" onClick={() => releaseCourt(target.base, court.id).catch(fail("Couldn't release the court. Try again."))}>Release court</button>
         </div>
         {notice && <p className="umpire-note" role="alert">{notice}</p>}
-        <ScoreKeeper page court={court} players={players} settings={{ style: settings.style, to: settings.to, singles }}
+        <ScoreKeeper page court={court} players={players} settings={{ style: settings.style, to: settings.to, singles, autoRecord: !!settings.autoRecord }}
           onScore={(score) => writeScore(target.base, court.id, score).catch(fail("Couldn't save the score. Check your connection."))} />
       </Page>
     );

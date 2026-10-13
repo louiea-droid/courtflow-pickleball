@@ -169,8 +169,12 @@ await assertSucceeds(getDocs(collection(mem, "clubs/priv/events/e1/players")));
 await assertFails(getDoc(g(mem, "pub", "matchLog/m1"))); // Review Focus 3: not the rest of the game data
 await assertFails(getDoc(g(mem, "pub", "costs/booking-e1")));
 await assertFails(getDocs(collection(mem, "clubs/pub/events/e1/requests")));
-await assertFails(getDocs(collection(stranger, "clubs/pub/events/e1/courts")));
-await assertFails(getDocs(collection(anon, "clubs/pub/events/e1/courts")));
+// A public club's courts (player ids and scores, no names) feed the booking page's live strip (open play live spec);
+// a private club's stay with its members.
+await assertSucceeds(getDocs(collection(stranger, "clubs/pub/events/e1/courts")));
+await assertSucceeds(getDocs(collection(anon, "clubs/pub/events/e1/courts")));
+await assertFails(getDocs(collection(stranger, "clubs/priv/events/e1/courts")));
+await assertFails(getDocs(collection(anon, "clubs/priv/events/e1/courts")));
 await assertFails(getDocs(collection(quick, "clubs/pub/events/e1/players")));
 await assertFails(getDocs(collection(legacy, "clubs/pub/events/e1/players")));
 await assertFails(setDoc(g(mem, "pub", "courts/court-9"), { courtNumber: 9 })); // read only

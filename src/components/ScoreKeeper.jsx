@@ -30,16 +30,17 @@ const namesOf = (ids, players) => (ids || []).map((id) => players.find((p) => p.
 // Team 1 is always on the left and Team 2 on the right, each with its own score, so a number never changes sides.
 // Each half is the button: tap the side of the team that won the rally. "Fix the score" and "How scoring works" sit
 // below the board, or beside it when there is room (the volunteer page on a desktop); `page` opens them there.
-export default function ScoreKeeper({ court, players, settings, onScore, onConfirm, onStop, page = false }) {
+export default function ScoreKeeper({ court, players, settings, onScore, onConfirm, onStop, page = false, autoRecord = settings?.autoRecord }) {
   const [wide] = useState(() => page && typeof window !== "undefined" && !!window.matchMedia?.("(min-width: 1100px)").matches);
   const empty = !(court.teamA?.length || court.teamB?.length);
   const s = liveScore(court, settings);
   const won = winner(s);
-  // No Confirm button: a finished game is saved after a short countdown (a wrong last tap can still be undone).
-  // A manager's save records it at once; a volunteer's marks it confirmed and the host's queue records it.
+  // A finished game is saved after a short countdown (a wrong last tap can still be undone). With "Record umpire results
+  // automatically" off the host then confirms it (the court card, or the Confirm button here in the manager's pop-up);
+  // on, a manager's save records it at once and a volunteer's is recorded by the host's queue.
   const [left, setLeft] = useState(SAVE_AFTER_S);
   const save = useRef(null);
-  save.current = () => (onConfirm ? onConfirm(won === 1 ? "A" : "B") : onScore(confirmScore(s)));
+  save.current = () => (autoRecord && onConfirm ? onConfirm(won === 1 ? "A" : "B") : onScore(confirmScore(s)));
   const finishing = !empty && won && !s.confirmed ? `${court.id}:${s.start}:${s.t1}:${s.t2}` : null;
   useEffect(() => {
     if (!finishing) return undefined;
@@ -103,7 +104,9 @@ export default function ScoreKeeper({ court, players, settings, onScore, onConfi
           {won ? (
             <div className="scorekeeper-done">
               <b>Team {won} wins {finalText(s)}</b>
-              <p>{s.confirmed ? "Saved. The next match goes on this court." : `Saving in ${left} s. Tap Undo to change it.`}</p>
+              {!s.confirmed ? <p>{`Saving in ${left} s. Tap Undo to change it.`}</p>
+                : onConfirm ? <button className={`court-confirm team${won}`} onClick={() => onConfirm(won === 1 ? "A" : "B")}>Confirm: Team {won} wins {finalText(s)}</button>
+                : <p>{autoRecord ? "Saved. The next match goes on this court." : "Saved. The host confirms the result on their screen."}</p>}
             </div>
           ) : null}
         </div>

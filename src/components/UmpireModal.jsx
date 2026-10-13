@@ -22,8 +22,8 @@ export default function UmpireModal({ base, kind, courts, claims, umpiresOn, set
 
   // Volunteers score the way the Dashboard does: keep the link's copy of the style and target current.
   useEffect(() => {
-    if (enabled && link.code && (link.style !== settings.style || link.to !== settings.to)) syncSettings(base, settings);
-  }, [enabled, link.code, link.style, link.to, settings.style, settings.to]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (enabled && link.code && (link.style !== settings.style || link.to !== settings.to || link.autoRecord !== settings.autoRecord)) syncSettings(base, settings);
+  }, [enabled, link.code, link.style, link.to, link.autoRecord, settings.style, settings.to, settings.autoRecord]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const copy = async () => {
     try {

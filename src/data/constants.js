@@ -26,6 +26,7 @@ export const DEFAULT_RULES = {
   historyGames: 10, // recent games of partners / opponents the shuffle remembers
   scoreStyle: "sideout", // umpire scoring: "sideout" (serving team scores, server 1/2) or "rally"
   scoreTo: 11, // play to 11, 15 or 21, win by 2
+  autoRecord: false, // record an umpire's finished game by itself (else the host taps Confirm)
 };
 export const RULE_DEFAULTS_VERSION = 1;
 export const DEFAULT_COST = { rate: 0, roundTo: 0 }; // roundTo 0 = exact split

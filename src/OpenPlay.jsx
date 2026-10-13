@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { CalendarDays, Check, Clock, Wallet } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db, firebaseConfigured } from "./firebase";
@@ -10,6 +10,8 @@ import DateTile from "./components/DateTile";
 import { byStart, endHM, isListed, myStatus, splitAttendees } from "./utils/bookings";
 import { DEFAULT_DISPLAY } from "./data/constants";
 import { isAccountUser } from "./utils/account";
+import { liveChips } from "./utils/liveBoard";
+import { docsOf } from "./hooks/useLiveDocs";
 
 // The player's own requests live on their device: the request id is the only key to
 // read it back (rules allow a single get, never a list).
@@ -117,6 +119,25 @@ function JoinForm({ event, clubId, onSent, onCancel }) {
   );
 }
 
+// A game in progress: one chip per scored court ("Court 1  7 - 5" in team colors), live. A public club's court docs are
+// readable by anyone; they hold player ids and scores, never names.
+function LiveStrip({ clubId, eventId }) {
+  const [courts, setCourts] = useState([]);
+  useEffect(() => onSnapshot(collection(db, "clubs", clubId, "events", eventId, "courts"),
+    (s) => setCourts(docsOf(s)), () => setCourts([])), [clubId, eventId]);
+  const chips = liveChips(courts);
+  return (
+    <div className="op-live" aria-live="polite">
+      <span className="op-live-tag"><i aria-hidden="true" /> Live now</span>
+      {chips.length ? chips.map((c) => (
+        <span className="op-live-chip" key={c.id}>
+          {c.name} <b className="t1">{c.t1}</b><em>-</em><b className="t2">{c.t2}</b>
+        </span>
+      )) : <span className="op-live-none">Game in progress</span>}
+    </div>
+  );
+}
+
 function EventCard({ e, clubId, mine, onSent }) {
   const [joining, setJoining] = useState(false);
   const { confirmed, waitlist } = splitAttendees(e);
@@ -133,6 +154,8 @@ function EventCard({ e, clubId, mine, onSent }) {
           <p><Clock size={13} /> {formatHM(e.startTime)} – {formatHM(endHM(e))}</p>
         </div>
       </div>
+
+      {e.status === "live" && <LiveStrip clubId={clubId} eventId={e.id} />}
 
       <div className="op-facts">
         <span className="pill">{e.fee > 0 ? money(e.fee) : "Free"}</span>
