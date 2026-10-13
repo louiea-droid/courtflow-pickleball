@@ -9,6 +9,7 @@ export default function MatchLogRow({ match, latest = false }) {
     <div className={`matchlog-row${latest ? " latest" : ""}`}>
       <div className="matchlog-meta">
         <span className="matchlog-court">{match.court}</span>
+        {match.score && <span className="matchlog-score">{match.score}</span>}
         {match.recordedAt && <span className="matchlog-time">{formatTime(match.recordedAt)}</span>}
       </div>
       <div className="matchlog-line win">

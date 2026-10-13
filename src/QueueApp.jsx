@@ -14,6 +14,9 @@ import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES, normalizeMo
 import { useSessionData } from "./hooks/useSessionData";
 import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
+import { useDocs } from "./hooks/useLiveDocs";
+import { writeScore } from "./utils/umpireData";
+import { packCourts } from "./utils/courtPack";
 
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
@@ -22,6 +25,7 @@ import PlayerModal from "./components/PlayerModal";
 import CheckInModal from "./components/CheckInModal";
 import SessionModal from "./components/SessionModal";
 import ShareModal from "./components/ShareModal";
+import UmpireModal from "./components/UmpireModal";
 import ConfirmDialog from "./components/ConfirmDialog";
 import Dashboard from "./views/Dashboard";
 import Queue from "./views/Queue";
@@ -50,11 +54,13 @@ export default function QueueApp({
   const isEventGame = kind === "event";
   const costs = useCosts(base);
   const matchLog = useMatchLog(base);
+  const claims = useDocs([...base, "courtClaims"]);
   const [showPlayer, setShowPlayer] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [checkingInPlayer, setCheckingInPlayer] = useState(null);
   const [showSession, setShowSession] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showUmpires, setShowUmpires] = useState(false);
   const [showEndSession, setShowEndSession] = useState(false);
   const [showErase, setShowErase] = useState(false);
   const [toast, setToast] = useState(null);
@@ -414,24 +420,14 @@ export default function QueueApp({
   async function removeCourt(courtId) {
     if (courts.length <= 1) return notify("You need at least 1 court.");
     const removed = courts.find((c) => c.id === courtId);
-    // Re-pack the survivors into contiguous court-1..court-N doc IDs (keeping
-    // their data) so numbering never gets gaps that later break addCourt.
-    const remaining = courts.filter((c) => c.id !== courtId).sort((a, b) => a.courtNumber - b.courtNumber);
-    const targetIds = remaining.map((_, i) => `court-${i + 1}`);
+    // Re-pack the survivors into contiguous court-1..court-N doc IDs (keeping their data, live score and umpire claim).
+    const { sets, deletes, claimSets, claimDeletes } = packCourts(courts, courtId, claims);
     const batch = writeBatch(db);
-    remaining.forEach((c, i) => {
-      batch.set(at("courts", targetIds[i]), {
-        courtNumber: i + 1,
-        start: c.start ?? Date.now(),
-        teamA: c.teamA || [],
-        teamB: c.teamB || [],
-        ...(c.level ? { level: c.level } : {}),
-      });
-    });
-    courts.forEach((c) => {
-      if (!targetIds.includes(c.id)) batch.delete(at("courts", c.id));
-    });
-    batch.update(at(), { courts: remaining.length });
+    sets.forEach((s) => batch.set(at("courts", s.id), s.data));
+    deletes.forEach((id) => batch.delete(at("courts", id)));
+    claimDeletes.forEach((id) => batch.delete(at("courtClaims", id)));
+    claimSets.forEach((s) => batch.set(at("courtClaims", s.id), s.data));
+    batch.update(at(), { courts: sets.length });
     await batch.commit();
     notify(`Court ${removed?.courtNumber ?? ""} removed.`);
   }
@@ -486,9 +482,13 @@ export default function QueueApp({
     notify("Filled open seats from the queue.");
   }
 
+  const scoreCourt = (courtId, score) => writeScore(base, courtId, score)
+    .catch(() => notify("Couldn't save the score. Check your connection.", 4000));
+
   // nextIds: the host's edited Up Next for this court (Dashboard), seat for seat, used instead of a fresh pick
   // when the court rotates. Returns true when it was used, so the Dashboard can drop the edit.
-  async function recordWin(courtId, side, nextIds = null) {
+  // scoreText: the umpire's final score ("11-7"), written on the match log entry.
+  async function recordWin(courtId, side, nextIds = null, scoreText = null) {
     const c = courts.find((x) => x.id === courtId);
     const winners = side === "A" ? c.teamA : c.teamB;
     const losers = side === "A" ? c.teamB : c.teamA;
@@ -529,12 +529,13 @@ export default function QueueApp({
       winners: winners.map(nameOf),
       losers: losers.map(nameOf),
       recordedAt: Date.now(),
+      ...(scoreText ? { score: scoreText } : {}),
     });
     const need = session.format === "Singles" ? 2 : 4;
     const courtRef = at("courts", c.id);
     undo.update(courtRef, {
       teamA: c.teamA || [], teamB: c.teamB || [], start: was(c.start),
-      winStreak: was(c.winStreak), stayingIds: was(c.stayingIds),
+      winStreak: was(c.winStreak), stayingIds: was(c.stayingIds), score: was(c.score),
     });
     // Winners-stay: count consecutive wins by the exact same team, and keep
     // them on until they hit the club's cap. Challengers come straight off
@@ -577,6 +578,8 @@ export default function QueueApp({
     } else {
       batch.update(courtRef, { teamA: [], teamB: [], start: Date.now(), winStreak: 0, stayingIds: [] });
     }
+    // The result ends the match, so its live score goes with it.
+    batch.update(courtRef, { score: deleteField() });
     await batch.commit();
     // ponytail: restores the court as it was; anything done to that court in the
     // 10s window (a swap, a manual add) is overwritten. Fine for a mis-tap fix.
@@ -639,8 +642,10 @@ export default function QueueApp({
         });
       }
     } else if (data.courts < courts.length) {
-      courts.filter((c) => c.courtNumber > data.courts)
-        .forEach((c) => batch.delete(at("courts", c.id)));
+      courts.filter((c) => c.courtNumber > data.courts).forEach((c) => {
+        batch.delete(at("courts", c.id));
+        if (claims.some((cl) => cl.id === c.id)) batch.delete(at("courtClaims", c.id)); // an old claim must not attach to a later court of the same id
+      });
     }
     await batch.commit();
     notify("Session updated.");
@@ -757,6 +762,7 @@ export default function QueueApp({
               onAddCourt={addCourt} onRemoveCourt={removeCourt} onSetCourtLevel={setCourtLevel} onRenameCourt={renameCourt}
               onStartNext={startNextMatch} onSwapQueueOrder={swapQueueOrder} onSkipQueued={skipQueuedPlayer}
               onEditPlayer={setEditingPlayer} onSendToCourt={sendPreviewToCourt} rules={rules}
+              claims={claims} onScore={scoreCourt} onOpenUmpires={() => setShowUmpires(true)}
               goQueue={() => setTab("queue")} />
           )}
           {tab === "queue" && (
@@ -820,6 +826,11 @@ export default function QueueApp({
         )}
         {showShare && kind === "quick" && (
           <ShareModal url={`${window.location.origin}/live?club=${base[1]}${live.key ? `&key=${live.key}` : ""}`} close={() => setShowShare(false)} />
+        )}
+        {showUmpires && (
+          <UmpireModal base={base} kind={kind} courts={courts} claims={claims} umpiresOn={session.umpireOn === true}
+            settings={{ style: rules.scoreStyle, to: rules.scoreTo }} close={() => setShowUmpires(false)} notify={notify}
+            onToggle={(on) => updateDoc(at(), { umpireOn: on }).catch(() => notify("Couldn't change that. Try again.", 4000))} />
         )}
         {showErase && (
           <ConfirmDialog

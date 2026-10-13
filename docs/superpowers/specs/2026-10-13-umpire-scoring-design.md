@@ -9,10 +9,12 @@ the Dashboard and the Live Board, and confirming the end of the game records the
   that court. Their writes already pass the rules.
 - **Volunteers, no account**: the host (event game) or the owner (quick session) gets an **Umpire link + QR code**; in the
   quick session it sits behind an **Allow volunteer umpires** switch in Settings (off by default, the owner decides).
-  The link is `/umpire?game={clubId}.{eventId}` (event) or `/umpire?game={uid}` (quick session), plus `&code={code}`. The page
+  The link is `/umpire?club={clubId}&event={eventId}&code={code}` (event) or `/umpire?session={uid}&code={code}` (quick session). The page
   signs the visitor in anonymously (as `useClub` does; a signed-in account is reused, never signed out), asks for a name and
-  writes `{base}/umpires/{uid}` = `{ code, name, at }`. **New link** replaces the code (`{base}/private/umpire`, managers /
-  owner only), so every old link and registered umpire stops at once. An ended game, or the switch turned off, refuses
+  writes `{base}/umpires/{uid}` = `{ code, name, at }`. The code and the scoring settings the volunteer's screen uses live in
+  `{base}/private/umpire` = `{ code, style, to }` (managers / owner write; the host's Umpires panel re-syncs style and target
+  whenever it opens). **New link** replaces the code and deletes every registration and claim, so every old link and
+  registered umpire stops at once and the courts are free again. An ended game, or the switch turned off, refuses
   umpire writes.
 
 ## One umpire per court
@@ -26,7 +28,7 @@ the Dashboard and the Live Board, and confirming the end of the game records the
 
 ## Scoring logic (`utils/scoring.js`, pure, check `node src/utils/scoring.check.mjs`)
 
-State on the court doc: `score = { start, t1, t2, serving, server, style, to, log }`.
+State on the court doc: `score = { start, t1, t2, serving, server, style, to, singles, log }`.
 
 - `start` copies `court.start`. A score whose `start` differs from the court's is stale and reads as a fresh 0-0, so no
   writer that puts a new match on a court has to clear it.
@@ -45,11 +47,12 @@ State on the court doc: `score = { start, t1, t2, serving, server, style, to, lo
 ## Ending a game
 
 - At a winner the umpire screen asks **"Team 1 wins 11-7?" -> Confirm** (or keep scoring if it was a mistake: Undo).
-- A manager's Confirm calls `recordWin(courtId, side, null, { t1, t2 })`; `recordWin` writes the score onto the
-  `matchLog` entry (`score: "11-7"`, winners first). Everything else (rotation, streaks, toast Undo) is unchanged.
-- A volunteer cannot write players or the match log, so their Confirm writes `score.final = "A" | "B"` (still only the
-  `score` field). The Dashboard court card then shows **"Umpire: Team 1 won 11-7 - Record"**; one tap records it.
-  Nothing records by itself (two open Dashboards would record twice).
+- A manager's Confirm calls `recordWin(courtId, side, scoreText)`; `recordWin` writes the score onto the `matchLog` entry
+  (`score: "11-7"`, winners first), deletes the court's `score` (Undo restores it). Everything else (rotation, streaks,
+  toast Undo) is unchanged.
+- A volunteer cannot write players or the match log, and there is no separate "final" field: a finished game is read from the
+  score itself (`winner(score)`). The Dashboard court card shows **"Record: Team 1 won 11-7"** for any finished score; one
+  tap records it. Nothing records by itself (two open Dashboards would record twice).
 
 ## Screens
 
@@ -63,10 +66,10 @@ State on the court doc: `score = { start, t1, t2, serving, server, style, to, lo
 ## Rules (`firestore.rules`, re-publish after)
 
 For both bases (`sessions/{uid}` and `clubs/{c}/events/{e}`):
-- `private/umpire` `{ code }`: managers / owner only. Quick sessions are public-read today, so `private` joins
-  `bookingRequests` as owner-only read.
+- `private/umpire` `{ code, style, to }`: managers / owner write; a registered umpire may `get` it. Quick sessions are
+  public-read today, so `private`, `umpires` and `courtClaims` join `bookingRequests` as owner-only read.
 - `umpires/{uid}`: create by `request.auth.uid == uid` when `code` equals the current code and the game is live (event) or
-  volunteer umpires are on (quick session); delete by that uid or a manager.
+  volunteer umpires are on (quick session); a person may `get` only their own record; delete by that uid or a manager.
 - `courtClaims/{courtId}`: read by an umpire record holder or a manager; create (only if missing) by an umpire with
   `uid == request.auth.uid`; delete by the holder or a manager; managers may also write (assign).
 - A court update by a non-manager is allowed only when `affectedKeys().hasOnly(['score'])`, the caller holds the court's

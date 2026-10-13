@@ -14,8 +14,28 @@ service cloud.firestore {
       // Everything under a quick session is public to read, except leftover bookingRequests. `events` is never written here:
       // the collection-group rule below would list it as a club's session.
       match /{coll}/{docId} {
-        allow read: if coll != 'bookingRequests' || isClub(sessionId);
+        allow read: if !(coll in ['bookingRequests', 'private', 'umpires', 'courtClaims']) || isClub(sessionId);
         allow write: if coll != 'events' && isClub(sessionId);
+      }
+      match /private/{id} {
+        allow get: if id == 'umpire' && sessionUmpire(sessionId);
+      }
+      match /umpires/{uid} {
+        allow get: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && get(/databases/$(database)/documents/sessions/$(sessionId)).data.get('umpireOn', false) == true
+          && validUmpireRecord(request.resource.data, /databases/$(database)/documents/sessions/$(sessionId)/private/umpire);
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+      match /courtClaims/{courtId} {
+        allow read: if sessionUmpire(sessionId);
+        allow create: if sessionUmpire(sessionId) && validClaim(request.resource.data);
+        allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      }
+      match /courts/{courtId} {
+        allow update: if sessionUmpire(sessionId) && scoreOnly()
+          && exists(/databases/$(database)/documents/sessions/$(sessionId)/courtClaims/$(courtId))
+          && get(/databases/$(database)/documents/sessions/$(sessionId)/courtClaims/$(courtId)).data.uid == request.auth.uid;
       }
     }
 
@@ -262,6 +282,45 @@ service cloud.firestore {
       return n is string && n.size() > 0 && n.size() <= 60;
     }
 
+    // ---- Volunteer umpires (docs/superpowers/specs/2026-10-13-umpire-scoring-design.md).
+    // A person registers with the game's current code, then claims one court and may change only its score.
+    // u: the caller's umpires/{uid} path, p: the game's private/umpire path. A renewed code stops every old record.
+    function umpireIn(u, p) {
+      return exists(u) && exists(p) && get(u).data.code == get(p).data.code;
+    }
+    function eventUmpire(c, e) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/clubs/$(c)/events/$(e)).data.status == 'live'
+        && umpireIn(/databases/$(database)/documents/clubs/$(c)/events/$(e)/umpires/$(request.auth.uid),
+                    /databases/$(database)/documents/clubs/$(c)/events/$(e)/private/umpire);
+    }
+    function sessionUmpire(s) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/sessions/$(s)).data.get('umpireOn', false) == true
+        && umpireIn(/databases/$(database)/documents/sessions/$(s)/umpires/$(request.auth.uid),
+                    /databases/$(database)/documents/sessions/$(s)/private/umpire);
+    }
+    function validUmpireRecord(d, p) {
+      return d.keys().hasOnly(['code', 'name', 'at']) && d.keys().hasAll(['code', 'name', 'at'])
+        && validName(d.name) && d.name.size() <= 40 && d.at is number
+        && exists(p) && d.code == get(p).data.code;
+    }
+    function validClaim(d) {
+      return d.keys().hasOnly(['uid', 'name']) && d.keys().hasAll(['uid', 'name'])
+        && d.uid == request.auth.uid && validName(d.name) && d.name.size() <= 40;
+    }
+    function validScore(s) {
+      return s is map
+        && s.keys().hasOnly(['start', 't1', 't2', 'serving', 'server', 'style', 'to', 'singles', 'log'])
+        && s.t1 is int && s.t1 >= 0 && s.t1 <= 99 && s.t2 is int && s.t2 >= 0 && s.t2 <= 99
+        && s.log is list && s.log.size() <= 50;
+    }
+    // An update that changes only the score.
+    function scoreOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['score'])
+        && validScore(request.resource.data.score);
+    }
+
     // A person asks to join a public club (they are not signed in as a quick session, and are not a member yet).
     function validJoinRequest(clubId) {
       let d = request.resource.data;
@@ -404,6 +463,32 @@ service cloud.firestore {
         match /{sub}/{docId} {
           allow write: if isManager(clubId);
           allow read: if isManager(clubId) || (sub in ['players', 'courts'] && isMember(clubId));
+        }
+
+        // Volunteer umpires: see the helpers above. Managers already reach all of this through the wildcard.
+        match /private/{id} {
+          allow get: if id == 'umpire' && eventUmpire(clubId, eventId);
+        }
+        match /umpires/{uid} {
+          allow get: if request.auth != null && request.auth.uid == uid;
+          allow create: if request.auth != null && request.auth.uid == uid
+            && get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)).data.status == 'live'
+            && validUmpireRecord(request.resource.data, /databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/private/umpire);
+          allow delete: if request.auth != null && request.auth.uid == uid;
+        }
+        match /courtClaims/{courtId} {
+          allow read: if eventUmpire(clubId, eventId);
+          allow create: if eventUmpire(clubId, eventId) && validClaim(request.resource.data);
+          allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+        }
+        match /players/{playerId} {
+          allow read: if eventUmpire(clubId, eventId);
+        }
+        match /courts/{courtId} {
+          allow read: if eventUmpire(clubId, eventId);
+          allow update: if eventUmpire(clubId, eventId) && scoreOnly()
+            && exists(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/courtClaims/$(courtId))
+            && get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/courtClaims/$(courtId)).data.uid == request.auth.uid;
         }
       }
 
