@@ -14,6 +14,8 @@ import { DEFAULT_COST, DEFAULT_DISPLAY, DEFAULT_LIVE, DEFAULT_RULES, normalizeMo
 import { useSessionData } from "./hooks/useSessionData";
 import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
+import { useDocs } from "./hooks/useLiveDocs";
+import { writeScore } from "./utils/umpireData";
 
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
@@ -49,6 +51,7 @@ export default function QueueApp({
   const isEventGame = kind === "event";
   const costs = useCosts(base);
   const matchLog = useMatchLog(base);
+  const claims = useDocs([...base, "courtClaims"]);
   const [showPlayer, setShowPlayer] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [checkingInPlayer, setCheckingInPlayer] = useState(null);
@@ -493,6 +496,9 @@ export default function QueueApp({
     notify("Filled open seats from the queue.");
   }
 
+  const scoreCourt = (courtId, score) => writeScore(base, courtId, score)
+    .catch(() => notify("Couldn't save the score. Check your connection.", 4000));
+
   async function recordWin(courtId, side, scoreText = null) {
     const c = courts.find((x) => x.id === courtId);
     const winners = side === "A" ? c.teamA : c.teamB;
@@ -761,6 +767,7 @@ export default function QueueApp({
               onAddCourt={addCourt} onRemoveCourt={removeCourt} onSetCourtLevel={setCourtLevel} onRenameCourt={renameCourt}
               onStartNext={startNextMatch} onSwapQueueOrder={swapQueueOrder} onSkipQueued={skipQueuedPlayer}
               onEditPlayer={setEditingPlayer} onSendToCourt={sendPreviewToCourt} rules={rules}
+              claims={claims} onScore={scoreCourt}
               goQueue={() => setTab("queue")} />
           )}
           {tab === "queue" && (

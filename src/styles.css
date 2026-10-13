@@ -1482,3 +1482,33 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
   *{scrollbar-width:none!important;-ms-overflow-style:none}
   *::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
 }
+
+/* Umpire scoring: ScoreKeeper (manager modal + /umpire), the court card line and the Live Board score */
+.scorekeeper{display:flex;flex-direction:column;gap:12px}
+.scorekeeper-empty{color:var(--faint);text-align:center;padding:18px 0}
+.scorekeeper-call{font:700 clamp(44px,14vw,72px)/1 "Space Grotesk";text-align:center;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.scorekeeper-status{text-align:center;color:var(--ink-2);font-weight:700}
+.scorekeeper-teams{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.scorekeeper-team{display:flex;flex-direction:column;gap:8px}
+.scorekeeper-names{display:flex;flex-direction:column;gap:2px;font-size:13px;min-height:62px}
+.scorekeeper-names b{font:700 14px "Space Grotesk"}
+.scorekeeper-rally{border:0;border-radius:14px;min-height:84px;padding:10px;font:800 15px "Space Grotesk";transition:transform .15s var(--ease),filter .15s ease}
+.scorekeeper-rally:active:not(:disabled){transform:scale(.97)}
+.scorekeeper-rally:disabled{opacity:.4}
+.scorekeeper-tools{display:flex;gap:8px;flex-wrap:wrap}
+.scorekeeper-tools button{min-height:44px}
+.scorekeeper-adjust summary{cursor:pointer;color:var(--ink-2);font-weight:700;padding:6px 0}
+.scorekeeper-adjust div > div{display:flex;align-items:center;gap:8px;padding:4px 0}
+.scorekeeper-adjust span{flex:1}
+.scorekeeper-adjust button{min-width:48px;min-height:40px}
+.scorekeeper-done{display:flex;flex-direction:column;gap:8px;align-items:stretch;text-align:center;padding:12px;border-radius:12px;background:var(--accent-soft)}
+.scorekeeper-done p{margin:0;color:var(--ink-2)}
+.score-line{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.score-line b{font:700 26px "Space Grotesk";font-variant-numeric:tabular-nums}
+.score-line .t1{color:var(--team1)}.score-line .t2{color:var(--team2)}
+.score-line i{color:var(--faint);font-style:normal}
+.score-line small{color:var(--ink-2);font-weight:700}
+.court-score{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px}
+.court-umpire{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;color:var(--ink-2);font-size:13px}
+.live-score{margin-top:10px}
+.live-score .score-line b{font-size:clamp(28px,3vw,44px)}

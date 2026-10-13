@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, ArrowLeftRight, Zap, Play, Plus, Pencil } from "lucide-react";
+import { X, ArrowLeftRight, Zap, Play, Plus, Pencil, Hash } from "lucide-react";
 import LockMark from "../components/LockMark";
 import PanelHead from "../components/PanelHead";
 import PersonBadge from "../components/PersonBadge";
@@ -8,6 +8,9 @@ import StarDisplay from "../components/StarDisplay";
 import CourtLevelSelect from "../components/CourtLevelSelect";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ElapsedTimer from "../components/ElapsedTimer";
+import Modal from "../components/Modal";
+import ScoreKeeper, { ScoreLine } from "../components/ScoreKeeper";
+import { finalText, liveScore, winner } from "../utils/scoring";
 import { rankPlayers, waitMinutes, winPct } from "../utils/format";
 import { matchesCourtLevel } from "../utils/courtLevels";
 import { CircleAlert } from "lucide-react";
@@ -194,8 +197,12 @@ function CourtTitle({ court, onRename }) {
   return <b className="court-name" title="Click to rename" onClick={startEdit}>{displayName}</b>;
 }
 
-function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, onStartNext, onSetLevel, onRemoveCourt, canRemove, onRenameCourt, alertAfterMin, manual }) {
+function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, onStartNext, onSetLevel, onRemoveCourt, canRemove, onRenameCourt, alertAfterMin, manual, claims, scoreSettings, onScore }) {
   const [swapOpen, setSwapOpen] = useState(null);
+  const [scoring, setScoring] = useState(false);
+  const claim = claims.find((x) => x.id === c.id);
+  const sc = c.score && c.score.start === c.start ? c.score : null; // an old match's score never shows
+  const done = sc ? winner(sc) : 0;
   const [confirmRemove, setConfirmRemove] = useState(false);
   const teamsRef = useRef(null);
   const toggleSwap = (id) => setSwapOpen((cur) => (cur === id ? null : id));
@@ -239,11 +246,32 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, 
               swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} remove={(id) => remove(c.id, id)}
               onAdd={(id) => handleAdd("B", id)} />
           </div>
+          {sc && (
+            <div className="court-score">
+              <ScoreLine score={sc} />
+              {done ? (
+                <button className="primary" onClick={() => win(c.id, done === 1 ? "A" : "B", finalText(sc))}>
+                  Record: Team {done} won {finalText(sc)}
+                </button>
+              ) : null}
+            </div>
+          )}
+          <div className="court-umpire">
+            <button className="outline" onClick={() => setScoring(true)}><Hash size={14} /> {sc ? "Score" : "Start score"}</button>
+            {claim && <>Umpire: {claim.name}</>}
+          </div>
           <div className="winrow">
             <button onClick={() => win(c.id, "A")}>Team 1 Wins</button>
             <button onClick={() => win(c.id, "B")}>Team 2 Wins</button>
           </div>
         </>
+      )}
+      {scoring && (
+        <Modal title={c.name || `Court ${c.courtNumber}`} label="SCORE" close={() => setScoring(false)}>
+          <ScoreKeeper court={c} players={players} settings={scoreSettings}
+            onScore={(next) => onScore(c.id, next)}
+            onConfirm={(side) => { setScoring(false); win(c.id, side, finalText(liveScore(c, scoreSettings))); }} />
+        </Modal>
       )}
     </div>
   );
@@ -436,7 +464,9 @@ export default function Dashboard({
   session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer, addPlayerToCourt, notify,
   autoRotateOn, onToggleAutoRotate, onAutoFill, onAddCourt, onRemoveCourt, onSetCourtLevel, onRenameCourt,
   onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue, rules,
+  claims = [], onScore,
 }) {
+  const scoreSettings = { style: rules.scoreStyle, to: rules.scoreTo, singles: session.format === "Singles" };
   const need = session.format === "Singles" ? 2 : 4;
   const mode = normalizeMode(session.mode || session.rotation) || "Balanced";
   const manual = mode === "Custom";
@@ -548,7 +578,8 @@ export default function Dashboard({
           <Court key={c.id} c={c} players={players} queue={queue} need={need} upNext={upNext}
             win={recordWin} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={onStartNext} onSetLevel={onSetCourtLevel}
             onRemoveCourt={onRemoveCourt} canRemove={courts.length > 1} onRenameCourt={onRenameCourt}
-            alertAfterMin={rules.gameAlertMinutes} manual={manual} />
+            alertAfterMin={rules.gameAlertMinutes} manual={manual}
+            claims={claims} scoreSettings={scoreSettings} onScore={onScore} />
         ))}
       </div>
 
