@@ -12,17 +12,24 @@ import MatchLogRow from "./components/MatchLogRow";
 import PhClock from "./components/PhClock";
 import StarDisplay from "./components/StarDisplay";
 import ElapsedTimer from "./components/ElapsedTimer";
-import { ScoreLine } from "./components/ScoreKeeper";
+import { CircleDot } from "lucide-react";
+import { call, winner } from "./utils/scoring";
 import { applyDisplayPrefs, money } from "./utils/format";
 import { applyGlobalTheme } from "./utils/theme";
 import { DEFAULT_LIVE, normalizeMode } from "./data/constants";
 import { upNextByCourt } from "./utils/rotationModes";
 import { queueOrder } from "./utils/queueStatus";
 
-function LiveTeam({ label, color, ids, players, showSkill }) {
+// points: this team's score (null when nobody is scoring); serving: "Server 2" / "Serving"; state: "winner" / "lost".
+function LiveTeam({ label, color, ids, players, showSkill, points = null, serving = null, state = null }) {
   return (
-    <div className="team">
-      <div className={color}>{label}</div>
+    <div className={`team${state === "lost" ? " live-lost" : ""}`}>
+      <div className={`${color} live-team-head`}>
+        <span>{label}</span>
+        {serving && <em className="live-serve"><CircleDot size={12} /> {serving}</em>}
+        {state === "winner" && <em className="live-serve">Winner</em>}
+        {points != null && <b className="live-points">{points}</b>}
+      </div>
       {ids.map((id) => {
         const p = players.find((x) => x.id === id);
         if (!p) return null;
@@ -39,23 +46,31 @@ function LiveTeam({ label, color, ids, players, showSkill }) {
 function LiveCourt({ c, players, showSkill }) {
   const isEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
   const sc = c.score && c.score.start === c.start ? c.score : null; // an old match's score never shows
+  // Each team's score sits in its own bar (it never changes sides); the official call is small in the top row.
+  const won = sc ? winner(sc) : 0;
+  const serving = sc && !won ? (sc.style !== "rally" && !sc.singles ? `Server ${sc.server}` : "Serving") : null;
+  const teamProps = (n) => (sc ? {
+    points: n === 1 ? sc.t1 : sc.t2,
+    serving: sc.serving === n ? serving : null,
+    state: won ? (won === n ? "winner" : "lost") : null,
+  } : {});
   return (
     <div className="court">
       <div className="court-top">
         <b>{c.name || `Court ${c.courtNumber}`}</b>
         {c.level && c.level !== "Any Level" && <span className="badge-level-quiet">{c.level}</span>}
         {isEmpty ? <span className="badge-open">OPEN</span> : <span>● LIVE</span>}
+        {!isEmpty && sc && !won && sc.style !== "rally" && <em className="live-call" title="Score call">{call(sc)}</em>}
         {!isEmpty && <ElapsedTimer start={c.start} />}
       </div>
       {isEmpty ? (
         <div className="court-empty"><p>Court is open.</p></div>
       ) : (
         <div className="teams">
-          <LiveTeam label="Team 1" color="team1" ids={c.teamA || []} players={players} showSkill={showSkill} />
-          <LiveTeam label="Team 2" color="team2" ids={c.teamB || []} players={players} showSkill={showSkill} />
+          <LiveTeam label="Team 1" color="team1" ids={c.teamA || []} players={players} showSkill={showSkill} {...teamProps(1)} />
+          <LiveTeam label="Team 2" color="team2" ids={c.teamB || []} players={players} showSkill={showSkill} {...teamProps(2)} />
         </div>
       )}
-      {!isEmpty && sc && <div className="live-score"><ScoreLine score={sc} /></div>}
     </div>
   );
 }
