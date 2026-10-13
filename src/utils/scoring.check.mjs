@@ -1,6 +1,6 @@
 // Self-check for the umpire score. Run: node src/utils/scoring.check.mjs
 import assert from "node:assert";
-import { adjust, call, finalText, firstServe, gamePoint, liveScore, newScore, rally, undo, winner } from "./scoring.js";
+import { adjust, call, finalText, firstServe, gamePoint, lastEvent, liveScore, newScore, rally, undo, winner } from "./scoring.js";
 
 const play = (s, ...teams) => teams.reduce(rally, s);
 
@@ -78,5 +78,16 @@ const court = { start: 200, teamA: ["a", "b"], teamB: ["c", "d"], score: { ...ne
 assert.equal(liveScore(court, { style: "sideout", to: 11 }).t1, 0);
 assert.equal(liveScore({ ...court, score: { ...court.score, start: 200 } }, {}).t1, 9);
 assert.equal(liveScore({ ...court, score: undefined }, { singles: true }).singles, true);
+
+// What the last tap did, in words (shown under the board and on Undo).
+const so = newScore({ start: 1 });
+assert.equal(lastEvent(so), null); // nothing yet
+assert.equal(lastEvent(rally(so, 1)), "Point to Team 1 (1-0)");
+assert.equal(lastEvent(rally(so, 2)), "Side out: Team 2 now serves");
+assert.equal(lastEvent(rally(rally(so, 2), 1)), "Second server for Team 2");
+assert.equal(lastEvent(play(newScore({ start: 1, style: "rally" }), 2)), "Point to Team 2 (0-1)");
+assert.equal(lastEvent(play(newScore({ start: 1, singles: true }), 2)), "Side out: Team 2 now serves");
+assert.equal(lastEvent(adjust(rally(so, 1), 1, -1)), "Score fixed (0-0)");
+assert.equal(lastEvent(adjust(so, 2, 1)), "Score fixed (0-1)");
 
 console.log("scoring checks passed");

@@ -66,3 +66,17 @@ export function call(s) {
 
 // "11-7": the winner's points first, for the match log.
 export const finalText = (s) => `${Math.max(s.t1, s.t2)}-${Math.min(s.t1, s.t2)}`;
+
+// What the last tap did, in words ("Point to Team 2 (8-9)", "Side out: Team 1 now serves"); null before the first one.
+// A +1 for the serving team reads as a point either way (a fix and a point look the same, and mean the same).
+export function lastEvent(s) {
+  const prev = s.log[s.log.length - 1];
+  if (!prev) return null;
+  const now = `(${s.t1}-${s.t2})`;
+  const up = [1, 2].find((t) => s[key(t)] - prev[key(t)] === 1 && s[key(other(t))] === prev[key(other(t))]);
+  if (up && s.serving === up && (s.style === "rally" || prev.serving === up)) return `Point to Team ${up} ${now}`;
+  if (s.t1 !== prev.t1 || s.t2 !== prev.t2) return `Score fixed ${now}`;
+  if (s.serving !== prev.serving) return `Side out: Team ${s.serving} now serves`;
+  if (s.server !== prev.server) return `Second server for Team ${s.serving}`;
+  return null;
+}

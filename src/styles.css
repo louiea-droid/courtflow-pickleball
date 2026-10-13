@@ -1489,19 +1489,28 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 /* Umpire scoring: ScoreKeeper (manager modal + /umpire), the court card line and the Live Board score */
 .scorekeeper{display:flex;flex-direction:column;gap:12px}
 .scorekeeper-empty{color:var(--faint);text-align:center;padding:18px 0}
-.scorekeeper-call{font:700 clamp(44px,14vw,72px)/1 "Space Grotesk";text-align:center;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.scorekeeper-status{text-align:center;color:var(--ink-2);font-weight:700}
-.scorekeeper-teams{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.scorekeeper-team{display:flex;flex-direction:column;gap:8px}
-.scorekeeper-names{display:flex;flex-direction:column;gap:2px;font-size:13px;min-height:62px}
-.scorekeeper-names b{font:700 14px "Space Grotesk"}
-.scorekeeper-rally{border:0;border-radius:14px;min-height:84px;padding:10px;font:800 15px "Space Grotesk";transition:transform .15s var(--ease),filter .15s ease}
-.scorekeeper-rally:active:not(:disabled){transform:scale(.97)}
-.scorekeeper-rally:disabled{opacity:.4}
-.scorekeeper-tools{display:flex;gap:8px;flex-wrap:wrap}
+.scorekeeper-call{align-self:center;color:var(--ink);font:700 28px/1 "Space Grotesk";font-variant-numeric:tabular-nums;letter-spacing:.02em;padding:8px 18px;border-radius:99px;background:var(--soft)}
+.scorekeeper-board{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.scorekeeper-side{display:flex;flex-direction:column;align-items:stretch;gap:4px;min-height:200px;padding:12px;border:0;border-radius:16px;text-align:left;cursor:pointer;transition:transform .15s var(--ease),filter .15s ease,opacity .15s ease}
+.scorekeeper-side.team1{background:var(--team1);color:var(--on-team1)}
+.scorekeeper-side.team2{background:var(--team2);color:var(--on-team2)}
+.scorekeeper-side:hover:not(:disabled){filter:brightness(1.05)}
+.scorekeeper-side:active:not(:disabled){transform:scale(.98)}
+.scorekeeper-side:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.scorekeeper-side:disabled{cursor:default}
+.scorekeeper-side.lost{opacity:.45}
+.scorekeeper-side-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 6px;min-height:24px}
+.scorekeeper-side-top b{font:700 15px "Space Grotesk";white-space:nowrap}
+.scorekeeper-side-top em{display:inline-flex;align-items:center;gap:4px;font-style:normal;font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px;background:color-mix(in srgb,currentColor 18%,transparent);white-space:nowrap}
+.scorekeeper-names{font-size:13px;opacity:.9;overflow-wrap:anywhere}
+.scorekeeper-points{flex:1;display:flex;align-items:center;justify-content:center;font:700 clamp(56px,17vw,88px)/1 "Space Grotesk";font-variant-numeric:tabular-nums}
+.scorekeeper-hint{text-align:center;font-size:12px;font-weight:700;opacity:.85;min-height:16px}
+.scorekeeper-event{margin:0;text-align:center;font-weight:800;color:var(--ink)}
+.scorekeeper-tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .scorekeeper-tools button{min-height:44px}
-.scorekeeper-adjust summary{cursor:pointer;color:var(--ink-2);font-weight:700;padding:6px 0}
-.scorekeeper-adjust div > div{display:flex;align-items:center;gap:8px;padding:4px 0}
+.scorekeeper-more summary{cursor:pointer;color:var(--ink-2);font-weight:700;padding:6px 0}
+.scorekeeper-more p{margin:4px 0 0;color:var(--ink-2);font-size:13px;line-height:1.5}
+.scorekeeper-adjust > div{display:flex;align-items:center;gap:8px;padding:4px 0}
 .scorekeeper-adjust span{flex:1}
 .scorekeeper-adjust button{min-width:48px;min-height:40px}
 .scorekeeper-done{display:flex;flex-direction:column;gap:8px;align-items:stretch;text-align:center;padding:12px;border-radius:12px;background:var(--accent-soft)}
