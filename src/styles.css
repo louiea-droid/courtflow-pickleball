@@ -1489,7 +1489,11 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 /* Umpire scoring: ScoreKeeper (manager modal + /umpire), the court card line and the Live Board score */
 .scorekeeper{display:flex;flex-direction:column;gap:12px}
 .scorekeeper-empty{color:var(--faint);text-align:center;padding:18px 0}
-.scorekeeper-call{align-self:center;color:var(--ink);font:700 28px/1 "Space Grotesk";font-variant-numeric:tabular-nums;letter-spacing:.02em;padding:8px 18px;border-radius:99px;background:var(--soft)}
+.scorekeeper-call{align-self:center;display:flex;gap:8px;align-items:baseline;color:var(--ink);font:700 28px/1 "Space Grotesk";font-variant-numeric:tabular-nums;padding:8px 18px;border-radius:99px;background:var(--soft)}
+.scorekeeper-call b{font:inherit}
+.scorekeeper-call .t1{color:color-mix(in srgb,var(--team1) 80%,var(--ink))}
+.scorekeeper-call .t2{color:color-mix(in srgb,var(--team2) 80%,var(--ink))}
+.scorekeeper-call i{font-style:normal;color:var(--faint)}
 .scorekeeper-board{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .scorekeeper-side{display:flex;flex-direction:column;align-items:stretch;gap:4px;min-height:200px;padding:12px;border:0;border-radius:16px;text-align:left;cursor:pointer;transition:transform .15s var(--ease),filter .15s ease,opacity .15s ease}
 .scorekeeper-side.team1{background:var(--team1);color:var(--on-team1)}
@@ -1515,6 +1519,21 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .scorekeeper-adjust button{min-width:48px;min-height:40px}
 .scorekeeper-done{display:flex;flex-direction:column;gap:8px;align-items:stretch;text-align:center;padding:12px;border-radius:12px;background:var(--accent-soft)}
 .scorekeeper-done p{margin:0;color:var(--ink-2)}
+/* Phones: umpires score from here, so the board stays short enough that score, Undo and the last tap fit in one view. */
+@media (max-width:560px){
+  .scorekeeper{gap:8px}
+  .scorekeeper-call{font-size:24px;padding:6px 14px}
+  .scorekeeper-board{gap:8px}
+  .scorekeeper-side{min-height:0;padding:10px;gap:2px;border-radius:14px}
+  .scorekeeper-side-top{flex-wrap:nowrap}
+  .scorekeeper-side-top b{font-size:14px}
+  .scorekeeper-side-top em{font-size:10px;padding:2px 6px}
+  .scorekeeper-side-top em svg{width:11px;height:11px}
+  .scorekeeper-names{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .scorekeeper-points{font-size:clamp(48px,15vw,60px);padding:6px 0}
+  .scorekeeper-hint{font-size:11px;min-height:0}
+  .scorekeeper-more summary{padding:4px 0}
+}
 .score-line{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .score-line b{font:700 26px "Space Grotesk";font-variant-numeric:tabular-nums}
 .score-line .t1{color:var(--team1)}.score-line .t2{color:var(--team2)}

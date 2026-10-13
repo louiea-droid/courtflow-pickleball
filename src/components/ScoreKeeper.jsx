@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { CircleDot, Undo2 } from "lucide-react";
 import { adjust, call, finalText, firstServe, gamePoint, lastEvent, liveScore, rally, undo, winner } from "../utils/scoring";
 
@@ -13,6 +14,13 @@ export function ScoreLine({ score }) {
     </div>
   );
 }
+
+// The call in parts, each with the team it belongs to: serving team score, receiving team score, server number.
+const callParts = (s) => {
+  const serve = s.serving, recv = serve === 1 ? 2 : 1;
+  const pts = (t) => (t === 1 ? s.t1 : s.t2);
+  return [[pts(serve), serve], [pts(recv), recv], ...(s.singles ? [] : [[s.server, serve]])];
+};
 
 const namesOf = (ids, players) => (ids || []).map((id) => players.find((p) => p.id === id)?.name || "Player");
 
@@ -31,7 +39,11 @@ export default function ScoreKeeper({ court, players, settings, onScore, onConfi
   return (
     <div className="scorekeeper">
       {sideout && !won && (
-        <div className="scorekeeper-call" aria-label={`Score call ${call(s)}`}>{call(s)}</div>
+        <div className="scorekeeper-call" aria-label={`Score call ${call(s)}`}>
+          {callParts(s).map(([value, team], i) => (
+            <Fragment key={i}>{i ? <i>-</i> : null}<b className={`t${team}`}>{value}</b></Fragment>
+          ))}
+        </div>
       )}
       <div className="scorekeeper-board">
         {teams.map(([n, ids, color]) => {
@@ -49,7 +61,7 @@ export default function ScoreKeeper({ court, players, settings, onScore, onConfi
               </span>
               <span className="scorekeeper-names">{namesOf(ids, players).join(" · ")}</span>
               <span className="scorekeeper-points">{pts}</span>
-              <span className="scorekeeper-hint">{won ? (won === n ? "Winner" : "") : "Tap if they won the rally"}</span>
+              <span className="scorekeeper-hint">{won ? (won === n ? "Winner" : "") : "Won the rally"}</span>
             </button>
           );
         })}
