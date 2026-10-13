@@ -1588,9 +1588,12 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .live-team-head{display:flex;align-items:center;gap:8px;min-height:2.2em;box-sizing:border-box}
 .liveboard .teams.live-scored .live-team-head{height:clamp(30px,4.2vh,42px);padding-top:0;padding-bottom:0}
 .liveboard .teams.live-scored{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
-.live-mid{display:flex;align-items:center;justify-content:center;gap:clamp(4px,0.8vw,12px);padding:0 clamp(4px,1vw,16px);font:700 clamp(30px,min(7vh,10vw),84px)/1 "Space Grotesk";font-variant-numeric:tabular-nums}
+/* Sizes follow the court card itself (a container), so three courts side by side get a tighter score than one. */
+.liveboard .court{container-type:inline-size}
+.liveboard .teams.live-scored{column-gap:clamp(6px,2cqi,16px)}
+.live-mid{display:flex;align-items:center;justify-content:center;gap:clamp(2px,0.8cqi,8px);padding:0;font:700 clamp(24px,7.5cqi,72px)/1 "Space Grotesk";font-variant-numeric:tabular-nums}
 .live-team-name{white-space:nowrap}
-@media (max-width:560px){.live-serve-word{display:none}.live-team-head .live-serve{padding:2px 6px}}
+@container (max-width:620px){.live-serve-word{display:none}.live-team-head .live-serve{padding:2px 6px}}
 .live-mid .t1{color:color-mix(in srgb,var(--team1) 85%,var(--ink))}
 .live-mid .t2{color:color-mix(in srgb,var(--team2) 85%,var(--ink))}
 .live-mid i{font-style:normal;color:var(--faint);font-size:.6em}
