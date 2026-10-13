@@ -9,8 +9,8 @@ import CourtLevelSelect from "../components/CourtLevelSelect";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ElapsedTimer from "../components/ElapsedTimer";
 import Modal from "../components/Modal";
-import ScoreKeeper, { ScoreLine } from "../components/ScoreKeeper";
-import { finalText, liveScore, winner } from "../utils/scoring";
+import ScoreKeeper from "../components/ScoreKeeper";
+import { call, finalText, liveScore, winner } from "../utils/scoring";
 import { rankPlayers, waitMinutes, winPct } from "../utils/format";
 import { matchesCourtLevel } from "../utils/courtLevels";
 import { CircleAlert } from "lucide-react";
@@ -224,6 +224,13 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, 
         <CourtTitle court={c} onRename={onRenameCourt} />
         <CourtLevelSelect level={c.level} onChange={(level) => onSetLevel(c.id, level)} />
         {isEmpty ? <span className="badge-open">OPEN</span> : <span>● LIVE</span>}
+        {!isEmpty && (
+          <button className="score-chip" onClick={() => setScoring(true)}
+            title={sc ? `${call(sc)}${claim ? ` · Umpire: ${claim.name}` : ""}` : "Start score"}
+            aria-label={sc ? `Score ${sc.t1} to ${sc.t2}, open the score screen` : "Start score"}>
+            {sc ? <><b className="t1">{sc.t1}</b><i>-</i><b className="t2">{sc.t2}</b></> : <Hash size={13} />}
+          </button>
+        )}
         {!isEmpty && <ElapsedTimer start={c.start} alertAfterMin={alertAfterMin} />}
       </div>
       {confirmRemove && (
@@ -246,20 +253,13 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, 
               swapOpenId={swapOpen} onSwapClick={toggleSwap} onSwap={handleSwap} remove={(id) => remove(c.id, id)}
               onAdd={(id) => handleAdd("B", id)} />
           </div>
-          {sc && (
+          {done ? (
             <div className="court-score">
-              <ScoreLine score={sc} />
-              {done ? (
-                <button className="primary" onClick={() => win(c.id, done === 1 ? "A" : "B", finalText(sc))}>
-                  Record: Team {done} won {finalText(sc)}
-                </button>
-              ) : null}
+              <button className="primary" onClick={() => win(c.id, done === 1 ? "A" : "B", finalText(sc))}>
+                Record: Team {done} won {finalText(sc)}
+              </button>
             </div>
-          )}
-          <div className="court-umpire">
-            <button className="outline" onClick={() => setScoring(true)}><Hash size={14} /> {sc ? "Score" : "Start score"}</button>
-            {claim && <>Umpire: {claim.name}</>}
-          </div>
+          ) : null}
           <div className="winrow">
             <button onClick={() => win(c.id, "A")}>Team 1 Wins</button>
             <button onClick={() => win(c.id, "B")}>Team 2 Wins</button>
@@ -267,7 +267,7 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, 
         </>
       )}
       {scoring && (
-        <Modal title={c.name || `Court ${c.courtNumber}`} label="SCORE" close={() => setScoring(false)}>
+        <Modal title={c.name || `Court ${c.courtNumber}`} label={claim ? `SCORE · UMPIRE ${claim.name.toUpperCase()}` : "SCORE"} close={() => setScoring(false)}>
           <ScoreKeeper court={c} players={players} settings={scoreSettings}
             onScore={(next) => onScore(c.id, next)}
             onConfirm={(side) => { setScoring(false); win(c.id, side, finalText(liveScore(c, scoreSettings))); }} />

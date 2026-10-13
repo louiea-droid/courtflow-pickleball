@@ -1508,8 +1508,13 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .score-line .t1{color:var(--team1)}.score-line .t2{color:var(--team2)}
 .score-line i{color:var(--faint);font-style:normal}
 .score-line small{color:var(--ink-2);font-weight:700}
-.court-score{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px}
-.court-umpire{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;color:var(--ink-2);font-size:13px}
+.court-score{display:flex;margin-top:10px}
+.court-score button{flex:1;min-height:40px}
+.court-top .score-chip{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:99px;padding:3px 9px;min-height:26px;background:var(--soft);color:var(--ink-2);font-weight:800;font-variant-numeric:tabular-nums;cursor:pointer;animation:none}
+.court-top .score-chip:hover{background:var(--accent-soft)}
+.court-top .score-chip b{font:700 13px "Space Grotesk"}
+.court-top .score-chip .t1{color:var(--team1)}.court-top .score-chip .t2{color:var(--team2)}
+.court-top .score-chip i{font-style:normal;color:var(--faint)}
 .live-score{margin-top:10px}
 .live-score .score-line b{font-size:clamp(28px,3vw,44px)}
 .umpire-row{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid color-mix(in srgb,var(--ink) 10%,transparent)}
