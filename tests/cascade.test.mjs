@@ -15,7 +15,7 @@ const count = async (path) => {
   return n;
 };
 const real = (uid) => env.authenticatedContext(uid, { email: `${uid}@example.com`, firebase: { sign_in_provider: "password" } }).firestore();
-const EVENT_SUBS = ["requests", "players", "courts", "matchLog", "costs", "private", "umpires", "courtClaims"];
+const EVENT_SUBS = ["requests", "players", "courts", "matchLog", "costs", "private", "umpires", "courtClaims", "viewers"];
 
 // A club with two events (every subcollection), a roster, a join request, an invite, an owner and a member.
 const seedClub = async (db, id, ownerId) => {

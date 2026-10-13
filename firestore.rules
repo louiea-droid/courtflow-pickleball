@@ -332,6 +332,18 @@ service cloud.firestore {
         && s.log is list && s.log.size() <= 50;
     }
     // The umpire holds no court right now: their record names none, or the claim it names is gone or someone else's.
+    // ---- A game's Live Board (docs/superpowers/specs/2026-10-13-open-play-live-design.md): a screen registers with the
+    // link key, like an umpire with the code. Viewable while the game is live and for 12 hours after it ends.
+    function viewable(c, e) {
+      let g = get(/databases/$(database)/documents/clubs/$(c)/events/$(e)).data;
+      return g.get('status', '') == 'live'
+        || (g.get('status', '') == 'ended' && g.get('endedAt', 0) > request.time.toMillis() - 43200000);
+    }
+    function eventViewer(c, e) {
+      let v = /databases/$(database)/documents/clubs/$(c)/events/$(e)/viewers/$(request.auth.uid);
+      let p = /databases/$(database)/documents/clubs/$(c)/events/$(e)/private/live;
+      return request.auth != null && viewable(c, e) && exists(v) && exists(p) && get(v).data.key == get(p).data.key;
+    }
     function sessionFree(s) {
       let r = get(/databases/$(database)/documents/sessions/$(s)/umpires/$(request.auth.uid)).data;
       return !('court' in r) || !exists(/databases/$(database)/documents/sessions/$(s)/courtClaims/$(r.court))
@@ -495,7 +507,7 @@ service cloud.firestore {
 
         // Volunteer umpires: see the helpers above. Managers already reach all of this through the wildcard.
         match /private/{id} {
-          allow get: if id == 'umpire' && eventUmpire(clubId, eventId);
+          allow get: if (id == 'umpire' && eventUmpire(clubId, eventId)) || (id == 'live' && eventViewer(clubId, eventId));
         }
         match /umpires/{uid} {
           allow get: if request.auth != null && request.auth.uid == uid;
@@ -521,10 +533,22 @@ service cloud.firestore {
           allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
         }
         match /players/{playerId} {
-          allow read: if eventUmpire(clubId, eventId);
+          allow read: if eventUmpire(clubId, eventId) || eventViewer(clubId, eventId);
+        }
+        match /matchLog/{entryId} {
+          allow read: if eventViewer(clubId, eventId);
+        }
+        // A Live Board screen: its own record only (no updates); the key must be the current one.
+        match /viewers/{uid} {
+          allow get, delete: if request.auth != null && request.auth.uid == uid;
+          allow create: if request.auth != null && request.auth.uid == uid && viewable(clubId, eventId)
+            && request.resource.data.keys().hasOnly(['key', 'at']) && request.resource.data.keys().hasAll(['key', 'at'])
+            && request.resource.data.at is number
+            && exists(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/private/live) && request.resource.data.key == get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/private/live).data.key;
         }
         match /courts/{courtId} {
-          allow read: if eventUmpire(clubId, eventId);
+          // A public club's courts (player ids, level, start, score: no names) feed the booking page's live strip.
+          allow read: if eventUmpire(clubId, eventId) || eventViewer(clubId, eventId) || isPublicClub(clubId);
           allow update: if eventUmpire(clubId, eventId) && scoreOnly()
             && exists(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/courtClaims/$(courtId))
             && get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/courtClaims/$(courtId)).data.uid == request.auth.uid;
