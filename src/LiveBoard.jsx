@@ -8,6 +8,7 @@ import MatchLogRow from "./components/MatchLogRow";
 import PhClock from "./components/PhClock";
 import StarDisplay from "./components/StarDisplay";
 import ElapsedTimer from "./components/ElapsedTimer";
+import { ScoreLine } from "./components/ScoreKeeper";
 import { applyDisplayPrefs, money } from "./utils/format";
 import { applyGlobalTheme } from "./utils/theme";
 import { DEFAULT_LIVE } from "./data/constants";
@@ -31,6 +32,7 @@ function LiveTeam({ label, color, ids, players, showSkill }) {
 
 function LiveCourt({ c, players, showSkill }) {
   const isEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
+  const sc = c.score && c.score.start === c.start ? c.score : null; // an old match's score never shows
   return (
     <div className="court">
       <div className="court-top">
@@ -47,6 +49,7 @@ function LiveCourt({ c, players, showSkill }) {
           <LiveTeam label="Team 2" color="team2" ids={c.teamB || []} players={players} showSkill={showSkill} />
         </div>
       )}
+      {!isEmpty && sc && <div className="live-score"><ScoreLine score={sc} /></div>}
     </div>
   );
 }
