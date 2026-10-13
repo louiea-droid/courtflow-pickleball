@@ -1,0 +1,63 @@
+- generic [ref=e46]:
+  - banner [ref=e47]:
+    - button "sq1 Account" [ref=e49] [cursor=pointer]:
+      - generic [ref=e54]:
+        - generic [ref=e55]: sq1
+        - generic [ref=e56]: Account
+  - complementary [ref=e59]:
+    - button "Collapse sidebar" [ref=e61] [cursor=pointer]:
+      - generic [ref=e62]: CourtFlow
+    - generic [ref=e63]:
+      - navigation "Home" [ref=e64]:
+        - link "Home" [ref=e65] [cursor=pointer]:
+          - /url: /
+      - region "Play" [ref=e70]:
+        - paragraph [ref=e71]: Play
+        - navigation "Play" [ref=e72]:
+          - link "Find session" [ref=e73] [cursor=pointer]:
+            - /url: /sessions
+          - link "Clubs" [ref=e79] [cursor=pointer]:
+            - /url: /clubs/find
+          - link "Friends" [ref=e85] [cursor=pointer]:
+            - /url: /friends
+          - link "Inbox" [ref=e90] [cursor=pointer]:
+            - /url: /inbox
+    - generic [ref=e94]:
+      - link "Help" [ref=e95] [cursor=pointer]:
+        - /url: /help
+      - button "Collapse sidebar" [ref=e100] [cursor=pointer]:
+        - generic [ref=e103]: Collapse
+  - main [ref=e104]:
+    - heading "Good afternoon, sq1" [level=1] [ref=e107]
+    - region [ref=e108]:
+      - generic [ref=e109]:
+        - heading "Ready to play?" [level=2] [ref=e110]
+        - paragraph [ref=e111]: Find a session to join, or start a quick game.
+      - generic [ref=e112]:
+        - link "Find session" [ref=e113] [cursor=pointer]:
+          - /url: /sessions
+        - link "Quick session" [ref=e118] [cursor=pointer]:
+          - /url: /club
+    - region "Your active session" [ref=e122]:
+      - heading "Your active session" [level=2] [ref=e123]
+      - paragraph [ref=e125]: You're not in a session right now. Join one from Coming up, or use Find session above.
+    - region "Coming up" [ref=e126]:
+      - heading "Coming up" [level=2] [ref=e127]
+      - paragraph [ref=e129]: Nothing scheduled yet. Open play from public clubs shows up here.
+    - generic [ref=e130]:
+      - link "Friends 0 friends" [ref=e131] [cursor=pointer]:
+        - /url: /friends
+        - generic [ref=e135]:
+          - generic [ref=e136]: Friends
+          - generic [ref=e137]: 0 friends
+      - link "Inbox 0 chats" [ref=e138] [cursor=pointer]:
+        - /url: /inbox
+        - generic [ref=e141]:
+          - generic [ref=e142]: Inbox
+          - generic [ref=e143]: 0 chats
+    - heading "My clubs" [level=2] [ref=e144]
+    - generic [ref=e145]:
+      - generic [ref=e146]: Create your first club
+      - paragraph [ref=e147]: A club holds your open play, games and settings. You'll be its owner.
+      - link "Create a club" [ref=e149] [cursor=pointer]:
+        - /url: /clubs/new

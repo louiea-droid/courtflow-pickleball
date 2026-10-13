@@ -1,0 +1,290 @@
+- generic [ref=f1e5]:
+  - complementary [ref=f1e6]:
+    - img "CourtFlow — Pickleball Queue" [ref=f1e9]
+    - navigation [ref=f1e10]:
+      - button "Dashboard" [ref=f1e11] [cursor=pointer]
+      - button "Queue" [ref=f1e18] [cursor=pointer]
+      - button "Players" [ref=f1e23] [cursor=pointer]
+      - button "Cost" [ref=f1e30] [cursor=pointer]
+      - button "Stats" [ref=f1e35] [cursor=pointer]
+      - button "Guide" [ref=f1e43] [cursor=pointer]
+      - button "Settings" [ref=f1e47] [cursor=pointer]
+    - generic [ref=f1e52]:
+      - generic [ref=f1e57]:
+        - generic [ref=f1e58]: Queue Demo
+        - generic [ref=f1e59]: 2 courts · Doubles
+      - button "MODE Skill Separated" [ref=f1e61] [cursor=pointer]:
+        - generic [ref=f1e62]: MODE
+        - generic [ref=f1e63]: Skill Separated
+      - generic [ref=f1e66]:
+        - button "Back to home" [ref=f1e67] [cursor=pointer]
+        - button "End Session" [ref=f1e71] [cursor=pointer]
+        - button "Collapse" [ref=f1e75] [cursor=pointer]
+  - main [ref=f1e80]:
+    - generic [ref=f1e81]:
+      - generic [ref=f1e82]:
+        - heading "Live Court Rotation" [level=1] [ref=f1e83]
+        - paragraph
+      - generic [ref=f1e84]:
+        - button "Add Player" [ref=f1e85] [cursor=pointer]
+        - generic "Club time" [ref=f1e87]:
+          - generic [ref=f1e91]: 2:03:17 AM
+          - generic [ref=f1e92]: PHT
+        - button "Share Live Board" [ref=f1e93] [cursor=pointer]:
+          - text: Share
+          - generic [ref=f1e100]: Live Board
+    - generic [ref=f1e101]:
+      - generic [ref=f1e102]:
+        - generic [ref=f1e103]:
+          - generic [ref=f1e104]: PLAYERS
+          - generic [ref=f1e105]: "12"
+          - generic [ref=f1e106]: total players
+        - generic [ref=f1e107]:
+          - generic [ref=f1e108]: CHECKED IN
+          - generic [ref=f1e109]: "12"
+          - generic [ref=f1e110]: checked in
+        - generic [ref=f1e111]:
+          - generic [ref=f1e112]: WAITING
+          - generic [ref=f1e113]: "4"
+          - generic [ref=f1e114]: in queue
+        - generic [ref=f1e115]:
+          - generic [ref=f1e116]: COURTS
+          - generic [ref=f1e117]: "2"
+          - generic [ref=f1e118]: active courts
+        - generic [ref=f1e119]:
+          - generic [ref=f1e120]: TOP PLAYERS
+          - generic [ref=f1e121]:
+            - generic [ref=f1e122]:
+              - generic [ref=f1e123]: "1"
+              - generic [ref=f1e124]: Eddie Expert
+              - generic [ref=f1e125]: 0 won · 0%
+            - generic [ref=f1e126]:
+              - generic [ref=f1e127]: "2"
+              - generic [ref=f1e128]: Ian Int
+              - generic [ref=f1e129]: 0 won · 0%
+            - generic [ref=f1e130]:
+              - generic [ref=f1e131]: "3"
+              - generic [ref=f1e132]: Ivy Int
+              - generic [ref=f1e133]: 0 won · 0%
+      - generic [ref=f1e134]:
+        - generic [ref=f1e135]:
+          - heading "Live Courts" [level=2] [ref=f1e136]
+          - paragraph [ref=f1e137]: Record a winner to rotate the completed players.
+        - generic [ref=f1e138]:
+          - button "Add Court" [ref=f1e139] [cursor=pointer]
+          - button "Auto-fill" [active] [ref=f1e141] [cursor=pointer]
+          - button "● Auto-rotation ON" [ref=f1e144] [cursor=pointer]
+      - generic [ref=f1e145]:
+        - generic [ref=f1e146]:
+          - button "Remove court" [ref=f1e147] [cursor=pointer]
+          - generic [ref=f1e151]:
+            - generic "Click to rename" [ref=f1e152] [cursor=pointer]: Court 1
+            - button "Any Level" [ref=f1e154] [cursor=pointer]
+            - generic [ref=f1e157]: ● LIVE
+            - generic [ref=f1e158]: 00:00
+          - generic [ref=f1e159]:
+            - generic [ref=f1e160]:
+              - generic [ref=f1e161]: Team 1
+              - generic [ref=f1e163]:
+                - generic [ref=f1e164]:
+                  - generic [ref=f1e165]: Ian Int
+                  - generic "Intermediate" [ref=f1e167]
+                - generic [ref=f1e180]:
+                  - button "Swap player" [ref=f1e181] [cursor=pointer]
+                  - button "Remove" [ref=f1e185] [cursor=pointer]
+              - generic [ref=f1e190]:
+                - generic [ref=f1e191]:
+                  - generic [ref=f1e192]: Ada Adv
+                  - generic "Advanced" [ref=f1e194]
+                - generic [ref=f1e207]:
+                  - button "Swap player" [ref=f1e208] [cursor=pointer]
+                  - button "Remove" [ref=f1e212] [cursor=pointer]
+            - generic [ref=f1e216]:
+              - generic [ref=f1e217]: Team 2
+              - generic [ref=f1e219]:
+                - generic [ref=f1e220]:
+                  - generic [ref=f1e221]: Ivy Int
+                  - generic "Intermediate" [ref=f1e223]
+                - generic [ref=f1e236]:
+                  - button "Swap player" [ref=f1e237] [cursor=pointer]
+                  - button "Remove" [ref=f1e241] [cursor=pointer]
+              - generic [ref=f1e246]:
+                - generic [ref=f1e247]:
+                  - generic [ref=f1e248]: Ike Int
+                  - generic "Intermediate" [ref=f1e250]
+                - generic [ref=f1e263]:
+                  - button "Swap player" [ref=f1e264] [cursor=pointer]
+                  - button "Remove" [ref=f1e268] [cursor=pointer]
+          - generic [ref=f1e272]:
+            - button "Team 1 Wins" [ref=f1e273] [cursor=pointer]
+            - button "Team 2 Wins" [ref=f1e274] [cursor=pointer]
+        - generic [ref=f1e275]:
+          - button "Remove court" [ref=f1e276] [cursor=pointer]
+          - generic [ref=f1e280]:
+            - generic "Click to rename" [ref=f1e281] [cursor=pointer]: Court 2
+            - button "Any Level" [ref=f1e283] [cursor=pointer]
+            - generic [ref=f1e286]: ● LIVE
+            - generic [ref=f1e287]: 00:00
+          - generic [ref=f1e288]:
+            - generic [ref=f1e289]:
+              - generic [ref=f1e290]: Team 1
+              - generic [ref=f1e292]:
+                - generic [ref=f1e293]:
+                  - generic [ref=f1e294]: Ira Int
+                  - generic "Intermediate" [ref=f1e296]
+                - generic [ref=f1e309]:
+                  - button "Swap player" [ref=f1e310] [cursor=pointer]
+                  - button "Remove" [ref=f1e314] [cursor=pointer]
+              - generic [ref=f1e319]:
+                - generic [ref=f1e320]:
+                  - generic [ref=f1e321]: Sam Int
+                  - generic "Intermediate" [ref=f1e323]
+                - generic [ref=f1e336]:
+                  - button "Swap player" [ref=f1e337] [cursor=pointer]
+                  - button "Remove" [ref=f1e341] [cursor=pointer]
+            - generic [ref=f1e345]:
+              - generic [ref=f1e346]: Team 2
+              - generic [ref=f1e348]:
+                - generic [ref=f1e349]:
+                  - generic [ref=f1e350]: Lia Int
+                  - generic "Intermediate" [ref=f1e352]
+                - generic [ref=f1e365]:
+                  - button "Swap player" [ref=f1e366] [cursor=pointer]
+                  - button "Remove" [ref=f1e370] [cursor=pointer]
+              - generic [ref=f1e375]:
+                - generic [ref=f1e376]:
+                  - generic [ref=f1e377]: Leo Int
+                  - generic "Intermediate" [ref=f1e379]
+                - generic [ref=f1e392]:
+                  - button "Swap player" [ref=f1e393] [cursor=pointer]
+                  - button "Remove" [ref=f1e397] [cursor=pointer]
+          - generic [ref=f1e401]:
+            - button "Team 1 Wins" [ref=f1e402] [cursor=pointer]
+            - button "Team 2 Wins" [ref=f1e403] [cursor=pointer]
+      - generic [ref=f1e405]:
+        - heading "Up Next" [level=2] [ref=f1e406]
+        - paragraph [ref=f1e407]: Preview of who rotates onto each court next.
+      - generic [ref=f1e408]:
+        - generic [ref=f1e409]:
+          - generic [ref=f1e410]:
+            - generic [ref=f1e411]: Court 1
+            - generic [ref=f1e412]: NEXT
+          - generic [ref=f1e413]:
+            - generic [ref=f1e414]:
+              - generic [ref=f1e415]: Team 1
+              - generic [ref=f1e417]:
+                - generic [ref=f1e418]:
+                  - generic [ref=f1e419]: Eddie Expert
+                  - generic "Expert" [ref=f1e421]
+                - generic [ref=f1e434]:
+                  - button "Change player" [ref=f1e435] [cursor=pointer]
+                  - button "Send to back of queue" [ref=f1e439] [cursor=pointer]
+              - generic [ref=f1e444]:
+                - generic [ref=f1e445]:
+                  - generic [ref=f1e446]: Ann Adv
+                  - generic "Advanced" [ref=f1e448]
+                - generic [ref=f1e461]:
+                  - button "Change player" [ref=f1e462] [cursor=pointer]
+                  - button "Send to back of queue" [ref=f1e466] [cursor=pointer]
+            - generic [ref=f1e470]:
+              - generic [ref=f1e471]: Team 2
+              - generic [ref=f1e473]:
+                - generic [ref=f1e474]:
+                  - generic [ref=f1e475]: Abe Adv
+                  - generic "Advanced" [ref=f1e477]
+                - generic [ref=f1e490]:
+                  - button "Change player" [ref=f1e491] [cursor=pointer]
+                  - button "Send to back of queue" [ref=f1e495] [cursor=pointer]
+              - generic [ref=f1e500]:
+                - generic [ref=f1e501]:
+                  - generic [ref=f1e502]: Amy Adv
+                  - generic "Advanced" [ref=f1e504]
+                - generic [ref=f1e517]:
+                  - button "Change player" [ref=f1e518] [cursor=pointer]
+                  - button "Send to back of queue" [ref=f1e522] [cursor=pointer]
+          - button "Send to Court" [disabled] [ref=f1e526]
+        - generic [ref=f1e529]:
+          - generic [ref=f1e530]:
+            - generic [ref=f1e531]: Court 2
+            - generic [ref=f1e532]: NEXT
+          - generic [ref=f1e533]:
+            - generic [ref=f1e534]:
+              - generic [ref=f1e535]: Team 1
+              - generic [ref=f1e536]: Waiting for players…
+            - generic [ref=f1e538]:
+              - generic [ref=f1e539]: Team 2
+              - generic [ref=f1e540]: Waiting for players…
+          - generic [ref=f1e542]: Not enough players yet.
+      - generic [ref=f1e543]:
+        - generic [ref=f1e544]:
+          - generic [ref=f1e545]:
+            - generic [ref=f1e546]:
+              - heading "Next Up" [level=3] [ref=f1e547]
+              - text: Priority follows fewer games + wait time.
+            - button "View queue →" [ref=f1e548] [cursor=pointer]
+          - generic [ref=f1e549]:
+            - strong [ref=f1e550]: "1"
+            - generic [ref=f1e552]:
+              - generic [ref=f1e553]: Eddie Expert
+              - generic [ref=f1e554]:
+                - generic "Expert" [ref=f1e555]
+                - generic [ref=f1e568]:
+                  - text: "0"
+                  - generic [ref=f1e569]: games
+                - generic [ref=f1e570]:
+                  - text: "0"
+                  - generic [ref=f1e571]: wins
+            - generic [ref=f1e572]:
+              - emphasis [ref=f1e573]: 49m
+              - button "Edit player" [ref=f1e574] [cursor=pointer]
+          - generic [ref=f1e578]:
+            - strong [ref=f1e579]: "2"
+            - generic [ref=f1e581]:
+              - generic [ref=f1e582]: Ann Adv
+              - generic [ref=f1e583]:
+                - generic "Advanced" [ref=f1e584]
+                - generic [ref=f1e597]:
+                  - text: "0"
+                  - generic [ref=f1e598]: games
+                - generic [ref=f1e599]:
+                  - text: "0"
+                  - generic [ref=f1e600]: wins
+            - generic [ref=f1e601]:
+              - emphasis [ref=f1e602]: 40m
+              - button "Edit player" [ref=f1e603] [cursor=pointer]
+          - generic [ref=f1e607]:
+            - strong [ref=f1e608]: "3"
+            - generic [ref=f1e610]:
+              - generic [ref=f1e611]: Abe Adv
+              - generic [ref=f1e612]:
+                - generic "Advanced" [ref=f1e613]
+                - generic [ref=f1e626]:
+                  - text: "0"
+                  - generic [ref=f1e627]: games
+                - generic [ref=f1e628]:
+                  - text: "0"
+                  - generic [ref=f1e629]: wins
+            - generic [ref=f1e630]:
+              - emphasis [ref=f1e631]: 38m
+              - button "Edit player" [ref=f1e632] [cursor=pointer]
+          - generic [ref=f1e636]:
+            - strong [ref=f1e637]: "4"
+            - generic [ref=f1e639]:
+              - generic [ref=f1e640]: Amy Adv
+              - generic [ref=f1e641]:
+                - generic "Advanced" [ref=f1e642]
+                - generic [ref=f1e655]:
+                  - text: "0"
+                  - generic [ref=f1e656]: games
+                - generic [ref=f1e657]:
+                  - text: "0"
+                  - generic [ref=f1e658]: wins
+            - generic [ref=f1e659]:
+              - emphasis [ref=f1e660]: 37m
+              - button "Edit player" [ref=f1e661] [cursor=pointer]
+        - generic [ref=f1e665]:
+          - generic [ref=f1e667]:
+            - heading "Match Log" [level=3] [ref=f1e668]
+            - text: Recent results this session.
+          - generic [ref=f1e669]: No matches recorded yet.
+    - status [ref=f1e670]: Filled open seats from the queue.
