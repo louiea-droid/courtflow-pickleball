@@ -79,6 +79,12 @@ Test: `tests/umpire.test.mjs` (`npm run test:rules`): the claim holder scores; a
 court, an old code, an ended game or any field besides `score` is refused; a stranger can't register without the code;
 a manager can release and assign.
 
+Added after review (2026-10-13): a claim must carry the registration's name and an existing court id; `umpires/{uid}.court`
+names the one court a volunteer holds and changes only in the same batch as the claim (a record naming a released claim
+counts as none); `validScore` checks every field (`serving`, `server`, `style`, `to` in 11/15/21, `singles`) and
+`score.start` must equal the court's `start`; a stale registration is deleted by its owner before re-registering.
+Known limits: the contents of `log` entries can't be size-checked in rules.
+
 ## Not in this version
 
 Several umpires on one court, timeouts, match-of-3-games, score history beyond the match log line.

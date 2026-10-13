@@ -78,7 +78,7 @@ export default function UmpireModal({ base, kind, courts, claims, umpiresOn, set
                       <select aria-label={`Assign an umpire to ${name}`} value=""
                         onChange={(e) => {
                           const u = umpires.find((x) => x.id === e.target.value);
-                          if (u) assignCourt(base, c.id, u).catch(fail("assign the umpire"));
+                          if (u) assignCourt(base, c.id, u, claims).catch(fail("assign the umpire"));
                         }}>
                         <option value="">Assign...</option>
                         {umpires.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}

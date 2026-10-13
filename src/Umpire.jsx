@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, doc, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { auth, db } from "./firebase";
 import { authMessage } from "./utils/account";
 import { docsOf } from "./hooks/useLiveDocs";
 import ScoreKeeper from "./components/ScoreKeeper";
 import { umpireTarget } from "./utils/umpire";
-import { claimCourt, joinAsUmpire, readOwnRecord, readSettings, releaseCourt, writeScore } from "./utils/umpireData";
+import { claimCourt, deleteOwnRecord, joinAsUmpire, readOwnRecord, readSettings, releaseCourt, writeScore } from "./utils/umpireData";
 
 // /umpire?club=C&event=E&code=K (a game) or ?session=S&code=K (a quick session): a volunteer with no account keeps the
 // score of one court. They register with the link's code, claim a free court, and may change only that court's score.
@@ -31,6 +31,7 @@ export default function Umpire() {
   const [uid, setUid] = useState(null);
   const [authError, setAuthError] = useState("");
   const [name, setName] = useState(readName);
+  const [regName, setRegName] = useState(""); // the name on the registration, which every claim must carry
   const [stage, setStage] = useState("name"); // name | joining | ready | dead
   const [settings, setSettings] = useState(null);
   const [courts, setCourts] = useState([]);
@@ -52,7 +53,9 @@ export default function Umpire() {
     if (stage !== "ready") return undefined;
     const dead = () => setStage("dead");
     const sub = (coll, set) => onSnapshot(collection(db, ...target.base, coll), (s) => set(docsOf(s)), dead);
-    const off = [sub("courts", setCourts), sub("players", setPlayers), sub("courtClaims", setClaims)];
+    const off = [sub("courts", setCourts), sub("players", setPlayers), sub("courtClaims", setClaims),
+      // The scoring style and target follow the host's settings while the page is open.
+      onSnapshot(doc(db, ...target.base, "private", "umpire"), (s) => (s.exists() ? setSettings(s.data()) : dead()), dead)];
     return () => off.forEach((f) => f());
   }, [stage, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -70,7 +73,10 @@ export default function Umpire() {
     setStage("joining");
     try {
       const own = await readOwnRecord(target.base, uid);
-      if (!own || own.code !== target.code) await joinAsUmpire(target.base, uid, { code: target.code, name: who });
+      const current = own && own.code === target.code;
+      if (own && !current) await deleteOwnRecord(target.base, uid);
+      if (!current) await joinAsUmpire(target.base, uid, { code: target.code, name: who });
+      setRegName(current ? own.name : who.slice(0, 40));
       const s = await readSettings(target.base);
       if (!s) throw new Error("no settings");
       setSettings(s);
@@ -98,7 +104,8 @@ export default function Umpire() {
   const sorted = [...courts].sort((a, b) => (a.courtNumber || 0) - (b.courtNumber || 0));
   const mine = claims.find((c) => c.uid === uid);
   const court = mine && courts.find((c) => c.id === mine.id);
-  const fail = (what) => () => setNotice(what);
+  // A refused write after joining means access ended (new link, game ended, switch off), not a bad connection.
+  const fail = (what) => (err) => (err?.code === "permission-denied" ? setStage("dead") : setNotice(what));
 
   if (court) {
     const singles = court.teamA?.length === 1 && court.teamB?.length === 1;
@@ -133,7 +140,7 @@ export default function Umpire() {
                 ? <small>Taken by {holder.name}</small>
                 : <button className="primary" onClick={() => {
                   setNotice("");
-                  claimCourt(target.base, c.id, uid, name.trim()).catch(fail("Someone else just took that court."));
+                  claimCourt(target.base, c.id, uid, regName).catch(() => setNotice("Someone else just took that court."));
                 }}>Claim</button>}
             </div>
           );

@@ -25,11 +25,22 @@ service cloud.firestore {
         allow create: if request.auth != null && request.auth.uid == uid
           && get(/databases/$(database)/documents/sessions/$(sessionId)).data.get('umpireOn', false) == true
           && validUmpireRecord(request.resource.data, /databases/$(database)/documents/sessions/$(sessionId)/private/umpire);
+        // The record's court says which court they hold; it moves only together with the claim, in one batch.
+        allow update: if sessionUmpire(sessionId) && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['court'])
+          && (!('court' in request.resource.data)
+            || (existsAfter(/databases/$(database)/documents/sessions/$(sessionId)/courtClaims/$(request.resource.data.court))
+              && getAfter(/databases/$(database)/documents/sessions/$(sessionId)/courtClaims/$(request.resource.data.court)).data.uid == uid));
         allow delete: if request.auth != null && request.auth.uid == uid;
       }
       match /courtClaims/{courtId} {
         allow read: if sessionUmpire(sessionId);
-        allow create: if sessionUmpire(sessionId) && validClaim(request.resource.data);
+        // The registered name, a court that exists, and one court per volunteer.
+        allow create: if sessionUmpire(sessionId) && validClaim(request.resource.data)
+          && request.resource.data.name == get(/databases/$(database)/documents/sessions/$(sessionId)/umpires/$(request.auth.uid)).data.name
+          && exists(/databases/$(database)/documents/sessions/$(sessionId)/courts/$(courtId))
+          && sessionFree(sessionId)
+          && getAfter(/databases/$(database)/documents/sessions/$(sessionId)/umpires/$(request.auth.uid)).data.get('court', null) == courtId;
         allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
       }
       match /courts/{courtId} {
@@ -309,16 +320,32 @@ service cloud.firestore {
       return d.keys().hasOnly(['uid', 'name']) && d.keys().hasAll(['uid', 'name'])
         && d.uid == request.auth.uid && validName(d.name) && d.name.size() <= 40;
     }
+    // Every field has to make sense: the Live Board and the Dashboard read them. (log entries can't be size-checked here.)
     function validScore(s) {
       return s is map
         && s.keys().hasOnly(['start', 't1', 't2', 'serving', 'server', 'style', 'to', 'singles', 'log'])
+        && s.start is number
         && s.t1 is int && s.t1 >= 0 && s.t1 <= 99 && s.t2 is int && s.t2 >= 0 && s.t2 <= 99
+        && s.serving in [1, 2] && (s.server == null || s.server in [1, 2])
+        && s.style in ['sideout', 'rally'] && s.to in [11, 15, 21] && s.singles is bool
         && s.log is list && s.log.size() <= 50;
+    }
+    // The umpire holds no court right now: their record names none, or the claim it names is gone or someone else's.
+    function sessionFree(s) {
+      let r = get(/databases/$(database)/documents/sessions/$(s)/umpires/$(request.auth.uid)).data;
+      return !('court' in r) || !exists(/databases/$(database)/documents/sessions/$(s)/courtClaims/$(r.court))
+        || get(/databases/$(database)/documents/sessions/$(s)/courtClaims/$(r.court)).data.uid != request.auth.uid;
+    }
+    function eventFree(c, e) {
+      let r = get(/databases/$(database)/documents/clubs/$(c)/events/$(e)/umpires/$(request.auth.uid)).data;
+      return !('court' in r) || !exists(/databases/$(database)/documents/clubs/$(c)/events/$(e)/courtClaims/$(r.court))
+        || get(/databases/$(database)/documents/clubs/$(c)/events/$(e)/courtClaims/$(r.court)).data.uid != request.auth.uid;
     }
     // An update that changes only the score.
     function scoreOnly() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['score'])
-        && validScore(request.resource.data.score);
+        && validScore(request.resource.data.score)
+        && request.resource.data.score.start == resource.data.start; // a late write for an earlier match is refused
     }
 
     // A person asks to join a public club (they are not signed in as a quick session, and are not a member yet).
@@ -474,11 +501,22 @@ service cloud.firestore {
           allow create: if request.auth != null && request.auth.uid == uid
             && get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)).data.status == 'live'
             && validUmpireRecord(request.resource.data, /databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/private/umpire);
+          // The record's court says which court they hold; it moves only together with the claim, in one batch.
+          allow update: if eventUmpire(clubId, eventId) && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['court'])
+            && (!('court' in request.resource.data)
+              || (existsAfter(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/courtClaims/$(request.resource.data.court))
+                && getAfter(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/courtClaims/$(request.resource.data.court)).data.uid == uid));
           allow delete: if request.auth != null && request.auth.uid == uid;
         }
         match /courtClaims/{courtId} {
           allow read: if eventUmpire(clubId, eventId);
-          allow create: if eventUmpire(clubId, eventId) && validClaim(request.resource.data);
+          // The registered name, a court that exists, and one court per volunteer.
+          allow create: if eventUmpire(clubId, eventId) && validClaim(request.resource.data)
+            && request.resource.data.name == get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/umpires/$(request.auth.uid)).data.name
+            && exists(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/courts/$(courtId))
+            && eventFree(clubId, eventId)
+            && getAfter(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/umpires/$(request.auth.uid)).data.get('court', null) == courtId;
           allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
         }
         match /players/{playerId} {

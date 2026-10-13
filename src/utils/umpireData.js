@@ -22,15 +22,31 @@ export async function renewLink(base, { style, to, umpires = [], claims = [] }) 
   return code;
 }
 export const syncSettings = (base, { style, to }) => updateDoc(at(base, "private", "umpire"), { style, to }).catch(() => {});
-export const assignCourt = (base, courtId, umpire) => setDoc(at(base, "courtClaims", courtId), { uid: umpire.id, name: umpire.name });
+// Assigning moves the umpire off any other court they hold (one court per volunteer) and updates their record.
+export function assignCourt(base, courtId, umpire, claims = []) {
+  const batch = writeBatch(db);
+  claims.filter((c) => c.uid === umpire.id && c.id !== courtId).forEach((c) => batch.delete(at(base, "courtClaims", c.id)));
+  batch.set(at(base, "courtClaims", courtId), { uid: umpire.id, name: umpire.name });
+  batch.update(at(base, "umpires", umpire.id), { court: courtId });
+  return batch.commit();
+}
 
 // ---- Umpire (volunteer or manager)
 export const joinAsUmpire = (base, uid, { code, name }) =>
   setDoc(at(base, "umpires", uid), { code, name: name.trim().slice(0, 40), at: Date.now() });
 export const readOwnRecord = async (base, uid) => (await getDoc(at(base, "umpires", uid))).data() || null;
+// A registration from an older link can't be updated (the rules only allow creating one), so it goes first.
+export const deleteOwnRecord = (base, uid) => deleteDoc(at(base, "umpires", uid));
 export const readSettings = async (base) => (await getDoc(at(base, "private", "umpire"))).data();
-// A claim is a create: the rules refuse it when someone already holds the court.
-export const claimCourt = (base, courtId, uid, name) => setDoc(at(base, "courtClaims", courtId), { uid, name });
+// A claim is a create, so the rules refuse it when someone already holds the court. The umpire's record names the court
+// in the same batch, which is how the rules keep each volunteer to one court.
+export function claimCourt(base, courtId, uid, name) {
+  const batch = writeBatch(db);
+  batch.set(at(base, "courtClaims", courtId), { uid, name });
+  batch.update(at(base, "umpires", uid), { court: courtId });
+  return batch.commit();
+}
+// Releasing only removes the claim: a record naming a released court counts as holding none.
 export const releaseCourt = (base, courtId) => deleteDoc(at(base, "courtClaims", courtId));
 // ponytail: last write wins if two scorers tap at the same moment (a manager and a volunteer on one court); a
 // transaction would fix that but fails offline, which a gym with weak wifi would hit more often.

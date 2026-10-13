@@ -2,7 +2,7 @@
 // Run: npm run test:rules (needs Java and the Firebase CLI).
 import fs from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, setDoc, updateDoc, writeBatch } from "firebase/firestore";
 
 const rules = fs.readFileSync("firestore.rules", "utf8");
 // emulators:exec exports FIRESTORE_EMULATOR_HOST; fall back to the default port when run by hand
@@ -13,6 +13,7 @@ const real = (uid) => env.authenticatedContext(uid, { email: `${uid}@example.com
 const signedOut = env.unauthenticatedContext().firestore();
 const v1 = anon("v1"), v2 = anon("v2"), nobody = anon("s1"), mgr = real("mgr"), owner = anon("own1");
 const CODE = "AAAA2222";
+const NAMES = { v1: "Sam", v2: "Lee" };
 const score = (extra = {}) => ({ start: 111, t1: 1, t2: 0, serving: 1, server: 2, style: "sideout", to: 11, singles: false, log: [], ...extra });
 const E = "clubs/pub/events/ev1"; // a live game
 const S = "sessions/own1"; // a quick session
@@ -36,7 +37,20 @@ async function seed() {
     await setDoc(doc(db, `${S}/courts/c2`), { courtNumber: 2, start: 111, teamA: [], teamB: [] });
   });
 }
-const join = (db, base, uid, extra = {}) => setDoc(doc(db, `${base}/umpires/${uid}`), { code: CODE, name: "Sam", at: Date.now(), ...extra });
+const join = (db, base, uid, extra = {}) => setDoc(doc(db, `${base}/umpires/${uid}`), { code: CODE, name: NAMES[uid] || "Sam", at: Date.now(), ...extra });
+// A claim and the umpire's own record move together in one batch (the record says which court they hold).
+const claim = (db, base, uid, court, name = NAMES[uid] || "Sam") => {
+  const b = writeBatch(db);
+  b.set(doc(db, `${base}/courtClaims/${court}`), { uid, name });
+  b.update(doc(db, `${base}/umpires/${uid}`), { court });
+  return b.commit();
+};
+const release = (db, base, uid, court) => {
+  const b = writeBatch(db);
+  b.delete(doc(db, `${base}/courtClaims/${court}`));
+  b.update(doc(db, `${base}/umpires/${uid}`), { court: deleteField() });
+  return b.commit();
+};
 
 for (const base of [E, S]) {
   // ---- Registering: the current code, your own uid, a name, nothing else
@@ -46,24 +60,38 @@ for (const base of [E, S]) {
   await assertFails(join(v1, base, "v2")); // someone else's uid
   await assertFails(join(v1, base, "v1", { name: "" }));
   await assertFails(join(v1, base, "v1", { extra: 1 }));
+  await assertFails(join(v1, base, "v1", { court: "c1" })); // can't register already holding a court
   await assertFails(join(signedOut, base, "v1"));
   // ---- Before registering (or after a stranger): no settings, no claims, no courts' score
   await assertFails(getDoc(doc(nobody, `${base}/private/umpire`)));
   await assertFails(getDocs(collection(nobody, `${base}/courtClaims`)));
   await assertFails(getDocs(collection(nobody, `${base}/umpires`)));
-  // ---- A registered umpire reads the settings, claims, and the player list
+  // ---- A registered umpire reads the settings, claims, courts and the player list
   await join(v1, base, "v1"); await join(v2, base, "v2");
   await assertSucceeds(getDoc(doc(v1, `${base}/private/umpire`)));
   await assertSucceeds(getDocs(collection(v1, `${base}/courtClaims`)));
+  await assertSucceeds(getDocs(collection(v1, `${base}/courts`)));
+  await assertSucceeds(getDocs(collection(v1, `${base}/players`)));
   await assertSucceeds(getDoc(doc(v1, `${base}/umpires/v1`))); // own record
   await assertFails(getDoc(doc(v1, `${base}/umpires/v2`))); // not someone else's
   await assertFails(getDocs(collection(v1, `${base}/umpires`)));
   // ---- One umpire per court: the claim is a create, so the second one is refused
-  await assertSucceeds(setDoc(doc(v1, `${base}/courtClaims/c1`), { uid: "v1", name: "Sam" }));
-  await assertFails(setDoc(doc(v2, `${base}/courtClaims/c1`), { uid: "v2", name: "Lee" }));
-  await assertFails(setDoc(doc(v2, `${base}/courtClaims/c2`), { uid: "v1", name: "Sam" })); // not as someone else
+  await assertSucceeds(claim(v1, base, "v1", "c1"));
+  await assertFails(claim(v2, base, "v2", "c1"));
+  await assertFails(claim(v2, base, "v1", "c2")); // not as someone else
   await assertFails(setDoc(doc(v2, `${base}/courtClaims/c2`), { uid: "v2", name: "Lee", extra: 1 }));
-  await assertFails(setDoc(doc(nobody, `${base}/courtClaims/c2`), { uid: "s1", name: "x" })); // not registered
+  await assertFails(claim(nobody, base, "s1", "c2", "x")); // not registered
+  // ---- A claim carries the registered name, names a court that exists, and a volunteer holds one court
+  await assertFails(claim(v2, base, "v2", "c2", "Host")); // a name that isn't theirs
+  await assertFails(claim(v2, base, "v2", "court-99")); // a court that doesn't exist (yet)
+  await assertFails(claim(v1, base, "v1", "c2")); // v1 already holds c1
+  await assertFails(setDoc(doc(v1, `${base}/courtClaims/c2`), { uid: "v1", name: "Sam" })); // a claim without telling the record
+  await assertSucceeds(claim(v2, base, "v2", "c2"));
+  await assertFails(updateDoc(doc(v2, `${base}/umpires/v2`), { court: "c1" })); // can't take over c1 by editing the record
+  await assertFails(updateDoc(doc(v2, `${base}/umpires/v2`), { code: "BBBB3333" })); // the record changes only its court
+  await assertSucceeds(release(v2, base, "v2", "c2"));
+  await assertSucceeds(claim(v2, base, "v2", "c2")); // free again after releasing
+  await assertSucceeds(release(v2, base, "v2", "c2"));
   // ---- Scoring: only the court you hold, only the score field, a valid shape
   await assertSucceeds(updateDoc(doc(v1, `${base}/courts/c1`), { score: score() }));
   await assertFails(updateDoc(doc(v1, `${base}/courts/c2`), { score: score() })); // not claimed
@@ -74,23 +102,47 @@ for (const base of [E, S]) {
   await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ evil: 1 }) }));
   await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: "11-0" }));
   await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ log: new Array(51).fill({}) }) }));
+  // every field of the score has to make sense
+  await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ to: 0 }) })); // would read as an instant win
+  await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ to: 12 }) }));
+  await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ serving: 3 }) }));
+  await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ server: 5 }) }));
+  await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ style: "x" }) }));
+  await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ singles: "yes" }) }));
+  await assertFails(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ start: 999 }) })); // a late write for an earlier match
+  await assertSucceeds(updateDoc(doc(v1, `${base}/courts/c1`), { score: score({ server: null, style: "rally", to: 15, singles: true }) }));
   await assertFails(setDoc(doc(v1, `${base}/players/p9`), { name: "x" })); // nothing else is writable
   if (base === E) await assertFails(getDocs(collection(v1, `${base}/matchLog`))); // (a quick session's match log is public to read, as the Live Board needs)
   // ---- Release: the holder, not another umpire
   await assertFails(deleteDoc(doc(v2, `${base}/courtClaims/c1`)));
-  await assertSucceeds(deleteDoc(doc(v1, `${base}/courtClaims/c1`)));
+  await assertSucceeds(release(v1, base, "v1", "c1"));
+  // ---- A record whose court was released by the host heals itself: the volunteer can claim another court
+  await claim(v1, base, "v1", "c1");
+  await env.withSecurityRulesDisabled((ctx) => deleteDoc(doc(ctx.firestore(), `${base}/courtClaims/c1`)));
+  await assertSucceeds(claim(v1, base, "v1", "c2"));
 }
+
+// ---- A stale registration can be removed by its owner (so the new link can register again)
+await seed();
+await join(v1, E, "v1");
+await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), `${E}/private/umpire`), { code: "BBBB3333", style: "sideout", to: 11 }));
+await assertFails(join(v1, E, "v1", { code: "BBBB3333" })); // an update, which the rules refuse
+await assertSucceeds(deleteDoc(doc(v1, `${E}/umpires/v1`)));
+await assertSucceeds(join(v1, E, "v1", { code: "BBBB3333" }));
 
 // ---- Events: managers read the registrations, release and assign; a stranger reads nothing
 await seed(); await join(v1, E, "v1"); await join(v2, E, "v2");
-await setDoc(doc(v1, `${E}/courtClaims/c1`), { uid: "v1", name: "Sam" });
+await claim(v1, E, "v1", "c1");
 await assertSucceeds(getDocs(collection(mgr, `${E}/umpires`)));
-await assertSucceeds(setDoc(doc(mgr, `${E}/courtClaims/c1`), { uid: "v2", name: "Lee" })); // assign
+const assign = writeBatch(mgr);
+assign.set(doc(mgr, `${E}/courtClaims/c1`), { uid: "v2", name: "Lee" });
+assign.update(doc(mgr, `${E}/umpires/v2`), { court: "c1" });
+await assertSucceeds(assign.commit()); // the host assigns
 await assertFails(updateDoc(doc(v1, `${E}/courts/c1`), { score: score() })); // v1 lost it
 await assertSucceeds(updateDoc(doc(v2, `${E}/courts/c1`), { score: score() }));
 await assertSucceeds(deleteDoc(doc(mgr, `${E}/courtClaims/c1`)));
 // The host renews the link: old registrations stop working at once.
-await assertSucceeds(setDoc(doc(v2, `${E}/courtClaims/c1`), { uid: "v2", name: "Lee" }));
+await assertSucceeds(claim(v2, E, "v2", "c1"));
 await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), `${E}/private/umpire`), { code: "BBBB3333", style: "sideout", to: 11 }));
 await assertFails(updateDoc(doc(v2, `${E}/courts/c1`), { score: score() }));
 await assertFails(getDoc(doc(v2, `${E}/private/umpire`)));
@@ -98,7 +150,7 @@ await assertFails(getDocs(collection(v2, `${E}/players`)));
 await assertFails(setDoc(doc(anon("v3"), `${E}/umpires/v3`), { code: CODE, name: "Old", at: 1 })); // the old link
 // An ended game refuses scoring and new umpires.
 await seed(); await join(v1, E, "v1");
-await setDoc(doc(v1, `${E}/courtClaims/c1`), { uid: "v1", name: "Sam" });
+await claim(v1, E, "v1", "c1");
 await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), E), { title: "ev1", status: "ended", date: "2026-10-13" }));
 await assertFails(updateDoc(doc(v1, `${E}/courts/c1`), { score: score() }));
 await assertFails(join(v2, E, "v2"));
