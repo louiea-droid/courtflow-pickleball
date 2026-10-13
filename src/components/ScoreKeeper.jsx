@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { CircleDot, CircleHelp, SlidersHorizontal, Undo2 } from "lucide-react";
 import { adjust, call, confirmScore, finalText, firstServe, gamePoint, lastEvent, liveScore, rally, undo, winner } from "../utils/scoring";
 
@@ -22,6 +22,9 @@ const callParts = (s) => {
   return [[pts(serve), serve], [pts(recv), recv], ...(s.singles ? [] : [[s.server, serve]])];
 };
 
+// A finished game saves itself after this many seconds; Undo in that time keeps it open.
+const SAVE_AFTER_S = 5;
+
 const namesOf = (ids, players) => (ids || []).map((id) => players.find((p) => p.id === id)?.name || "Player");
 
 // Team 1 is always on the left and Team 2 on the right, each with its own score, so a number never changes sides.
@@ -30,10 +33,28 @@ const namesOf = (ids, players) => (ids || []).map((id) => players.find((p) => p.
 export default function ScoreKeeper({ court, players, settings, onScore, onConfirm, onStop, page = false }) {
   const [wide] = useState(() => page && typeof window !== "undefined" && !!window.matchMedia?.("(min-width: 1100px)").matches);
   const empty = !(court.teamA?.length || court.teamB?.length);
-  if (empty) return <p className="scorekeeper-empty">No match on this court yet.</p>;
   const s = liveScore(court, settings);
-  const sideout = s.style !== "rally";
   const won = winner(s);
+  // No Confirm button: a finished game is saved after a short countdown (a wrong last tap can still be undone).
+  // A manager's save records it at once; a volunteer's marks it confirmed and the host's queue records it.
+  const [left, setLeft] = useState(SAVE_AFTER_S);
+  const save = useRef(null);
+  save.current = () => (onConfirm ? onConfirm(won === 1 ? "A" : "B") : onScore(confirmScore(s)));
+  const finishing = !empty && won && !s.confirmed ? `${court.id}:${s.start}:${s.t1}:${s.t2}` : null;
+  useEffect(() => {
+    if (!finishing) return undefined;
+    const started = Date.now();
+    setLeft(SAVE_AFTER_S);
+    const timer = setInterval(() => {
+      const remain = SAVE_AFTER_S - Math.floor((Date.now() - started) / 1000);
+      if (remain > 0) return setLeft(remain);
+      clearInterval(timer);
+      save.current();
+    }, 250);
+    return () => clearInterval(timer);
+  }, [finishing]);
+  if (empty) return <p className="scorekeeper-empty">No match on this court yet.</p>;
+  const sideout = s.style !== "rally";
   const point = gamePoint(s);
   const event = lastEvent(s);
   const fresh = s.log.length === 0 && s.t1 + s.t2 === 0;
@@ -82,11 +103,7 @@ export default function ScoreKeeper({ court, players, settings, onScore, onConfi
           {won ? (
             <div className="scorekeeper-done">
               <b>Team {won} wins {finalText(s)}</b>
-              {onConfirm
-                ? <button className="primary" onClick={() => onConfirm(won === 1 ? "A" : "B")}>Confirm result</button>
-                : s.confirmed
-                  ? <p>Confirmed. The host's queue records it and puts the next match on this court.</p>
-                  : <button className="primary" onClick={() => onScore(confirmScore(s))}>Confirm result</button>}
+              <p>{s.confirmed ? "Saved. The next match goes on this court." : `Saving in ${left} s. Tap Undo to change it.`}</p>
             </div>
           ) : null}
         </div>

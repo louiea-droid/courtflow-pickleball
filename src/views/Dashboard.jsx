@@ -259,7 +259,7 @@ function Court({ c, players, queue, need, upNext, win, remove, swap, addPlayer, 
             <p className="court-recording">Recording: Team {done} won {finalText(sc)}...</p>
           ) : done ? (
             <div className="court-score">
-              <button className="primary" onClick={() => win(c.id, done === 1 ? "A" : "B", finalText(sc))}>
+              <button className={`court-confirm team${done}`} onClick={() => win(c.id, done === 1 ? "A" : "B", finalText(sc))}>
                 Confirm: Team {done} wins {finalText(sc)}
               </button>
             </div>
