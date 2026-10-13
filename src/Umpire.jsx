@@ -14,9 +14,9 @@ const NAME_KEY = "courtflow.umpireName";
 const readName = () => { try { return localStorage.getItem(NAME_KEY) || ""; } catch { return ""; } };
 const saveName = (n) => { try { localStorage.setItem(NAME_KEY, n); } catch { /* private window: just don't remember it */ } };
 
-function Page({ children }) {
+function Page({ children, scoring = false }) {
   return (
-    <div className="umpire-page">
+    <div className={`umpire-page${scoring ? " scoring" : ""}`}>
       <h1>Umpire</h1>
       {children}
     </div>
@@ -110,13 +110,13 @@ export default function Umpire() {
   if (court) {
     const singles = court.teamA?.length === 1 && court.teamB?.length === 1;
     return (
-      <Page>
+      <Page scoring>
         <div className="umpire-bar">
           <b>{court.name || `Court ${court.courtNumber}`}</b>
           <button className="outline" onClick={() => releaseCourt(target.base, court.id).catch(fail("Couldn't release the court. Try again."))}>Release court</button>
         </div>
         {notice && <p className="umpire-note" role="alert">{notice}</p>}
-        <ScoreKeeper court={court} players={players} settings={{ style: settings.style, to: settings.to, singles }}
+        <ScoreKeeper page court={court} players={players} settings={{ style: settings.style, to: settings.to, singles }}
           onScore={(score) => writeScore(target.base, court.id, score).catch(fail("Couldn't save the score. Check your connection."))} />
       </Page>
     );
