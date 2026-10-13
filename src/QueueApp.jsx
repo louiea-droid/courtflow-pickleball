@@ -16,6 +16,7 @@ import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
 import { useDocs } from "./hooks/useLiveDocs";
 import { writeScore } from "./utils/umpireData";
+import { packCourts } from "./utils/courtPack";
 
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
@@ -426,24 +427,14 @@ export default function QueueApp({
   async function removeCourt(courtId) {
     if (courts.length <= 1) return notify("You need at least 1 court.");
     const removed = courts.find((c) => c.id === courtId);
-    // Re-pack the survivors into contiguous court-1..court-N doc IDs (keeping
-    // their data) so numbering never gets gaps that later break addCourt.
-    const remaining = courts.filter((c) => c.id !== courtId).sort((a, b) => a.courtNumber - b.courtNumber);
-    const targetIds = remaining.map((_, i) => `court-${i + 1}`);
+    // Re-pack the survivors into contiguous court-1..court-N doc IDs (keeping their data, live score and umpire claim).
+    const { sets, deletes, claimSets, claimDeletes } = packCourts(courts, courtId, claims);
     const batch = writeBatch(db);
-    remaining.forEach((c, i) => {
-      batch.set(at("courts", targetIds[i]), {
-        courtNumber: i + 1,
-        start: c.start ?? Date.now(),
-        teamA: c.teamA || [],
-        teamB: c.teamB || [],
-        ...(c.level ? { level: c.level } : {}),
-      });
-    });
-    courts.forEach((c) => {
-      if (!targetIds.includes(c.id)) batch.delete(at("courts", c.id));
-    });
-    batch.update(at(), { courts: remaining.length });
+    sets.forEach((s) => batch.set(at("courts", s.id), s.data));
+    deletes.forEach((id) => batch.delete(at("courts", id)));
+    claimDeletes.forEach((id) => batch.delete(at("courtClaims", id)));
+    claimSets.forEach((s) => batch.set(at("courtClaims", s.id), s.data));
+    batch.update(at(), { courts: sets.length });
     await batch.commit();
     notify(`Court ${removed?.courtNumber ?? ""} removed.`);
   }
@@ -651,8 +642,10 @@ export default function QueueApp({
         });
       }
     } else if (data.courts < courts.length) {
-      courts.filter((c) => c.courtNumber > data.courts)
-        .forEach((c) => batch.delete(at("courts", c.id)));
+      courts.filter((c) => c.courtNumber > data.courts).forEach((c) => {
+        batch.delete(at("courts", c.id));
+        if (claims.some((cl) => cl.id === c.id)) batch.delete(at("courtClaims", c.id)); // an old claim must not attach to a later court of the same id
+      });
     }
     await batch.commit();
     notify("Session updated.");

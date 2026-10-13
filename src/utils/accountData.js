@@ -4,7 +4,7 @@ import { wipeCollection } from "./wipe.js";
 
 // Subcollections under each event: join requests, and the game's players, courts, matchLog
 // and costs. Listed here so deleting an event, a club or an account never orphans any of them.
-export const EVENT_SUBCOLLECTIONS = ["requests", "players", "courts", "matchLog", "costs"];
+export const EVENT_SUBCOLLECTIONS = ["requests", "players", "courts", "matchLog", "costs", "private", "umpires", "courtClaims"];
 
 // Subcollections directly under a club (events have their own cascade; members are handled in order).
 export const CLUB_SUBCOLLECTIONS = ["roster", "joinRequests", "private", "announcements"];

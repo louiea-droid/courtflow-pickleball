@@ -8,7 +8,7 @@ import { wipeCollection } from "../utils/wipe";
 import { matchCount } from "../utils/stats";
 
 const QUICK_NAME = "Quick session";
-const SUBCOLLECTIONS = ["players", "courts", "history", "costs", "matchLog", "bookings", "bookingRequests"];
+const SUBCOLLECTIONS = ["players", "courts", "history", "costs", "matchLog", "bookings", "bookingRequests", "private", "umpires", "courtClaims"];
 
 function createFreshSession(batch, id) {
   batch.set(doc(db, "sessions", id), {
