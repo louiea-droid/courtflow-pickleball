@@ -1489,7 +1489,7 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 /* Umpire scoring: ScoreKeeper (manager modal + /umpire), the court card line and the Live Board score */
 .scorekeeper{display:flex;flex-direction:column;gap:12px}
 .scorekeeper-empty{color:var(--faint);text-align:center;padding:18px 0}
-.scorekeeper-call{align-self:center;display:flex;gap:8px;align-items:baseline;color:var(--ink);font:700 28px/1 "Space Grotesk";font-variant-numeric:tabular-nums;padding:8px 18px;border-radius:99px;background:var(--soft)}
+.scorekeeper-call{align-self:center;display:flex;gap:8px;align-items:baseline;color:var(--ink);font:700 34px/1 "Space Grotesk";font-variant-numeric:tabular-nums;padding:8px 18px;border-radius:99px;background:var(--soft)}
 .scorekeeper-call b{font:inherit}
 .scorekeeper-call .t1{color:color-mix(in srgb,var(--team1) 80%,var(--ink))}
 .scorekeeper-call .t2{color:color-mix(in srgb,var(--team2) 80%,var(--ink))}
@@ -1543,7 +1543,7 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 /* Phones: umpires score from here, so the board stays short enough that score, Undo and the last tap fit in one view. */
 @media (max-width:560px){
   .scorekeeper{gap:8px}
-  .scorekeeper-call{font-size:24px;padding:6px 14px}
+  .scorekeeper-call{font-size:30px;padding:6px 16px}
   .scorekeeper-board{gap:8px}
   .scorekeeper-side{min-height:0;padding:10px;gap:2px;border-radius:14px}
   .scorekeeper-side-top{flex-wrap:nowrap}
@@ -1596,9 +1596,9 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 /* Scoring on the volunteer's device: the board sits in the middle of the free space and grows into it. Sizes follow both
    the width and the height of the screen, so a small phone, a phone on its side and a tablet all fit without scrolling. */
 .umpire-page.scoring .scorekeeper{margin:auto 0}
-.umpire-page.scoring .scorekeeper-side{min-height:clamp(150px,34dvh,380px);padding:14px}
-.umpire-page.scoring .scorekeeper-points{font-size:clamp(56px,min(22vw,16dvh),150px)}
-.umpire-page.scoring .scorekeeper-call{font-size:clamp(24px,min(7vw,4.5dvh),40px)}
+.umpire-page.scoring .scorekeeper-side{min-height:clamp(130px,min(26dvh,44vw),320px);padding:12px 14px}
+.umpire-page.scoring .scorekeeper-points{font-size:clamp(52px,min(20vw,14dvh),140px)}
+.umpire-page.scoring .scorekeeper-call{font-size:clamp(32px,min(11vw,6.5dvh),60px);padding:8px 22px}
 .umpire-page.scoring .scorekeeper-event{font-size:16px}
 /* Tablets: a wider board with more room per team. */
 @media (min-width:700px) and (min-height:600px){
