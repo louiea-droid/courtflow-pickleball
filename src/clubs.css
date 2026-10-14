@@ -545,3 +545,15 @@ button.acct-brand:hover{background:var(--side-hover)}
   .acct-bell-badge{border-color:var(--nav)}
   .acct-bell-panel{position:fixed;top:var(--bell-top,60px);left:10px;right:10px;width:auto}
 }
+
+/* Responsive pass: the club tab strip hints at more tabs, and Home's cards fill the row. */
+.club-page-nav{
+  background:
+    linear-gradient(to right,var(--bg),var(--bg)) left center/24px 100% no-repeat local,
+    linear-gradient(to left,var(--bg),var(--bg)) right center/24px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%,color-mix(in srgb,var(--ink) 24%,transparent),transparent) left center/12px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%,color-mix(in srgb,var(--ink) 24%,transparent),transparent) right center/12px 100% no-repeat scroll;
+}
+@media (max-width:560px){.club-page-nav-link{padding:0 10px;gap:6px}}
+.home-upcoming .session-group .find-list,.home-upcoming .find-list:has(.session-skeleton){grid-template-columns:repeat(auto-fill,minmax(min(100%,285px),1fr))}
+.session-card.home-session-card,.home-upcoming .session-skeleton{max-width:none}

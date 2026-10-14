@@ -56,6 +56,52 @@ const MembersOnly = (props) => <Restricted text="This page is for the club's mem
 
 // Everything under /clubs/:id. It loads the club and this person's role, applies the club's theme
 // and time zone, and routes to the screens. Managers get the open play and settings screens.
+// The open club's tabs. On a phone they scroll sideways, so the current tab is kept in view: when the strip appears,
+// when the tabs change (a badge arrives) and once the web fonts are in (they widen the tabs). Only the strip scrolls,
+// never the page.
+function ClubTabs({ tabs, label, navigate }) {
+  const nav = useRef(null);
+  const current = tabs.find((t) => t.current)?.to;
+  const shape = tabs.map((t) => `${t.label}:${t.badge || 0}`).join("|");
+  useEffect(() => {
+    const show = () => {
+      const n = nav.current;
+      const a = n?.querySelector('[aria-current="page"]');
+      if (!a) return;
+      const nr = n.getBoundingClientRect(), ar = a.getBoundingClientRect();
+      if (ar.left < nr.left) n.scrollLeft -= nr.left - ar.left + 8;
+      else if (ar.right > nr.right) n.scrollLeft += ar.right - nr.right + 8;
+    };
+    show();
+    document.fonts?.ready.then(show);
+  }, [current, shape]);
+  return (
+    <nav className="club-page-nav" ref={nav} aria-label={label}>
+      {tabs.map((t) => (
+        <a
+          key={t.to}
+          className="club-page-nav-link"
+          href={t.to}
+          aria-current={t.current ? "page" : undefined}
+          onClick={(e) => {
+            if (t.onClick) t.onClick(e);
+            else { e.preventDefault(); navigate(t.to); }
+          }}
+        >
+          <t.Icon size={16} />
+          <span>{t.label}</span>
+          {t.badge > 0 && (
+            <>
+              <span className="count-badge">{t.badge}</span>
+              <span className="sr-only">{t.badgeText}</span>
+            </>
+          )}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox, activeGame, notifications }) {
   const uid = acct.user.uid;
   const info = useClubDoc(uid, clubId);
@@ -315,29 +361,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
             )}
           </div>
           {clubTabs.length > 0 && (
-            <nav className="club-page-nav" aria-label={`${club.name} navigation`}>
-              {clubTabs.map((t) => (
-                <a
-                  key={t.to}
-                  className="club-page-nav-link"
-                  href={t.to}
-                  aria-current={t.current ? "page" : undefined}
-                  onClick={(e) => {
-                    if (t.onClick) t.onClick(e);
-                    else { e.preventDefault(); navigate(t.to); }
-                  }}
-                >
-                  <t.Icon size={16} />
-                  <span>{t.label}</span>
-                  {t.badge > 0 && (
-                    <>
-                      <span className="count-badge">{t.badge}</span>
-                      <span className="sr-only">{t.badgeText}</span>
-                    </>
-                  )}
-                </a>
-              ))}
-            </nav>
+            <ClubTabs tabs={clubTabs} label={`${club.name} navigation`} navigate={navigate} />
           )}
           {route === "club" && club.location && <p className="club-location"><MapPin size={13} /> {club.location}</p>}
           {route === "club" && club.description && <p className="club-about">{club.description}</p>}

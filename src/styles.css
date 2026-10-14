@@ -1805,3 +1805,30 @@ button.ci-btn:focus-visible{outline:2px solid var(--accent-bright);outline-offse
 .live-team-head .live-serve{font-size:clamp(11px,1.25vh,13px);font-weight:900;padding:2px 9px}
 .scorekeeper-side-top em{font-size:12px;font-weight:900;padding:3px 9px}
 @media(max-width:700px){.scorekeeper-side-top em{font-size:11px;padding:2px 7px}}
+
+/* Responsive pass: tap targets, top bar at tablet width, remove-icon glow. */
+.topbar .actions > button{white-space:nowrap}
+.icon.danger{box-shadow:none}
+.swatch{flex-shrink:0}
+@media (min-width:761px) and (max-width:1000px){
+  .topbar{flex-wrap:wrap}
+  .topbar>div:nth-child(2){flex:1 1 240px;min-width:0}
+  .actions{flex:0 1 auto;flex-wrap:wrap;justify-content:flex-end}
+}
+/* On a phone (or any touch screen) the small controls get a tap area of about 40px. Icon buttons grow for real; the
+   rest keep their look and gain an invisible area above and below, so neighbours in the same row never overlap. */
+@media (max-width:700px),(pointer:coarse){
+  .playercard-actions .icon,.row-actions .icon{display:inline-grid;place-items:center;min-width:40px;min-height:40px;padding:0}
+  .playercard-head{flex-wrap:wrap}
+  .tiny,.level-badge,.court-top .score-chip{position:relative}
+  .tiny::after,.level-badge::after,.court-top .score-chip::after{content:"";position:absolute;left:0;right:0;top:-9px;bottom:-9px}
+  .court-remove::after{content:"";position:absolute;inset:-9px}
+  .text{min-height:40px}
+  .back-link{min-height:40px;margin-bottom:4px}
+}
+/* The record-a-winner buttons are the most used in a game: a full-size target on a phone. */
+@media (max-width:700px),(pointer:coarse){
+  .winrow{gap:8px}
+  .winrow button{min-height:44px;font-size:12.5px;border-radius:10px}
+  .method-switch button{min-height:36px}
+}
