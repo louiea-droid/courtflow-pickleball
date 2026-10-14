@@ -516,3 +516,32 @@ button.acct-brand:hover{background:var(--side-hover)}
 }
 @media (prefers-reduced-motion:reduce){.clublogin-ball{opacity:.6}}
 .hub-empty a{color:var(--accent-ink);font-weight:700}
+
+/* Notifications bell in the sticky header, just left of the account menu. */
+.acct-bell{position:relative;margin-left:auto;display:flex}
+.acct-bell+.account-menu{margin-left:0}
+.acct-bell-btn{position:relative;display:inline-grid;place-items:center;width:44px;height:44px;border:1px solid var(--card-line);border-radius:12px;background:var(--panel);color:var(--ink);box-shadow:none}
+.acct-bell-btn:hover{background:var(--soft)}
+.acct-bell-btn[aria-expanded="true"]{border-color:var(--accent-line);background:var(--accent-soft)}
+.acct-bell-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.acct-bell-badge{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;border:2px solid var(--bg);border-radius:99px;background:var(--accent);color:var(--on-accent);font:800 11px/16px "DM Sans",system-ui,sans-serif;text-align:center}
+.acct-bell-live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.acct-bell-panel{position:absolute;top:calc(100% + 8px);right:0;z-index:40;width:min(360px,calc(100vw - 20px));max-height:min(70vh,520px);overflow-y:auto;padding:6px;border:1px solid var(--card-line);border-radius:16px;background:var(--panel);box-shadow:0 20px 50px #0003}
+.acct-bell-panel ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.acct-bell-row{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 12px;border-radius:12px;color:var(--ink);text-decoration:none;transition:background-color .15s ease}
+.acct-bell-row:hover,.acct-bell-row:focus-visible{background:var(--accent-soft)}
+.acct-bell-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.acct-bell-icon{display:inline-grid;place-items:center;flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--soft);color:var(--ink-2)}
+.acct-bell-icon.turn{background:var(--accent);color:var(--on-accent)}
+.acct-bell-text{display:grid;gap:2px;min-width:0}
+.acct-bell-text b{font-size:13.5px;line-height:1.3;overflow-wrap:anywhere}
+.acct-bell-text small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-bell-empty{margin:0;padding:22px 12px;text-align:center;font-size:13.5px;color:var(--muted)}
+.acct-bell-more{display:block;padding:10px 12px;border-radius:12px;font-size:13px;font-weight:700;color:var(--accent-ink);text-decoration:none}
+.acct-bell-more:hover{background:var(--accent-soft)}
+@media(max-width:860px){
+  .acct-bell-btn{width:40px;height:40px;border-color:#29362e;background:#141d18;color:var(--side-ink)}
+  .acct-bell-btn:hover{background:var(--side-hover)}
+  .acct-bell-badge{border-color:var(--nav)}
+  .acct-bell-panel{position:fixed;top:var(--bell-top,60px);left:10px;right:10px;width:auto}
+}

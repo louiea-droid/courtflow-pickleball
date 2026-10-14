@@ -56,7 +56,7 @@ const MembersOnly = (props) => <Restricted text="This page is for the club's mem
 
 // Everything under /clubs/:id. It loads the club and this person's role, applies the club's theme
 // and time zone, and routes to the screens. Managers get the open play and settings screens.
-export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox, activeGame }) {
+export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox, activeGame, notifications }) {
   const uid = acct.user.uid;
   const info = useClubDoc(uid, clubId);
   const { club, role, isMember, canManage, isOwner } = info;
@@ -176,7 +176,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
       active={null} name={acct.account?.name || acct.account?.clubName} email={acct.user?.email}
       onSignOut={acct.signOutUser} navigate={navigate} clubs={myClubs} club={sideClub}
       friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
-      headerAction={headerAction}
+      headerAction={headerAction} notifications={notifications}
     />
   );
   const inShell = (content) => <div className="acct-shell">{sidebar(null)}<main className="acct-main">{content}</main></div>;

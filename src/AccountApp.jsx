@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { LogOut, Play } from "lucide-react";
 import { useAccount } from "./hooks/useAccount";
 import { useRoute } from "./hooks/useRoute";
@@ -11,6 +11,8 @@ import { useClubActions } from "./hooks/useClubActions";
 import { applyTheme } from "./utils/theme";
 import AccountLogin from "./components/AccountLogin";
 import AccountSidebar from "./components/AccountSidebar";
+import { useManagerJoinRequests } from "./hooks/useManagerJoinRequests";
+import { buildNotifications } from "./utils/notifications";
 import { useActiveGames } from "./components/ActiveQueue";
 import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Toast from "./components/Toast";
@@ -50,6 +52,11 @@ export default function AccountApp() {
   const dismissToast = () => { clearTimeout(toastTimer.current); setToast(null); };
   const clubActions = useClubActions({ uid, name, notify });
   const activeGame = activeGames.find((g) => g.status) || activeGames[0]; // a game you play in first, else one you host
+  const managerRequests = useManagerJoinRequests(uid, clubs);
+  const notifications = useMemo(
+    () => buildNotifications({ uid, friendships, chats: inbox.chats, reads: inbox.reads, joinRequests: managerRequests, activeGames }),
+    [uid, friendships, inbox.chats, inbox.reads, managerRequests, activeGames],
+  );
   const gameShortcut = activeGame ? (
     <a
       className="acct-header-game"
@@ -103,7 +110,7 @@ export default function AccountApp() {
   }
 
   if (clubId && route.startsWith("club")) {
-    return <ClubApp key={clubId} acct={acct} clubId={clubId} route={route} eventId={eventId} navigate={navigate} inbox={inbox} activeGame={activeGame} />;
+    return <ClubApp key={clubId} acct={acct} clubId={clubId} route={route} eventId={eventId} navigate={navigate} inbox={inbox} activeGame={activeGame} notifications={notifications} />;
   }
 
   const ownedNames = clubs.filter((c) => c.role === "owner").map((c) => c.clubName);
@@ -114,7 +121,7 @@ export default function AccountApp() {
         active={{ "clubs-find": "find", clubs: "clubs", friends: "friends", inbox: "inbox", sessions: "sessions", help: "help", hub: "hub" }[route] || null}
         name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} clubs={clubs}
         friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
-        headerAction={gameShortcut}
+        headerAction={gameShortcut} notifications={notifications}
       />
       <main className="acct-main">
         {route === "settings" ? (

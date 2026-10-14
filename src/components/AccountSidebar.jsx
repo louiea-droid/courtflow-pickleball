@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { Building2, CalendarSearch, CircleHelp, House, Menu, MessageSquare, PanelLeft, UserPlus, Users, X } from "lucide-react";
 import AccountMenu from "./AccountMenu";
+import NotificationBell from "./NotificationBell";
 import { clubPath } from "../utils/clubs";
 
 // The one sidebar for every signed-in screen in the hub and club area (a drawer behind a menu button on
 // phones). Home, Play (find a club, friends with a count of requests waiting, the inbox with a count of unread chats), My clubs (a link to the page of all your clubs, with the clubs listed under it; the open club links to its overview: `club` = { id, name, current }). The account menu lives in the sticky header across the top (with the button that collapses the
 // sidebar to an icon rail on a wide screen; the choice is remembered). Creating a club and the quick session live on
 // Home. `active` highlights a place: "hub" | "sessions" | "find" | "friends" | "inbox" | "clubs" | "help".
-export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null, friendRequests = 0, inboxUnread = 0, headerAction = null }) {
+export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null, friendRequests = 0, inboxUnread = 0, headerAction = null, notifications = null }) {
   const [open, setOpen] = useState(false);
   // Wide screens: the sidebar is a fixed rail that can collapse to icons. A data attribute on <html> carries the state to the CSS.
   const [collapsed, setCollapsed] = useState(() => {
@@ -42,6 +43,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
         </button>
         <a className="acct-brand" href="/" onClick={go("/")}><img src="/images/courtflow.png" alt="" /><b>CourtFlow</b></a>
         {headerAction}
+        {notifications && <NotificationBell items={notifications} navigate={navigate} />}
         <AccountMenu name={name} email={email} onSignOut={onSignOut} navigate={navigate} />
       </header>
       <div className={`overlay${open ? " show" : ""}`} onClick={() => setOpen(false)} />
