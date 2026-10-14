@@ -11,6 +11,21 @@ export function splitAttendees(b) {
   return { confirmed: all.slice(0, max), waitlist: all.slice(max) };
 }
 
+const notSettled = (a) => a.paid !== "paid" && a.paid !== "refunded";
+
+// Who "Mark all as paid" covers: confirmed seats that have not paid and were not refunded (the waitlist owes nothing yet).
+export function owingIds(b) {
+  return splitAttendees(b).confirmed.filter(notSettled).map((a) => a.id);
+}
+
+// The event page's player filter (unpaid = not paid and not refunded, paid, refunded, all) plus a name search
+// (trimmed, any case).
+export function filterAttendees(attendees, filter, query = "") {
+  const q = query.trim().toLowerCase();
+  const test = { unpaid: notSettled, paid: (a) => a.paid === "paid", refunded: (a) => a.paid === "refunded" }[filter] || (() => true);
+  return attendees.filter((a) => test(a) && (!q || a.name.toLowerCase().includes(q)));
+}
+
 export function addAttendee(list, attendee) {
   return [...list, attendee].sort((a, b) => a.joinedAt - b.joinedAt);
 }

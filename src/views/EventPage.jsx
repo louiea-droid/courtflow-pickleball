@@ -1,67 +1,40 @@
 import { useState } from "react";
-import { ArrowLeft, Banknote, Check, ChevronDown, CreditCard, Download, Pencil, Play, Share2, Trash2, X } from "lucide-react";
+import { ArrowLeft, CheckCheck, Download, Pencil, Play, Share2, Trash2 } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import DateTile from "../components/DateTile";
-import { bookingTotals, endHM, splitAttendees } from "../utils/bookings";
+import { FeeFilters, FeeProgress, MethodSwitch, StatusPill } from "../components/PaymentParts";
+import RowMenu from "../components/RowMenu";
+import { endHM, filterAttendees, owingIds, splitAttendees } from "../utils/bookings";
 import { formatDay, formatHM, formatTime, money } from "../utils/format";
-import { feeCsv, feeReport, gameSummary } from "../utils/gameSession";
+import { feeCsv, feeReport, feeTotals, gameSummary } from "../utils/gameSession";
 import { downloadCsv } from "../utils/download";
 
-function PayControls({ a, request, onPaid, onMethod, onRef }) {
+// One player: the same status pill and Cash / GCash switch as the game's Payment page; refund and remove live behind "⋯".
+function AttendeeRow({ a, request, note, eventId, actions, onRemove }) {
   const paid = a.paid === "paid";
   const refunded = a.paid === "refunded";
-  const method = a.method === "online" ? "Online" : "Cash";
+  const sub = [note, request?.contact].filter(Boolean).join(" · ");
   return (
-    <div className="pay-controls">
-      <button
-        type="button"
-        className={`pay-control pay-status${paid ? " is-paid" : refunded ? " is-refunded" : " is-unpaid"}`}
-        aria-label={paid ? "Mark unpaid" : refunded ? "Clear refund and mark unpaid" : "Mark paid"}
-        title={paid ? "Mark unpaid" : refunded ? "Clear refund and mark unpaid" : "Mark paid"}
-        onClick={() => onPaid(paid || refunded ? "unpaid" : "paid")}
-      >
-        {paid ? <Check size={14} aria-hidden="true" /> : null}
-        {paid ? "Paid" : refunded ? "Refunded" : "Mark paid"}
-      </button>
-      <button
-        type="button"
-        className="pay-control pay-method"
-        onClick={onMethod}
-        aria-label={`Payment method: ${method}. Switch to ${method === "Cash" ? "Online" : "Cash"}.`}
-        title={`Switch to ${method === "Cash" ? "Online" : "Cash"}`}
-      >
-        {method === "Cash" ? <Banknote size={14} aria-hidden="true" /> : <CreditCard size={14} aria-hidden="true" />}
-        {method}
-        <ChevronDown size={13} aria-hidden="true" />
-      </button>
-      {a.paid === "paid" && <button className="tiny outline" onClick={() => onPaid("refunded")}>Refund</button>}
+    <div className="fee-row event-fee-row">
+      <div className="fee-who">
+        <b>{a.name}</b>
+        {sub && <small>{sub}</small>}
+      </div>
+      <MethodSwitch name={a.name} method={a.method} onChange={(method) => actions.patch(eventId, a.id, { method })} />
+      <StatusPill name={a.name} status={paid ? "paid" : refunded ? "refunded" : "unpaid"} onClick={() => actions.setPaid(eventId, a.id, paid || refunded ? "unpaid" : "paid")} />
+      <RowMenu
+        label={`More for ${a.name}`}
+        items={[
+          ...(paid ? [{ label: "Refund", onSelect: () => actions.setPaid(eventId, a.id, "refunded") }] : []),
+          { label: "Remove from event", danger: true, onSelect: () => onRemove(a) },
+        ]}
+      />
       {a.method === "online" && request && (
         <input
           className="ref-input" defaultValue={request.ref || ""} placeholder="Reference no." maxLength={60}
-          aria-label="Payment reference" onBlur={(e) => e.target.value.trim() !== (request.ref || "") && onRef(e.target.value.trim())}
+          aria-label="Payment reference" onBlur={(e) => e.target.value.trim() !== (request.ref || "") && actions.setRef(eventId, request.id, e.target.value.trim())}
         />
       )}
-    </div>
-  );
-}
-
-function AttendeeRow({ a, request, note, eventId, actions }) {
-  return (
-    <div className="attendee-row">
-      <div className="attendee-name">
-        <b>{a.name}</b>
-        <small>{[note, request?.contact].filter(Boolean).join(" · ")}</small>
-      </div>
-      <PayControls
-        a={a}
-        request={request}
-        onPaid={(paid) => actions.setPaid(eventId, a.id, paid)}
-        onMethod={() => actions.patch(eventId, a.id, { method: a.method === "online" ? "cash" : "online" })}
-        onRef={(ref) => actions.setRef(eventId, request.id, ref)}
-      />
-      <button className="icon danger" onClick={() => actions.kick(eventId, a.id)} aria-label={`Remove ${a.name}`}>
-        <X size={14} />
-      </button>
     </div>
   );
 }
@@ -71,6 +44,10 @@ export default function EventPage({
 }) {
   const [name, setName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [confirmAll, setConfirmAll] = useState(false);
+  const [removing, setRemoving] = useState(null);
   const back = (e) => { e.preventDefault(); navigate(`${base}/host`); };
 
   if (!event) {
@@ -83,11 +60,18 @@ export default function EventPage({
   }
 
   const { confirmed, waitlist } = splitAttendees(event);
-  const totals = bookingTotals(event);
   const pending = requests.filter((r) => r.status === "pending");
   const requestOf = (a) => requests.find((r) => r.seatId === a.id);
   const full = confirmed.length >= event.maxPlayers;
   const summary = gameSummary(gamePlayers, event.format);
+  const everyone = event.attendees || [];
+  const owing = owingIds(event);
+  // The same sums as the game's Payment page (feeTotals): a paid waitlist player counts as collected and as owing.
+  const confirmedIds = new Set(confirmed.map((a) => a.id));
+  const sums = feeTotals(everyone.map((a) => ({ paid: a.paid, waiting: !confirmedIds.has(a.id) })), event.fee || 0);
+  const countOf = (key) => filterAttendees(everyone, key).length;
+  const shownConfirmed = filterAttendees(confirmed, filter, search);
+  const shownWaitlist = filterAttendees(waitlist, filter, search);
   // Saved when the game ended; a game ended before this existed (or offline) falls back to the live data.
   const fees = event.status === "ended" ? feeRecord || (gameLoaded ? feeReport(event, gamePlayers, 0) : null) : null;
   const gameLine = event.status === "live" ? (
@@ -160,9 +144,23 @@ export default function EventPage({
                   <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Add a player by name" aria-label="Add a player" maxLength={60} />
                   <button className="primary" disabled={!name.trim()}>{full ? "Add to waitlist" : "Add player"}</button>
                 </form>
-                {confirmed.map((a) => (
-                  <AttendeeRow key={a.id} a={a} request={requestOf(a)} eventId={event.id} actions={actions} />
+                {everyone.length > 0 && (
+                  <FeeFilters
+                    filters={event.fee > 0 ? [["all", "All", everyone.length], ["unpaid", "Unpaid", countOf("unpaid")], ["paid", "Paid", countOf("paid")], ...(countOf("refunded") ? [["refunded", "Refunded", countOf("refunded")]] : [])] : []}
+                    value={filter} onChange={setFilter} search={search} onSearch={setSearch}
+                  />
+                )}
+                {event.fee > 0 && owing.length > 0 && (
+                  <div className="fee-bulk">
+                    <button type="button" className="outline" onClick={() => setConfirmAll(true)}>
+                      <CheckCheck size={14} /> Mark all as paid ({owing.length})
+                    </button>
+                  </div>
+                )}
+                {shownConfirmed.map((a) => (
+                  <AttendeeRow key={a.id} a={a} request={requestOf(a)} eventId={event.id} actions={actions} onRemove={setRemoving} />
                 ))}
+                {confirmed.length > 0 && !shownConfirmed.length && <div className="event-empty"><span>No players match.</span></div>}
                 {!confirmed.length && (
                   <div className="event-empty">
                     <b>No players yet</b>
@@ -174,8 +172,8 @@ export default function EventPage({
               {waitlist.length > 0 && (
                 <div className="booking-block">
                   <h4>Waitlist <span className="count-badge">{waitlist.length}</span></h4>
-                  {waitlist.map((a, i) => (
-                    <AttendeeRow key={a.id} a={a} request={requestOf(a)} note={`#${i + 1} in line`} eventId={event.id} actions={actions} />
+                  {shownWaitlist.map((a) => (
+                    <AttendeeRow key={a.id} a={a} request={requestOf(a)} note={`#${waitlist.indexOf(a) + 1} in line`} eventId={event.id} actions={actions} onRemove={setRemoving} />
                   ))}
                 </div>
               )}
@@ -185,16 +183,11 @@ export default function EventPage({
 
           <aside className="event-tools" aria-label="Event controls">
             {!event.walkIn && event.fee > 0 && (
-              <section className="event-fee-summary" aria-label="Booking fee summary">
-                <h3>Booking fees</h3>
-                <div>
-                  <span>Collected</span>
-                  <b>{money(totals.collected)}</b>
-                </div>
-                <div>
-                  <span>Expected</span>
-                  <b>{money(totals.expected)}</b>
-                </div>
+              <section className="event-fee-progress" aria-label="Booking fee summary">
+                <FeeProgress
+                  collected={sums.collected} total={sums.total} remaining={sums.remaining}
+                  paidCount={sums.paid} ofCount={sums.paid + sums.unpaid}
+                />
               </section>
             )}
 
@@ -222,6 +215,24 @@ export default function EventPage({
         </div>
       </div>
 
+      {removing && (
+        <ConfirmDialog
+          title={`Remove ${removing.name}?`}
+          message={`They come off the list${removing.paid === "paid" ? " and their payment record goes with them" : ""}. If someone is waiting, the next in line moves up. This can't be undone.`}
+          confirmLabel="Remove"
+          onCancel={() => setRemoving(null)}
+          onConfirm={() => { actions.kick(event.id, removing.id); setRemoving(null); }}
+        />
+      )}
+      {confirmAll && (
+        <ConfirmDialog
+          title="Mark everyone as paid?"
+          message={`${owing.length} ${owing.length === 1 ? "player" : "players"} owing ${money(owing.length * (event.fee || 0))} will be marked paid. Waitlisted players aren't included.`}
+          confirmLabel="Mark all paid" confirmClass="primary"
+          onCancel={() => setConfirmAll(false)}
+          onConfirm={() => { setConfirmAll(false); actions.setPaidMany(event.id, owing, "paid"); }}
+        />
+      )}
       {confirmDelete && (
         <ConfirmDialog
           title="Delete this open play?"

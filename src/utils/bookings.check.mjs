@@ -1,6 +1,6 @@
 // Self-check for booking seats, totals and player-facing status. Run: node src/utils/bookings.check.mjs
 import assert from "node:assert";
-import { addAttendee, bookingTotals, endHM, attendeeFromRequest, hasEnded, hasEndedIn, isListed, isOver, myStatus, splitAttendees } from "./bookings.js";
+import { addAttendee, bookingTotals, endHM, attendeeFromRequest, hasEnded, hasEndedIn, isListed, isOver, myStatus, splitAttendees, owingIds, filterAttendees } from "./bookings.js";
 
 const a = (id, joinedAt, paid = "unpaid", extra = {}) => ({ id, name: id, joinedAt, paid, ...extra });
 const b = { date: "2026-10-11", startTime: "18:00", durationMins: 120, maxPlayers: 2, fee: 150, attendees: [] };
@@ -70,5 +70,15 @@ assert.equal(isListed(old, "UTC"), false);
 // A game the host has not ended is not "past" on the host list, but the public page stops listing it once its time has passed.
 assert.equal(isOver({ ...old, status: "live" }, "UTC"), false);
 assert.equal(isListed({ ...old, status: "live" }, "UTC"), false);
+
+// Event page: who still owes (confirmed seats only, not paid or refunded), and the list filter + name search.
+const ev = { maxPlayers: 3, attendees: [a("p1", 1, "paid"), a("u1", 2), a("r1", 3, "refunded"), a("w1", 4)] };
+assert.deepEqual(owingIds(ev), ["u1"]); // w1 is on the waitlist: not due
+assert.deepEqual(owingIds({ maxPlayers: 2, attendees: [a("x", 1, "paid")] }), []);
+assert.deepEqual(filterAttendees(ev.attendees, "unpaid", "").map((x) => x.id), ["u1", "w1"]);
+assert.deepEqual(filterAttendees(ev.attendees, "paid", "").map((x) => x.id), ["p1"]);
+assert.deepEqual(filterAttendees(ev.attendees, "refunded", "").map((x) => x.id), ["r1"]);
+assert.deepEqual(filterAttendees(ev.attendees, "all", "  P1 ").map((x) => x.id), ["p1"]); // trimmed, any case
+assert.deepEqual(filterAttendees(ev.attendees, "all", "").length, 4);
 
 console.log("bookings.check: ok");

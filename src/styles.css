@@ -1832,3 +1832,24 @@ button.ci-btn:focus-visible{outline:2px solid var(--accent-bright);outline-offse
   .winrow button{min-height:44px;font-size:12.5px;border-radius:10px}
   .method-switch button{min-height:36px}
 }
+/* Event page: payment rows share the Payment page's look; refund and remove sit behind a "more" menu. */
+.event-fee-row{grid-template-columns:minmax(0,1fr) auto auto auto}
+.event-fee-row .ref-input{grid-column:1/-1}
+.event-fee-progress{margin:0}
+.event-fee-progress .fee-progress{margin:0}
+.event-main-action{min-height:48px;font-size:15px}
+.row-menu{position:relative}
+.row-menu-btn{display:inline-grid;place-items:center;width:40px;height:40px;padding:0;border:1px solid transparent;border-radius:50%;background:transparent;color:var(--muted);box-shadow:none}
+.row-menu-btn:hover,.row-menu-btn[aria-expanded="true"]{background:var(--soft);color:var(--ink)}
+.row-menu-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row-menu-list{position:absolute;top:calc(100% + 4px);right:0;z-index:20;min-width:190px;display:grid;gap:2px;padding:6px;border:1px solid var(--line);border-radius:12px;background:var(--panel);box-shadow:0 14px 36px #0003}
+.row-menu-list button{min-height:42px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--ink);font-weight:700;font-size:13px;text-align:left;box-shadow:none}
+.row-menu-list button:hover,.row-menu-list button:focus-visible{background:var(--soft)}
+.row-menu-list .danger-item{color:var(--danger-ink)}
+.row-menu-list .danger-item:hover,.row-menu-list .danger-item:focus-visible{background:var(--danger-soft)}
+@media(max-width:560px){
+  .event-fee-row{grid-template-columns:minmax(0,1fr) auto auto}
+  .event-fee-row .fee-status{grid-column:2;grid-row:1}
+  .event-fee-row .row-menu{grid-column:3;grid-row:1}
+  .event-fee-row .method-switch{grid-column:1/-1;grid-row:2}
+}
