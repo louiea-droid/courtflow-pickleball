@@ -77,4 +77,17 @@ assert.equal(flood.length, 200);
 assert.deepEqual(flood.slice(-3), ["n1", "n2", "n3"]);
 assert.equal(flood.includes("old0"), false);
 
+// Review fix 1: a later turn in the same game is a new alert (the key follows the player's games count).
+const turnKeys = [1, 2].map((n) => buildNotifications({ uid: me, activeGames: [{ ...games[0], games: n }] })[0].key);
+assert.notEqual(turnKeys[0], turnKeys[1]);
+assert.equal(buildNotifications({ uid: me, activeGames: [{ ...games[0], games: 4 }] })[0].key, buildNotifications({ uid: me, activeGames: [{ ...games[0], games: 4 }] })[0].key); // same turn, same key
+
+// Review fix 2: when the seen set is full, keys that are still current are kept and the oldest stale keys go.
+const full = ["friend:a_me", ...Array.from({ length: 199 }, (_, i) => `old${i}`)];
+const kept = markSeen(full, [{ key: "friend:a_me" }, { key: "x1" }, { key: "x2" }]);
+assert.equal(kept.length, 200);
+assert.equal(kept.includes("friend:a_me"), true);
+assert.equal(kept.includes("old0"), false);
+assert.deepEqual(kept.slice(-2), ["x1", "x2"]);
+
 console.log("notifications.check: ok");

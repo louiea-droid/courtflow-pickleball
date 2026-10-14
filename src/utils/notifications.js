@@ -17,7 +17,8 @@ export function buildNotifications({ uid, friendships = [], chats = [], reads = 
     const playing = s.state === "playing";
     if (!playing && !s.upNext) return;
     items.push({
-      key: `turn:${g.club.id}/${g.event.id}:${playing ? "playing" : "next"}`, kind: "turn",
+      // `games` (the player's games played, from useActiveGames) changes with every match, so each turn is a new alert.
+      key: `turn:${g.club.id}/${g.event.id}:${playing ? "playing" : "next"}:${g.games || 0}`, kind: "turn",
       title: playing ? `You're on Court ${s.court}` : `You're up next${s.nextOn ? ` on Court ${s.nextOn}` : ""}`,
       sub: g.club.clubName, to: g.queuePath, at: 0,
     });
@@ -55,8 +56,11 @@ export const unseenCount = (items, seen) => {
 };
 
 // Adds every current key. Returns the same array when nothing is new, so a caller can skip the write.
+// Current keys go last, so when the set is full it is the stale keys that are dropped, never a pending one.
 export function markSeen(seen, items) {
   const known = new Set(seen);
-  const fresh = items.map((i) => i.key).filter((k) => !known.has(k));
-  return fresh.length ? [...seen, ...fresh].slice(-MAX_SEEN) : seen;
+  const current = items.map((i) => i.key);
+  if (current.every((k) => known.has(k))) return seen;
+  const live = new Set(current);
+  return [...seen.filter((k) => !live.has(k)), ...current].slice(-MAX_SEEN);
 }

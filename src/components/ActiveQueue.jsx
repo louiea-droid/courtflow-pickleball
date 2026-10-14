@@ -32,11 +32,12 @@ export function useActiveGames(uid, clubs) {
           const status = queueStatus({ players: game.players, courts: game.courts, uid, format: game.event.format, mode: normalizeMode(game.event.mode) || "Balanced", now: Date.now() });
           const hosts = role === "owner" || role === "manager";
           if (!status && !hosts) return;
+          const mine = game.players.find((p) => p.uid === uid && p.checked);
           const clubPath = `/clubs/${encodeURIComponent(clubId)}/event/${encodeURIComponent(eventId)}`;
           next.push({
             club: { id: clubId, clubName },
             event: game.event,
-            ...(status ? { status } : { host: true }),
+            ...(status ? { status, games: mine?.games || 0 } : { host: true }),
             gamePath: `${clubPath}/game`,
             queuePath: `${clubPath}/queue`,
           });

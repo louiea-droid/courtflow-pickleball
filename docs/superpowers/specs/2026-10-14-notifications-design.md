@@ -40,7 +40,7 @@ request, reading the chat, answering the join request, or the turn passing remov
 ## Badge and "seen"
 
 - Each item has a stable key including what makes it new: `friend:{friendshipId}`, `join:{clubId}:{uid}`,
-  `chat:{chatId}:{lastAt}` (the sender of a direct message comes from `chat.names[chat.lastBy]`), `turn:{clubId}/{eventId}:{state}`.
+  `chat:{chatId}:{lastAt}` (the sender of a direct message comes from `chat.names[chat.lastBy]`), `turn:{clubId}/{eventId}:{state}:{games}` (`games` is the player's games played, so each turn in the same game is a new alert).
 - Badge = number of items whose key is not in the person's seen set. Shown as a count ("9+" above nine), hidden at zero.
 - Opening the panel adds every current key to the seen set. The lines stay until handled, like an inbox. A new message
   (new `lastAt`), a new request or a new turn state has a new key, so the badge comes back.
