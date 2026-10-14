@@ -57,11 +57,13 @@ export function useEventActions({ clubId, club, events, hostName, timeZone, noti
     return setAttendees(eventId, e.attendees.map((a) => (a.id === attendeeId ? { ...a, ...change } : a)));
   };
 
-  const setPaid = async (eventId, attendeeId, paid) => {
+  // One write for any number of attendees (many separate writes would each start from the same stale list).
+  const setPaidMany = async (eventId, ids, paid) => {
     const e = find(eventId);
-    if (!e) return;
+    if (!e || !ids.length) return;
+    const chosen = new Set(ids);
     const attendees = e.attendees.map((a) => {
-      if (a.id !== attendeeId) return a;
+      if (!chosen.has(a.id)) return a;
       const next = { ...a, paid };
       if (paid === "paid") next.paidAt = Date.now();
       else delete next.paidAt;
@@ -71,9 +73,10 @@ export function useEventActions({ clubId, club, events, hostName, timeZone, noti
     const booking = await getDoc(bookingRef);
     const batch = writeBatch(db);
     batch.update(eventRef(eventId), { attendees });
-    if (booking.exists()) batch.update(bookingRef, { [`paid.${attendeeId}`]: paid === "paid" });
+    if (booking.exists()) ids.forEach((id) => batch.update(bookingRef, { [`paid.${id}`]: paid === "paid" }));
     await batch.commit();
   };
+  const setPaid = (eventId, attendeeId, paid) => setPaidMany(eventId, [attendeeId], paid);
 
   const kick = async (eventId, attendeeId) => {
     const e = find(eventId);
@@ -107,5 +110,5 @@ export function useEventActions({ clubId, club, events, hostName, timeZone, noti
     notify(`${request.name} declined.`);
   };
 
-  return { save, remove, add, setPaid, patch, kick, approve, decline, setRef };
+  return { save, remove, add, setPaid, setPaidMany, patch, kick, approve, decline, setRef };
 }

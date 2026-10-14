@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ArrowLeft, Banknote, Check, ChevronDown, CreditCard, Pencil, Play, Share2, Trash2, X } from "lucide-react";
+import { ArrowLeft, Banknote, Check, ChevronDown, CreditCard, Download, Pencil, Play, Share2, Trash2, X } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import DateTile from "../components/DateTile";
 import { bookingTotals, endHM, splitAttendees } from "../utils/bookings";
 import { formatDay, formatHM, formatTime, money } from "../utils/format";
-import { gameSummary } from "../utils/gameSession";
+import { feeCsv, feeReport, gameSummary } from "../utils/gameSession";
+import { downloadCsv } from "../utils/download";
 
 function PayControls({ a, request, onPaid, onMethod, onRef }) {
   const paid = a.paid === "paid";
@@ -66,7 +67,7 @@ function AttendeeRow({ a, request, note, eventId, actions }) {
 }
 
 export default function EventPage({
-  event, requests, actions, ready, gamePlayers, gameLoaded, onEdit, onShare, onPickPlayers, onOpenGame, onReopen, navigate, base,
+  event, requests, actions, ready, gamePlayers, gameLoaded, feeRecord, onEdit, onShare, onPickPlayers, onOpenGame, onReopen, navigate, base,
 }) {
   const [name, setName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -87,6 +88,8 @@ export default function EventPage({
   const requestOf = (a) => requests.find((r) => r.seatId === a.id);
   const full = confirmed.length >= event.maxPlayers;
   const summary = gameSummary(gamePlayers, event.format);
+  // Saved when the game ended; a game ended before this existed (or offline) falls back to the live data.
+  const fees = event.status === "ended" ? feeRecord || (gameLoaded ? feeReport(event, gamePlayers, 0) : null) : null;
   const gameLine = event.status === "live" ? (
     <p className="booking-money">
       <b>Game in progress</b>{gameLoaded ? ` · ${summary.checkedIn} checked in of ${summary.players}` : ""}
@@ -114,6 +117,19 @@ export default function EventPage({
 
       <div className={`panel event-management${event.walkIn ? " event-management-walk-in" : ""}`}>
         {gameLine && <div className={`event-game-status is-${event.status}`}>{gameLine}</div>}
+        {fees && (
+          <div className="fee-record">
+            <div className="fee-record-sums">
+              <span>Total <b>{money(fees.total)}</b></span>
+              <span>Collected <b>{money(fees.collected)}</b></span>
+              <span>Remaining balance <b>{money(fees.remaining)}</b></span>
+              <span>{fees.rows.filter((r) => r.status === "paid").length} of {fees.rows.filter((r) => r.status === "paid" || r.status === "unpaid").length} paid</span>
+            </div>
+            <button type="button" className="outline" onClick={() => downloadCsv(`${fees.title} fees.csv`, feeCsv(fees))}>
+              <Download size={14} /> Export to Excel
+            </button>
+          </div>
+        )}
         <div className="event-management-grid">
           {!event.walkIn && (
             <section className="event-roster" aria-label="Event players and requests">

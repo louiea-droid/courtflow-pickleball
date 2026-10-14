@@ -1,8 +1,10 @@
-import { useState } from "react";
-import { Link2, Search, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, CircleAlert, Link2, Search, UserCheck, X } from "lucide-react";
+import Modal from "../components/Modal";
 import PersonBadge from "../components/PersonBadge";
 import StarDisplay from "../components/StarDisplay";
 import { waitMinutes, formatTime } from "../utils/format";
+import { isValidSkillLevel, skillLevelLabel } from "../utils/courtLevels";
 import { hasGender, validLock } from "../utils/rotationModes";
 
 const NO_GENDER = "Set gender to play Mixed Doubles";
@@ -10,6 +12,18 @@ const NO_GENDER = "Set gender to play Mixed Doubles";
 export default function Queue({ queue, notCheckedIn, players, mixed, onCall, onCheckOut, onCheckIn, onSetLock }) {
   const [pendingLockId, setPendingLockId] = useState(null);
   const [checkInSearch, setCheckInSearch] = useState("");
+  const [showCheckIn, setShowCheckIn] = useState(false);
+  // A player who just got checked in stays in the modal list for a moment as a "Checked in" row, then slides away.
+  const [leaving, setLeaving] = useState([]);
+  const lastWaiting = useRef(notCheckedIn);
+  useEffect(() => {
+    const still = new Set(notCheckedIn.map((p) => p.id));
+    const gone = lastWaiting.current.map((p, index) => ({ p, index })).filter(({ p }) => !still.has(p.id));
+    lastWaiting.current = notCheckedIn;
+    if (!gone.length) return;
+    setLeaving((cur) => [...cur, ...gone]);
+    setTimeout(() => setLeaving((cur) => cur.filter((g) => !gone.some((x) => x.p.id === g.p.id))), 1100);
+  }, [notCheckedIn]);
   const nameOf = (id) => players?.find((p) => p.id === id)?.name || "player";
   const pendingName = pendingLockId ? nameOf(pendingLockId) : null;
   const warnOf = (p) => (mixed && !hasGender(p) ? NO_GENDER : null);
@@ -17,6 +31,10 @@ export default function Queue({ queue, notCheckedIn, players, mixed, onCall, onC
   const visibleNotCheckedIn = normalizedCheckInSearch
     ? notCheckedIn.filter((p) => p.name.toLowerCase().includes(normalizedCheckInSearch))
     : notCheckedIn;
+  const rowsInModal = visibleNotCheckedIn.map((p) => ({ p }));
+  leaving
+    .filter(({ p }) => !normalizedCheckInSearch || p.name.toLowerCase().includes(normalizedCheckInSearch))
+    .forEach((g) => rowsInModal.splice(Math.min(g.index, rowsInModal.length), 0, { ...g, done: true }));
   // A saved lock the Mixed Doubles rule ignores (two men, two women, or no gender set).
   const badLock = (p) => mixed && p.lockedWithId && !validLock(p, players?.find((q) => q.id === p.lockedWithId), "Mixed Doubles");
 
@@ -38,6 +56,11 @@ export default function Queue({ queue, notCheckedIn, players, mixed, onCall, onC
 
   return (
     <>
+      <div className="queue-toolbar">
+        <button type="button" className="outline" onClick={() => setShowCheckIn(true)}>
+          <UserCheck size={15} /> Not Checked In<span className="count-badge">{notCheckedIn.length}</span>
+        </button>
+      </div>
       {pendingLockId && (
         <div className="section-hint lock-hint">
           Choose who to lock in with <b>{pendingName}</b>.{mixed && " Mixed Doubles: pick the opposite gender."}{" "}
@@ -87,44 +110,50 @@ export default function Queue({ queue, notCheckedIn, players, mixed, onCall, onC
         {!queue.length && <div className="empty">Queue is empty.</div>}
       </div>
 
-      <div className="checkin-heading">
-        <h3 className="section-title">Not Checked In<span className="count-badge">{notCheckedIn.length}</span></h3>
-        {notCheckedIn.length > 0 && (
-          <label className="checkin-search">
-            <Search size={15} aria-hidden="true" />
-            <input
-              type="search"
-              aria-label="Search players not checked in"
-              placeholder="Search players"
-              value={checkInSearch}
-              onChange={(event) => setCheckInSearch(event.target.value)}
-            />
-            {checkInSearch && (
-              <button
-                type="button"
-                className="checkin-search-clear"
-                aria-label="Clear player search"
-                onClick={() => setCheckInSearch("")}
-              >
-                <X size={14} />
-              </button>
+      {showCheckIn && (
+        <Modal title="Not Checked In" label={`${notCheckedIn.length} waiting`} close={() => setShowCheckIn(false)} className="checkin-modal">
+          {notCheckedIn.length > 0 && (
+            <label className="checkin-search">
+              <Search size={15} aria-hidden="true" />
+              <input
+                type="search" autoFocus aria-label="Search players not checked in" placeholder={`Search ${notCheckedIn.length} ${notCheckedIn.length === 1 ? "player" : "players"}`}
+                value={checkInSearch} onChange={(event) => setCheckInSearch(event.target.value)}
+              />
+              {checkInSearch && (
+                <button type="button" className="checkin-search-clear" aria-label="Clear player search" onClick={() => setCheckInSearch("")}>
+                  <X size={14} />
+                </button>
+              )}
+            </label>
+          )}
+          <div className="checkin-list checkin-modal-list">
+            {rowsInModal.map(({ p, done }) => (
+              <div className={`checkin-item${done ? " leaving" : ""}`} key={p.id}>
+                <span className="ci-who">
+                  <b className="ci-name">
+                    {p.name}
+                    {warnOf(p) && <span className="gender-warn" role="img" title={warnOf(p)} aria-label={warnOf(p)}><CircleAlert size={13} /></span>}
+                  </b>
+                  {isValidSkillLevel(p.skill) ? (
+                    <span className="ci-skill"><StarDisplay value={p.skill} /> {skillLevelLabel(p.skill)}</span>
+                  ) : (
+                    <span className="ci-skill unrated">Not rated yet</span>
+                  )}
+                </span>
+                {done ? (
+                  <span className="ci-btn ci-done"><Check size={16} strokeWidth={3} /> Checked in</span>
+                ) : (
+                  <button className="ci-btn" aria-label={`Check in ${p.name}`} onClick={() => onCheckIn(p.id)}>Check in</button>
+                )}
+              </div>
+            ))}
+            {!notCheckedIn.length && !leaving.length && <div className="empty">Everyone is checked in.</div>}
+            {notCheckedIn.length > 0 && !visibleNotCheckedIn.length && (
+              <div className="empty checkin-no-results" role="status">No players match “{checkInSearch.trim()}”.</div>
             )}
-          </label>
-        )}
-      </div>
-      <p className="section-hint">Waiting to arrive — check them in when they show up. For full stats or to edit a player, use the Players tab.</p>
-      <div className="panel checkin-list">
-        {visibleNotCheckedIn.map((p, i) => (
-          <div className="checkin-item" key={p.id} style={{ animationDelay: `${Math.min(i, 10) * 30}ms` }}>
-            <PersonBadge name={p.name} skill={p.skill} warn={warnOf(p)} />
-            <button className="tiny accent" onClick={() => onCheckIn(p.id)}>Check In</button>
           </div>
-        ))}
-        {!notCheckedIn.length && <div className="empty">Everyone is checked in.</div>}
-        {notCheckedIn.length > 0 && !visibleNotCheckedIn.length && (
-          <div className="empty checkin-no-results" role="status">No players match “{checkInSearch.trim()}”.</div>
-        )}
-      </div>
+        </Modal>
+      )}
     </>
   );
 }

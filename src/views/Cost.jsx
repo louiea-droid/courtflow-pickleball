@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, MonitorPlay, Save, Trash2 } from "lucide-react";
+import { Check, CheckCheck, ChevronDown, Download, Search, MonitorPlay, Save, Trash2 } from "lucide-react";
+import ConfirmDialog from "../components/ConfirmDialog";
 import PanelHead from "../components/PanelHead";
 import PersonBadge from "../components/PersonBadge";
-import { splitAttendees } from "../utils/bookings";
+import { feeCsv, feeReport, feeRows, feeTotals } from "../utils/gameSession";
+import { downloadCsv } from "../utils/download";
 import { formatDate, money, splitCost } from "../utils/format";
 
 function CostEntry({ entry, players, onTogglePaid, onToggleLive, onDelete }) {
@@ -60,70 +62,166 @@ function CostEntry({ entry, players, onTogglePaid, onToggleLive, onDelete }) {
   );
 }
 
-function OpenPlayFeeRow({ attendee, fee, onSetPaid, due = true }) {
-  const paid = attendee.paid === "paid";
-  const refunded = attendee.paid === "refunded";
+const FILTERS = [["unpaid", "Unpaid"], ["paid", "Paid"], ["waitlist", "Waitlist"], ["refunded", "Refunded"], ["all", "All"]];
+const isOpen = (r) => r.paid !== "paid" && r.paid !== "refunded";
+const FILTER_TESTS = {
+  unpaid: (r) => !r.waiting && isOpen(r),
+  paid: (r) => r.paid === "paid",
+  waitlist: (r) => r.waiting && isOpen(r),
+  refunded: (r) => r.paid === "refunded",
+  all: () => true,
+};
+const RANK = ["unpaid", "paid", "waitlist", "refunded"];
+const rankOf = (r) => RANK.findIndex((key) => FILTER_TESTS[key](r));
+
+function FeeRow({ row, fee, onSetPaid, onSetMethod }) {
+  const paid = row.paid === "paid";
+  const refunded = row.paid === "refunded";
+  const method = row.method === "online" ? "online" : "cash";
   return (
-    <div className="open-play-fee-row">
-      <PersonBadge name={attendee.name} />
-      <b>{due ? money(fee) : "Not due"}</b>
+    <div className="fee-row">
+      <div className="fee-who">
+        <b>{row.name}</b>
+        <small>{row.waiting ? "Waitlist · not yet due" : money(fee)}</small>
+      </div>
+      <div className="method-switch" role="group" aria-label={`Payment method for ${row.name}`}>
+        {[["cash", "Cash"], ["online", "GCash"]].map(([key, label]) => (
+          <button type="button" key={key} aria-pressed={method === key} onClick={() => method !== key && onSetMethod(row, key)}>{label}</button>
+        ))}
+      </div>
       <button
         type="button"
-        className={`pill toggle ${paid ? "" : "off"}`}
-        aria-label={`Mark ${attendee.name} ${paid ? "unpaid" : "paid"}`}
-        onClick={() => onSetPaid(attendee.id, paid ? "unpaid" : "paid")}
+        className={`fee-status ${paid ? "paid" : refunded ? "refunded" : "unpaid"}`}
+        aria-label={`${row.name}: ${paid ? "paid" : refunded ? "refunded" : "unpaid"}. Mark ${paid || refunded ? "unpaid" : "paid"}.`}
+        onClick={() => onSetPaid([row], paid || refunded ? "unpaid" : "paid")}
       >
-        {paid ? "Mark unpaid" : refunded ? "Mark unpaid" : "Mark paid"}
+        {paid ? <><Check size={14} strokeWidth={3} /> Paid</> : refunded ? "Refunded" : "Unpaid"}
       </button>
     </div>
   );
 }
 
-function OpenPlayFees({ attendees, fee, maxPlayers, onSetPaid }) {
-  const { confirmed } = splitAttendees({ attendees, maxPlayers });
-  const confirmedIds = new Set(confirmed.map((a) => a.id));
-  const unpaid = attendees.filter((a) => confirmedIds.has(a.id) && a.paid !== "paid" && a.paid !== "refunded");
-  const waitlist = attendees.filter((a) => !confirmedIds.has(a.id) && a.paid !== "paid" && a.paid !== "refunded");
-  const paid = attendees.filter((a) => a.paid === "paid");
-  const refunded = attendees.filter((a) => a.paid === "refunded");
+// A Play now game has no set fee, so the host types one here. Saved on blur or Enter.
+function FeeInput({ fee, onSave }) {
+  const [value, setValue] = useState(fee ? String(fee) : "");
+  const save = () => {
+    const n = Math.max(0, parseFloat(value) || 0);
+    setValue(n ? String(n) : "");
+    if (n !== fee) onSave(n);
+  };
+  return (
+    <label className="open-play-fee-input">
+      Fee per player (₱)
+      <input
+        type="number" min="0" step="0.01" placeholder="0.00" value={value}
+        onChange={(e) => setValue(e.target.value)} onBlur={save}
+        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      />
+    </label>
+  );
+}
+
+// Rows are the booked attendees (paid lives on the event) plus everyone added in the game who
+// isn't one (paid lives on the player), so nobody in the game is left out of the fees.
+function OpenPlayFees({ event, players, fee, canSetFee, onSetFee, onSetAttendeesPaid, onSetPlayersPaid, onSetAttendeeMethod, onSetPlayerMethod }) {
+  const rows = feeRows(event, players);
+  const { total, collected, remaining, unpaid, paid } = feeTotals(rows, fee);
+  const [picked, setPicked] = useState(null);
+  const [search, setSearch] = useState("");
+  const [confirmAll, setConfirmAll] = useState(false);
+  const filter = picked ?? (unpaid ? "unpaid" : "all"); // opens on the job to do, until the host picks a view
+  const counts = Object.fromEntries(FILTERS.map(([key]) => [key, rows.filter(FILTER_TESTS[key]).length]));
+  const q = search.trim().toLowerCase();
+  const visible = rows
+    .filter((r) => FILTER_TESTS[filter](r) && (!q || r.name.toLowerCase().includes(q)))
+    .sort((a, b) => (filter === "all" ? rankOf(a) - rankOf(b) : 0));
+  const pct = total ? Math.round((collected / total) * 100) : 0;
+
+  const setPaid = (list, value) => {
+    const booked = list.filter((r) => r.attendee).map((r) => r.id);
+    const walkIns = list.filter((r) => !r.attendee).map((r) => r.id);
+    if (booked.length) onSetAttendeesPaid(booked, value);
+    if (walkIns.length) onSetPlayersPaid(walkIns, value === "paid");
+  };
+  const setMethod = (row, value) => (row.attendee ? onSetAttendeeMethod(row.id, value) : onSetPlayerMethod(row.id, value));
+  const owing = rows.filter(FILTER_TESTS.unpaid);
+  const emptyText = q ? `No players match “${search.trim()}”.`
+    : filter === "unpaid" ? (rows.length ? "Everyone has paid." : "Add players to this game to track their fees.")
+    : "No players here.";
+
   return (
     <div className="panel open-play-fees">
-      <PanelHead title="Open Play fees" sub={`${money(fee)} per player, using this event's set fee.`} />
-      <div className="open-play-fee-summary">
-        <div><span>STILL OWED</span><b>{money(unpaid.length * fee)}</b><small>{unpaid.length} unpaid</small></div>
-        <div><span>COLLECTED</span><b>{money(paid.length * fee)}</b><small>{paid.length} paid</small></div>
+      <div className="fee-head">
+        <PanelHead title="Open Play fees" sub={fee > 0 ? `${money(fee)} per player.` : "No fee set yet."} />
+        {fee > 0 && rows.length > 0 && (
+          <button type="button" className="outline fee-export" onClick={() => exportFees(event, players, fee)}>
+            <Download size={14} /> Export to Excel
+          </button>
+        )}
       </div>
-      <div className="booking-block">
-        <h4>Unpaid <span className="count-badge">{unpaid.length}</span></h4>
-        {unpaid.map((a) => <OpenPlayFeeRow key={a.id} attendee={a} fee={fee} onSetPaid={onSetPaid} />)}
-        {!unpaid.length && <div className="empty">Everyone has paid.</div>}
+      {canSetFee && <FeeInput fee={fee} onSave={onSetFee} />}
+
+      {total > 0 && (
+        <div className="fee-progress">
+          <div className="fee-progress-top">
+            <div className="fee-collected"><b>{money(collected)}</b><span>of {money(total)} collected</span></div>
+            <div className="fee-remaining"><span>Remaining balance</span><b>{money(remaining)}</b></div>
+          </div>
+          <div className="fee-bar" role="progressbar" aria-label="Fees collected" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><i style={{ width: `${pct}%` }} /></div>
+          <small>{paid} of {paid + unpaid} paid</small>
+        </div>
+      )}
+
+      {rows.length > 0 && (
+        <div className="fee-toolbar">
+          <div className="fee-chips" role="group" aria-label="Show players">
+            {FILTERS.filter(([key]) => key === "unpaid" || key === "all" || counts[key] > 0).map(([key, label]) => (
+              <button type="button" key={key} aria-pressed={filter === key} onClick={() => setPicked(key)}>
+                {label}<span>{counts[key]}</span>
+              </button>
+            ))}
+          </div>
+          <label className="checkin-search fee-search">
+            <Search size={15} aria-hidden="true" />
+            <input type="search" aria-label="Search players" placeholder="Search players" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </label>
+        </div>
+      )}
+
+      {fee > 0 && owing.length > 0 && (
+        <div className="fee-bulk">
+          <button type="button" className="outline" onClick={() => setConfirmAll(true)}>
+            <CheckCheck size={14} /> Mark all as paid ({owing.length})
+          </button>
+        </div>
+      )}
+
+      <div className="fee-list">
+        {visible.map((r) => <FeeRow key={r.id} row={r} fee={fee} onSetPaid={setPaid} onSetMethod={setMethod} />)}
+        {!visible.length && <div className="empty">{emptyText}</div>}
       </div>
-      {paid.length > 0 && (
-        <div className="booking-block">
-          <h4>Paid (including waitlist) <span className="count-badge">{paid.length}</span></h4>
-          {paid.map((a) => <OpenPlayFeeRow key={a.id} attendee={a} fee={fee} onSetPaid={onSetPaid} />)}
-        </div>
+
+      {confirmAll && (
+        <ConfirmDialog
+          title="Mark everyone as paid?"
+          message={`${owing.length} ${owing.length === 1 ? "player" : "players"} owing ${money(owing.length * fee)} will be marked paid. Waitlisted players aren't included.`}
+          confirmLabel="Mark all paid" confirmClass="primary"
+          onCancel={() => setConfirmAll(false)}
+          onConfirm={() => { setConfirmAll(false); setPaid(owing, "paid"); }}
+        />
       )}
-      {waitlist.length > 0 && (
-        <div className="booking-block">
-          <h4>Waitlist · not yet due <span className="count-badge">{waitlist.length}</span></h4>
-          {waitlist.map((a) => <OpenPlayFeeRow key={a.id} attendee={a} fee={fee} onSetPaid={onSetPaid} due={false} />)}
-        </div>
-      )}
-      {refunded.length > 0 && (
-        <div className="booking-block">
-          <h4>Refunded <span className="count-badge">{refunded.length}</span></h4>
-          {refunded.map((a) => <OpenPlayFeeRow key={a.id} attendee={a} fee={fee} onSetPaid={onSetPaid} />)}
-        </div>
-      )}
-      {!attendees.length && <div className="empty">Add players to this Open Play to track their fees.</div>}
     </div>
   );
 }
 
+function exportFees(event, players, fee) {
+  const report = feeReport({ ...event, fee }, players, 0);
+  if (report) downloadCsv(`${report.title} fees.csv`, feeCsv(report));
+}
+
 export default function Cost({
   players, costs, costDefaults, onAdd, onTogglePaid, onToggleLive, onDelete,
-  isOpenPlay, attendees = [], eventFee = 0, maxPlayers, onSetAttendeePaid,
+  isOpenPlay, attendees = [], eventFee = 0, maxPlayers, canSetFee, onSetFee, onSetAttendeesPaid, onSetPlayersPaid, onSetAttendeeMethod, onSetPlayerMethod, eventTitle, eventDate,
 }) {
   const defaultRate = costDefaults.rate ? String(costDefaults.rate) : "";
   const [label, setLabel] = useState("");
@@ -136,7 +234,7 @@ export default function Cost({
   const rateNum = parseFloat(rate) || 0;
   const hoursNum = parseFloat(hours) || 0;
   const courtsNum = parseFloat(courtCount) || 0;
-  const tracksOpenPlayFee = isOpenPlay && eventFee > 0;
+  const tracksOpenPlayFee = isOpenPlay && (eventFee > 0 || canSetFee);
   const selectablePlayers = players;
   const selectableKey = selectablePlayers.map((p) => p.id).join("\u0000");
   useEffect(() => {
@@ -176,83 +274,98 @@ export default function Cost({
     setSelected(selectablePlayers.filter((p) => p.checked).map((p) => p.id));
   };
 
+  const form = (
+    <form onSubmit={submit}>
+      <label>
+        Court / label
+        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Court 1" />
+      </label>
+
+      <div className="cost-calc-grid">
+        <label>
+          Rate (₱ / hr)
+          <input type="number" min="0" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="0.00" />
+        </label>
+        <label>
+          Hours
+          <input type="number" min="0" step="0.25" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="1" />
+        </label>
+        <label>
+          Courts
+          <input type="number" min="1" step="1" value={courtCount} onChange={(e) => setCourtCount(e.target.value)} placeholder="1" />
+        </label>
+      </div>
+
+      <div className="cost-select-head">
+        <label>Splitting between</label>
+        {selectablePlayers.length > 0 && (
+          <button type="button" className="text" onClick={toggleSelectAll}>
+            {allSelected ? "Clear all" : "Select all"}
+          </button>
+        )}
+      </div>
+      <div className="player-select">
+        {selectablePlayers.map((p) => (
+          <button
+            type="button"
+            key={p.id}
+            className={`player-chip ${selected.includes(p.id) ? "selected" : ""}`}
+            onClick={() => toggleSelected(p.id)}
+          >
+            <PersonBadge name={p.name} />
+            {selected.includes(p.id) && <Check size={14} />}
+          </button>
+        ))}
+        {!selectablePlayers.length && <span className="section-hint">Add players first, then come back here.</span>}
+      </div>
+
+      <div className="cards cost-preview">
+        <div className="stat"><span>TOTAL</span><b>{money(total)}</b><small>rate × hours × courts</small></div>
+        <div className="stat">
+          <span>PER PLAYER</span>
+          <b>{money(perPerson)}</b>
+          <small>{`${selected.length || 0} splitting${!isOpenPlay && costDefaults.roundTo ? `, rounded up to ₱${costDefaults.roundTo}` : ""}`}</small>
+        </div>
+      </div>
+
+      <div className="modalactions">
+        <button className="primary" disabled={!canSave}><Save size={14} /> Save Entry</button>
+      </div>
+    </form>
+  );
+  const historyEntries = costs.filter((entry) => !isOpenPlay || !entry.bookingId);
+
   return (
     <>
-      <div className="panel cost-form">
-      
-        <form onSubmit={submit}>
-          <label>
-            Court / label
-            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Court 1" />
-          </label>
-
-          <div className="cost-calc-grid">
-            <label>
-              Rate (₱ / hr)
-              <input type="number" min="0" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="0.00" />
-            </label>
-            <label>
-              Hours
-              <input type="number" min="0" step="0.25" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="1" />
-            </label>
-            <label>
-              Courts
-              <input type="number" min="1" step="1" value={courtCount} onChange={(e) => setCourtCount(e.target.value)} placeholder="1" />
-            </label>
-          </div>
-
-          <div className="cost-select-head">
-            <label>Splitting between</label>
-            {selectablePlayers.length > 0 && (
-              <button type="button" className="text" onClick={toggleSelectAll}>
-                {allSelected ? "Clear all" : "Select all"}
-              </button>
-            )}
-          </div>
-          <div className="player-select">
-            {selectablePlayers.map((p) => (
-              <button
-                type="button"
-                key={p.id}
-                className={`player-chip ${selected.includes(p.id) ? "selected" : ""}`}
-                onClick={() => toggleSelected(p.id)}
-              >
-                <PersonBadge name={p.name} />
-                {selected.includes(p.id) && <Check size={14} />}
-              </button>
-            ))}
-            {!selectablePlayers.length && <span className="section-hint">Add players first, then come back here.</span>}
-          </div>
-
-          <div className="cards cost-preview">
-            <div className="stat"><span>TOTAL</span><b>{money(total)}</b><small>rate × hours × courts</small></div>
-            <div className="stat">
-              <span>PER PLAYER</span>
-              <b>{money(perPerson)}</b>
-              <small>{`${selected.length || 0} splitting${!isOpenPlay && costDefaults.roundTo ? `, rounded up to ₱${costDefaults.roundTo}` : ""}`}</small>
-            </div>
-          </div>
-
-          <div className="modalactions">
-            <button className="primary" disabled={!canSave}><Save size={14} /> Save Entry</button>
-          </div>
-        </form>
-      </div>
-
       {tracksOpenPlayFee && (
-        <OpenPlayFees attendees={attendees} fee={eventFee} maxPlayers={maxPlayers} onSetPaid={onSetAttendeePaid} />
+        <OpenPlayFees
+          event={{ attendees, maxPlayers, title: eventTitle, date: eventDate }} players={players} fee={eventFee} canSetFee={canSetFee}
+          onSetFee={onSetFee} onSetAttendeesPaid={onSetAttendeesPaid} onSetPlayersPaid={onSetPlayersPaid}
+          onSetAttendeeMethod={onSetAttendeeMethod} onSetPlayerMethod={onSetPlayerMethod}
+        />
       )}
 
-      <div className="panel history-panel">
-        <PanelHead title="Rental History" sub="Everyone's split, and who still owes." />
-        {costs.filter((entry) => !isOpenPlay || !entry.bookingId).map((entry) => (
-          <CostEntry
-            key={entry.id} entry={entry} players={players}
-            onTogglePaid={onTogglePaid} onToggleLive={onToggleLive} onDelete={onDelete}
-          />
-        ))}
-        {!costs.some((entry) => !isOpenPlay || !entry.bookingId) && <div className="empty">No court rentals logged yet.</div>}
-      </div>
+      {isOpenPlay ? (
+        <details className="panel rental-fold">
+          <summary>Split a court rental<span>Share a court booking between players</span></summary>
+          {form}
+        </details>
+      ) : (
+        <div className="panel cost-form">{form}</div>
+      )}
+
+      {(!isOpenPlay || historyEntries.length > 0) && (
+        <div className="panel history-panel">
+          <PanelHead title="Rental History" sub="Everyone's split, and who still owes." />
+          {historyEntries.map((entry) => (
+            <CostEntry
+              key={entry.id} entry={entry} players={players}
+              onTogglePaid={onTogglePaid} onToggleLive={onToggleLive} onDelete={onDelete}
+            />
+          ))}
+          {!historyEntries.length && <div className="empty">No court rentals logged yet.</div>}
+        </div>
+      )}
     </>
   );
 }

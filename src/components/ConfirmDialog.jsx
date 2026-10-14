@@ -2,7 +2,7 @@ import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useEscape } from "../hooks/useEscape";
 
-export default function ConfirmDialog({ title, message, confirmLabel = "Remove", onCancel, onConfirm }) {
+export default function ConfirmDialog({ title, message, confirmLabel = "Remove", confirmClass = "danger", onCancel, onConfirm }) {
   useEscape(onCancel);
   const cancel = useRef(null);
   const titleId = useId();
@@ -14,7 +14,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = "Remove",
         <p>{message}</p>
         <div className="modalactions">
           <button className="outline" ref={cancel} onClick={onCancel}>Cancel</button>
-          <button className="danger" onClick={onConfirm}>{confirmLabel}</button>
+          <button className={confirmClass} onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>
     </div>,

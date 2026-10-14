@@ -4,7 +4,7 @@ import { eventBase } from "../utils/paths";
 import { nowIn } from "../utils/bookings";
 import { metaFor, sessionMeta } from "../utils/sessions";
 import {
-  bookingCostEntry, courtDocs, gameStartFields, playersToAdd, playNowEvent,
+  bookingCostEntry, courtDocs, feeReport, gameStartFields, playersToAdd, playNowEvent,
 } from "../utils/gameSession";
 
 // Every write that starts, extends, ends or reopens a game. The signed-in host owns all of it.
@@ -57,8 +57,21 @@ export function useGameActions({ clubId, club, hostName, timeZone, notify }) {
     return ref.id;
   };
 
-  // Ending changes the status only. Players, matches and costs stay for the event page.
-  const endGame = (eventId) => updateDoc(eventRef(eventId), { status: "ended", endedAt: Date.now() });
+  // Ending sets the status and records who paid (managers-only, under the event's costs) so the event page can
+  // export it. Players, matches and costs stay. If the record can't be read, the game still ends and the event
+  // page works the list out from the live data instead.
+  const endGame = async (eventId) => {
+    const now = Date.now();
+    const batch = writeBatch(db);
+    batch.update(eventRef(eventId), { status: "ended", endedAt: now });
+    try {
+      const event = (await getDoc(eventRef(eventId))).data();
+      const players = (await getDocs(collection(db, ...eventBase(clubId, eventId), "players"))).docs.map((d) => ({ id: d.id, ...d.data() }));
+      const report = event && feeReport({ ...event, id: eventId }, players, now);
+      if (report) batch.set(at(eventId, "costs", "fee-report"), report);
+    } catch { /* ends without the record */ }
+    await batch.commit();
+  };
 
   const reopenGame = async (eventId) => {
     await updateDoc(eventRef(eventId), { status: "live", endedAt: deleteField() });

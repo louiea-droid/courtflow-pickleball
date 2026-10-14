@@ -6,6 +6,8 @@ import { useEvents, useEventRequests } from "./hooks/useEvents";
 import { useEventActions } from "./hooks/useEventActions";
 import { useSessionSync } from "./hooks/useSessionSync";
 import { useEventPlayers } from "./hooks/useEventPlayers";
+import { useCosts } from "./hooks/useCosts";
+import { eventBase } from "./utils/paths";
 import { useGameActions } from "./hooks/useGameActions";
 import { useJoinRequests, useMembers } from "./hooks/useMembership";
 import { removeMyCopy, useMembershipActions } from "./hooks/useMembershipActions";
@@ -105,6 +107,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
   // Listen for requests only on events still on the calendar (and the one open on screen), and only for managers.
   const watched = canManage ? events.filter((e) => !isOver(e, fallbackZone) || e.id === eventId).map((e) => e.id) : [];
   const requestsByEvent = useEventRequests(ready ? clubId : null, watched);
+  const eventCosts = useCosts(ready && canManage && route === "club-event" ? eventBase(clubId, eventId) : null);
   const { players: gamePlayers, loaded: gameLoaded } = useEventPlayers(ready && canManage ? clubId : null, route === "club-event" ? eventId : null);
 
   const hostName = club?.name || "";
@@ -195,7 +198,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
       <Suspense fallback={inShell(<p className="hub-empty">Loading game…</p>)}>
         <Game
           clubId={clubId} club={{ ...club, display: { ...club.display, theme: personalTheme } }} event={events.find((e) => e.id === eventId)} ready={eventsReady}
-          base={base} navigate={navigate} endGame={endGame} onSetAttendeePaid={actions.setPaid}
+          base={base} navigate={navigate} endGame={endGame} onSetAttendeesPaid={actions.setPaidMany} onSetAttendeeMethod={(eventId, id, method) => actions.patch(eventId, id, { method })}
           memberChoices={clubMembers.map((m) => ({ id: m.id, name: m.name }))}
         />
       </Suspense>
@@ -251,7 +254,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
       return (
         <EventPage
           event={openEvent} requests={requestsByEvent[eventId] || []} actions={actions} ready={eventsReady}
-          gamePlayers={gamePlayers} gameLoaded={gameLoaded} base={base} navigate={navigate}
+          gamePlayers={gamePlayers} gameLoaded={gameLoaded} feeRecord={eventCosts.find((c) => c.id === "fee-report")} base={base} navigate={navigate}
           onPickPlayers={() => setGamePick(true)} onOpenGame={() => navigate(`${base}/event/${eventId}/game`)}
           onReopen={() => reopenGame(eventId)} onEdit={setEventModal} onShare={() => setShowShare(true)}
         />

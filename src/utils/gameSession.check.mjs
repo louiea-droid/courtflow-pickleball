@@ -1,7 +1,7 @@
 // Self-check for the pure game logic. Run: node src/utils/gameSession.check.mjs
 import assert from "node:assert";
 import {
-  bookingCostEntry, buildGameSession, checkInFields, courtDocs, floorQuarter, gamePickList, gameStartFields,
+  feeCsv, feeReport, feeRows, feeTotals, bookingCostEntry, buildGameSession, checkInFields, courtDocs, floorQuarter, gamePickList, gameStartFields,
   gameSummary, playNowEvent, playersToAdd, uidBySeat,
 } from "./gameSession.js";
 
@@ -121,3 +121,25 @@ assert.deepEqual(gameSummary([{ checked: true, games: 3 }, { checked: false, gam
 assert.deepEqual(gameSummary([], "Doubles"), { players: 0, checkedIn: 0, matches: 0 });
 
 console.log("gameSession.check: ok");
+
+// Fee rows: booked attendees plus players added in the game; the report records both.
+const walkIn = [{ id: "d", name: "Dee", feePaid: true, feeMethod: "online" }, { id: "a", name: "Ann (booked)" }, { id: "f", name: "Fay" }];
+const rows = feeRows(event, walkIn);
+assert.deepEqual(rows.map((r) => r.id), ["a", "b", "c", "d", "f"]); // "a" is already an attendee, so not doubled
+assert.deepEqual(feeTotals(rows, 150), { total: 600, collected: 300, remaining: 300, unpaid: 2, paid: 2 }); // a, d paid; b, f owe; c refunded
+const rep = feeReport(event, walkIn, 77);
+assert.equal(rep.bookingId, "e1");
+assert.equal(rep.createdAt, 77);
+assert.equal(rep.visibleOnLive, false);
+assert.deepEqual(rep.rows.map((r) => [r.name, r.status, r.amount]), [
+  ["A", "paid", 150], ["Dee", "paid", 150], ["B", "unpaid", 150], ["Fay", "unpaid", 150], ["C", "refunded", 0],
+]);
+assert.equal(rep.rows[1].method, "online");
+assert.deepEqual([rep.total, rep.collected, rep.remaining], [600, 300, 300]);
+assert.equal(feeReport({ ...event, fee: 0 }, walkIn, 1), null);
+assert.equal(feeReport({ ...event, attendees: [] }, [], 1), null);
+const csv = feeCsv(rep);
+assert.ok(csv.startsWith("\uFEFF"));
+assert.ok(csv.includes('"Dee","GCash","Paid","150"'));
+assert.ok(csv.includes('"Remaining balance","","","300"'));
+console.log("feeReport checks ok");

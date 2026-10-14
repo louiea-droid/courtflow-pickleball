@@ -27,7 +27,7 @@ const FEATURES = [
     body: "Add players, set their skill stars and gender, lock two players as a pair, or edit and remove them. Each card shows games, wins and win percentage.",
   },
   {
-    icon: Receipt, title: "Cost",
+    icon: Receipt, title: "Payment",
     body: "Log a court rental and split it across everyone who played. Mark who has paid, and optionally show the split on the Live Board.",
   },
   {

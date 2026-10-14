@@ -129,3 +129,57 @@ export function gameSummary(players, format) {
     matches: matchCount(players, format),
   };
 }
+
+// Who owes the open play fee: the booked attendees (paid lives on the event) plus everyone added in
+// the game who isn't one (paid lives on the player). `waiting` = on the waitlist, so nothing is due.
+export function feeRows(event, players = []) {
+  const attendees = event.attendees || [];
+  const confirmed = new Set(splitAttendees({ attendees, maxPlayers: event.maxPlayers }).confirmed.map((a) => a.id));
+  const booked = new Set(attendees.map((a) => a.id));
+  return [
+    ...attendees.map((a) => ({ id: a.id, name: a.name, paid: a.paid, method: a.method, waiting: !confirmed.has(a.id), attendee: true })),
+    ...players.filter((p) => !booked.has(p.id))
+      .map((p) => ({ id: p.id, name: p.name, paid: p.feePaid ? "paid" : "unpaid", method: p.feeMethod, waiting: false, attendee: false })),
+  ];
+}
+
+// What the fees panel adds up: total = everyone who owes (paid + unpaid), waitlist and refunds excluded.
+export function feeTotals(rows, fee) {
+  const open = (r) => r.paid !== "paid" && r.paid !== "refunded";
+  const unpaid = rows.filter((r) => !r.waiting && open(r)).length;
+  const paid = rows.filter((r) => r.paid === "paid").length;
+  return { total: (unpaid + paid) * fee, collected: paid * fee, remaining: unpaid * fee, unpaid, paid };
+}
+
+// The record saved when a game ends (a managers-only doc under the event's costs, so it never reaches the
+// public event). null when there is no fee or nobody to charge. `bookingId` keeps it off the Rental History.
+export function feeReport(event, players, now) {
+  const fee = event.fee || 0;
+  const rows = feeRows(event, players);
+  if (fee <= 0 || !rows.length) return null;
+  const status = (r) => (r.paid === "paid" ? "paid" : r.paid === "refunded" ? "refunded" : r.waiting ? "waitlist" : "unpaid");
+  const order = { paid: 0, unpaid: 1, waitlist: 2, refunded: 3 };
+  const lines = rows
+    .map((r) => ({ name: r.name, method: r.method === "online" ? "online" : "cash", status: status(r) }))
+    .map((l) => ({ ...l, amount: l.status === "paid" || l.status === "unpaid" ? fee : 0 }))
+    .sort((a, b) => order[a.status] - order[b.status]);
+  const { total, collected, remaining } = feeTotals(rows, fee);
+  return {
+    kind: "feeReport", bookingId: event.id, label: `${event.title} fees`, createdAt: now, visibleOnLive: false,
+    title: event.title, date: event.date || "", fee, rows: lines, total, collected, remaining,
+  };
+}
+
+// Excel opens a .csv directly; the leading BOM keeps the peso sign readable.
+export function feeCsv(report) {
+  const cell = (v) => `"${String(v ?? "").replaceAll('"', '""')}"`;
+  const method = (m) => (m === "online" ? "GCash" : "Cash");
+  const status = (s) => s[0].toUpperCase() + s.slice(1);
+  const lines = [
+    ["Open play", report.title], ["Date", report.date], ["Fee per player", report.fee], [],
+    ["Player", "Method", "Status", "Amount"],
+    ...report.rows.map((r) => [r.name, method(r.method), status(r.status), r.amount]),
+    [], ["Total", "", "", report.total], ["Collected", "", "", report.collected], ["Remaining balance", "", "", report.remaining],
+  ];
+  return `\uFEFF${lines.map((l) => l.map(cell).join(",")).join("\r\n")}`;
+}

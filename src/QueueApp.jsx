@@ -4,7 +4,7 @@ import { db, firebaseConfigured } from "./firebase";
 import { applyDisplayPrefs, splitCost, winPct } from "./utils/format";
 import { applyTheme, getGlobalTheme } from "./utils/theme";
 import { matchCount } from "./utils/stats";
-import { matchesCourtLevel } from "./utils/courtLevels";
+import { isValidSkillLevel, matchesCourtLevel } from "./utils/courtLevels";
 import { checkInFields } from "./utils/gameSession";
 import {
   hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, seatJoiners, selectForCourt, selectToJoin,
@@ -44,7 +44,7 @@ import { queueOrder } from "./utils/queueStatus";
 // settings, there is no Settings tab, and End game keeps all data.
 export default function QueueApp({
   base, kind = "quick", deriveSession, eyebrow, backLabel, onBack, onHome, onEndSession, onErase,
-  onSetAttendeePaid, memberChoices, clubName,
+  onSetAttendeesPaid, onSetAttendeeMethod, memberChoices, clubName,
 }) {
   const at = (...rest) => doc(db, ...base, ...rest);
   const col = (name) => collection(db, ...base, name);
@@ -175,6 +175,7 @@ export default function QueueApp({
   async function checkInPlayer(id, skill) {
     const player = players.find((p) => p.id === id);
     if (!player) return;
+    if (isEventGame && skill === undefined && isValidSkillLevel(player.skill)) skill = player.skill; // already rated: no prompt
     if (isEventGame && skill === undefined) {
       setCheckingInPlayer(player);
       return;
@@ -633,6 +634,17 @@ export default function QueueApp({
     notify("New session started. Add players to get going.");
   }
 
+  // Open play fees for a player who isn't a booked attendee (added in the game): paid lives on the player.
+  async function setPlayersFeePaid(playerIds, paid) {
+    const batch = writeBatch(db);
+    playerIds.forEach((id) => batch.update(at("players", id), { feePaid: paid }));
+    await batch.commit();
+  }
+
+  async function setPlayerFeeMethod(playerId, method) {
+    await updateDoc(at("players", playerId), { feeMethod: method });
+  }
+
   async function updateSessionSettings(data) {
     const batch = writeBatch(db);
     batch.set(at(), data, { merge: true });
@@ -782,8 +794,14 @@ export default function QueueApp({
               isOpenPlay={isEventGame}
               attendees={isEventGame ? session.attendees || [] : []}
               eventFee={isEventGame ? session.fee || 0 : 0}
+              eventTitle={session.title} eventDate={session.date}
+              canSetFee={isEventGame && !!session.walkIn}
+              onSetFee={(fee) => updateSessionSettings({ fee })}
+              onSetPlayersPaid={setPlayersFeePaid}
+              onSetAttendeeMethod={isEventGame ? onSetAttendeeMethod : undefined}
+              onSetPlayerMethod={setPlayerFeeMethod}
               maxPlayers={isEventGame ? session.maxPlayers : undefined}
-              onSetAttendeePaid={isEventGame ? onSetAttendeePaid : undefined}
+              onSetAttendeesPaid={isEventGame ? onSetAttendeesPaid : undefined}
             />
           )}
           {isEventGame && checkingInPlayer && (
