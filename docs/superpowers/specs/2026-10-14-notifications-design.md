@@ -32,7 +32,7 @@ sentence, a small second line, and is a plain link.
 | `turn` | `useActiveGames`: a game where the person is a checked-in player and `status.upNext` or `status.state === "playing"` | "You're up next on Court 2" / "You're on Court 2"; second line: club name | that game's queue page (`queuePath`) |
 | `friend` | `friendBuckets(friendships, uid).received` | "Ana sent you a friend request" | `/friends` |
 | `join` | pending `clubs/{id}/joinRequests` of every club where the person's role is owner or manager | "Dee asked to join Pub Club" | `/clubs/{id}/members` |
-| `chat` | the Inbox chats with `isUnread(chat, reads[chat.id]?.at, uid)` | club chat: "Pub Club: Cal: see you at 8" (title, sender, preview); direct message: "Cal: see you at 8" | `/inbox/{chatId}` |
+| `chat` | the Inbox chats with `isUnread(chat, reads[chat.id]?.at, uid)` | club chat: "New message in Pub Club", second line the last message (a club chat document has no sender name); direct message: "Cal sent you a message", second line the last message | `/inbox/{chatId}` |
 
 The panel shows at most 20 lines, then "and N more" linking to Inbox. Items clear on their own: accepting the friend
 request, reading the chat, answering the join request, or the turn passing removes the line. Nothing is stored for them.
@@ -40,7 +40,7 @@ request, reading the chat, answering the join request, or the turn passing remov
 ## Badge and "seen"
 
 - Each item has a stable key including what makes it new: `friend:{friendshipId}`, `join:{clubId}:{uid}`,
-  `chat:{chatId}:{lastAt}`, `turn:{clubId}/{eventId}:{state}`.
+  `chat:{chatId}:{lastAt}` (the sender of a direct message comes from `chat.names[chat.lastBy]`), `turn:{clubId}/{eventId}:{state}`.
 - Badge = number of items whose key is not in the person's seen set. Shown as a count ("9+" above nine), hidden at zero.
 - Opening the panel adds every current key to the seen set. The lines stay until handled, like an inbox. A new message
   (new `lastAt`), a new request or a new turn state has a new key, so the badge comes back.
@@ -67,7 +67,7 @@ request, reading the chat, answering the join request, or the turn passing remov
 ## Behavior and layout
 
 - The panel opens under the bell, about 360px wide; under 560px it spans the screen width below the top bar.
-- Closes on Escape (`useEscape`), a click outside, choosing a line, and route change. Focus returns to the bell.
+- Closes on Escape (`useEscape`), a click outside, and choosing a line. Escape returns focus to the bell.
 - Rows are at least 44px tall; the whole row is the link; visible keyboard focus.
 - Empty: "You're all caught up." Not signed in (old club logins, the quick session): the bell is not rendered.
 - The badge changes are announced politely (`aria-live="polite"` on a visually hidden count), not on every snapshot,
