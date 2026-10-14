@@ -42,10 +42,10 @@ assert.equal(buildNotifications({ uid: me, activeGames: [games[2]] }).length, 0)
 
 // Friend: only a request someone else sent; links to /friends.
 const friend = items.find((i) => i.kind === "friend");
-assert.deepEqual([friend.key, friend.title, friend.to], ["friend:a_me", "Ana sent you a friend request", "/friends"]);
+assert.deepEqual([friend.key, friend.title, friend.to], ["friend:a_me:0", "Ana sent you a friend request", "/friends"]);
 
 // Join: links to the club's members page (ids are URL-encoded).
-assert.equal(items.find((i) => i.key === "join:pub:u2").to, "/clubs/pub/members");
+assert.equal(items.find((i) => i.key === "join:pub:u2:20").to, "/clubs/pub/members");
 assert.equal(buildNotifications({ uid: me, joinRequests: [{ id: "u", clubId: "a b", clubName: "X", name: "Y", createdAt: 1 }] })[0].to, "/clubs/a%20b/members");
 
 // Chat: a chat I read, and one whose last line I wrote, are not notifications; links to the chat.
@@ -89,5 +89,19 @@ assert.equal(kept.length, 200);
 assert.equal(kept.includes("friend:a_me"), true);
 assert.equal(kept.includes("old0"), false);
 assert.deepEqual(kept.slice(-2), ["x1", "x2"]);
+
+// Minor fix: a request that is declined (or an unfriend) and then sent again is a new alert, so its key changes.
+const reFriend = (createdAt) => buildNotifications({ uid: me, friendships: [{ ...friendships[0], createdAt }] })[0].key;
+assert.notEqual(reFriend(1), reFriend(2));
+assert.equal(reFriend(7), reFriend(7));
+const reJoin = (createdAt) => buildNotifications({ uid: me, joinRequests: [{ ...joinRequests[0], createdAt }] })[0].key;
+assert.notEqual(reJoin(1), reJoin(2));
+assert.equal(reJoin(7), reJoin(7));
+
+// Minor fix: "and N more" points at the first line that was left out (null when nothing is left out).
+assert.equal(capItems(big).moreTo, big[MAX_ITEMS].to);
+assert.equal(capItems(big.slice(0, 5)).moreTo, null);
+const mixed = [...Array.from({ length: 20 }, () => ({ key: "k", to: "/friends" })), { key: "j", to: "/clubs/pub/members" }];
+assert.equal(capItems(mixed).moreTo, "/clubs/pub/members");
 
 console.log("notifications.check: ok");

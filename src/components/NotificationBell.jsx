@@ -17,11 +17,11 @@ const writeSeen = (seen) => {
   try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch { /* not remembered */ }
 };
 
-function Panel({ shown, more, top, navigate, close, onEscape }) {
+function Panel({ shown, more, moreTo, top, navigate, close, onEscape }) {
   useEscape(onEscape);
   const go = (to) => (e) => { e.preventDefault(); close(); navigate(to); };
   return (
-    <div className="acct-bell-panel" role="region" aria-label="Notifications" style={{ "--bell-top": `${top}px` }}>
+    <div className="acct-bell-panel" id="acct-bell-panel" role="region" aria-label="Notifications" style={{ "--bell-top": `${top}px` }}>
       {shown.length ? (
         <ul>
           {shown.map((n) => {
@@ -39,7 +39,7 @@ function Panel({ shown, more, top, navigate, close, onEscape }) {
       ) : (
         <p className="acct-bell-empty">You're all caught up.</p>
       )}
-      {more > 0 && <a className="acct-bell-more" href="/inbox" onClick={go("/inbox")}>and {more} more</a>}
+      {more > 0 && <a className="acct-bell-more" href={moreTo || "/inbox"} onClick={go(moreTo || "/inbox")}>and {more} more</a>}
     </div>
   );
 }
@@ -51,17 +51,20 @@ export default function NotificationBell({ items, navigate }) {
   const root = useRef(null);
   const button = useRef(null);
   const unseen = open ? 0 : unseenCount(items, seen); // while the panel is open everything on it counts as seen
-  const { shown, more } = capItems(items);
+  const [live, setLive] = useState("");
+  const lastCount = useRef(0);
+  useEffect(() => {
+    setLive(unseen > lastCount.current ? `${unseen} new notification${unseen === 1 ? "" : "s"}` : "");
+    lastCount.current = unseen;
+  }, [unseen]);
+  const { shown, more, moreTo } = capItems(items);
 
   // Opening marks everything seen; new items that arrive while it is open are marked too.
   useEffect(() => {
     if (!open) return;
-    setSeen((cur) => {
-      const next = markSeen(cur, items);
-      if (next !== cur) writeSeen(next);
-      return next;
-    });
+    setSeen((cur) => markSeen(cur, items));
   }, [open, items]);
+  useEffect(() => { writeSeen(seen); }, [seen]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -76,18 +79,21 @@ export default function NotificationBell({ items, navigate }) {
   };
 
   return (
-    <div className="acct-bell" ref={root}>
+    <div
+      className="acct-bell" ref={root}
+      onBlur={(e) => { if (open && e.relatedTarget && !root.current.contains(e.relatedTarget)) setOpen(false); }}
+    >
       <button
-        type="button" ref={button} className="acct-bell-btn" aria-haspopup="true" aria-expanded={open}
+        type="button" ref={button} className="acct-bell-btn" aria-expanded={open} aria-controls={open ? "acct-bell-panel" : undefined}
         aria-label={unseen ? `Notifications, ${unseen} new` : "Notifications"} onClick={toggle}
       >
         <Bell size={19} aria-hidden="true" />
         {unseen > 0 && <span className="acct-bell-badge" aria-hidden="true">{unseen > 9 ? "9+" : unseen}</span>}
       </button>
-      <span className="acct-bell-live" aria-live="polite">{unseen ? `${unseen} new notifications` : ""}</span>
+      <span className="acct-bell-live" aria-live="polite">{live}</span>
       {open && (
         <Panel
-          shown={shown} more={more} top={top} navigate={navigate} close={() => setOpen(false)}
+          shown={shown} more={more} moreTo={moreTo} top={top} navigate={navigate} close={() => setOpen(false)}
           onEscape={() => { setOpen(false); button.current?.focus(); }}
         />
       )}

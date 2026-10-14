@@ -25,12 +25,13 @@ export function buildNotifications({ uid, friendships = [], chats = [], reads = 
   });
 
   friendBuckets(friendships, uid).received.forEach((f) => {
-    items.push({ key: `friend:${f.id || f.users.join("_")}`, kind: "friend", title: `${f.name} sent you a friend request`, sub: "", to: "/friends", at: 0 });
+    // createdAt in the key: a request sent again (after a decline or an unfriend) is a new alert
+    items.push({ key: `friend:${f.id || f.users.join("_")}:${f.createdAt || 0}`, kind: "friend", title: `${f.name} sent you a friend request`, sub: "", to: "/friends", at: 0 });
   });
 
   joinRequests.forEach((r) => {
     items.push({
-      key: `join:${r.clubId}:${r.id}`, kind: "join", title: `${r.name} asked to join ${r.clubName}`, sub: "",
+      key: `join:${r.clubId}:${r.id}:${r.createdAt || 0}`, kind: "join", title: `${r.name} asked to join ${r.clubName}`, sub: "",
       to: `/clubs/${encodeURIComponent(r.clubId)}/members`, at: r.createdAt || 0,
     });
   });
@@ -46,8 +47,10 @@ export function buildNotifications({ uid, friendships = [], chats = [], reads = 
   return items.sort((a, b) => GROUP[a.kind] - GROUP[b.kind] || b.at - a.at);
 }
 
-// The panel shows the first MAX_ITEMS; `more` is how many were left out.
-export const capItems = (items) => ({ shown: items.slice(0, MAX_ITEMS), more: Math.max(0, items.length - MAX_ITEMS) });
+// The panel shows the first MAX_ITEMS; `more` is how many were left out and `moreTo` the page of the first one left out.
+export const capItems = (items) => ({
+  shown: items.slice(0, MAX_ITEMS), more: Math.max(0, items.length - MAX_ITEMS), moreTo: items[MAX_ITEMS]?.to ?? null,
+});
 
 // `seen` is an array of keys, oldest first (it is kept on the device).
 export const unseenCount = (items, seen) => {
