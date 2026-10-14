@@ -12,23 +12,23 @@ const FEATURES = [
   },
   {
     icon: CalendarCheck, title: "Open play game",
-    body: "Signed-in hosts run a game from an event: Proceed to game adds the people who booked, and the same queue app runs the courts. End game keeps everything; Reopen game picks it back up.",
+    body: "Signed-in hosts run a game from an event: Proceed to game adds the people who booked, and the same queue app runs the courts. End game keeps everything and saves who paid, ready to export from the event page; Reopen game picks it back up. The Back to game button in the top bar follows you around the app while a game is live.",
   },
   {
     icon: LayoutDashboard, title: "Dashboard",
-    body: "Every court at a glance. Record a winner and the court rotates by your mode. Up Next previews who goes on each court; Auto-fill seats all open courts at once, and Undo on the toast fixes a mis-tap.",
+    body: "Every court at a glance. Press Score on a court to keep the score point by point, or record a winner and the court rotates by your mode. Up Next previews who goes on each court (you can edit it); Auto-fill seats all open courts at once, and Undo on the toast fixes a mis-tap. Umpires lets a volunteer score a court from their own phone.",
   },
   {
     icon: ListOrdered, title: "Queue",
-    body: "Who is waiting, fewest games first, then longest wait. Send someone straight to an open court, skip them to the back, or check people in the moment they arrive.",
+    body: "Who is waiting, fewest games first, then longest wait. Send someone straight to an open court, skip them to the back, or lock two players as a pair. Not Checked In opens a list with a search box: check people in the moment they arrive. Someone who already has a skill level is checked in right away; only an unrated player is asked for theirs.",
   },
   {
     icon: Users, title: "Players",
-    body: "Add players, set their skill stars and gender, lock two players as a pair, or edit and remove them. Each card shows games, wins and win percentage.",
+    body: "Add players, set their skill stars and gender, or edit and remove them. Switch between Cards and List at the top: each shows games, wins, losses and win percentage, and your choice is remembered on this device.",
   },
   {
     icon: Receipt, title: "Payment",
-    body: "Log a court rental and split it across everyone who played. Mark who has paid, and optionally show the split on the Live Board.",
+    body: "In an open play game this is Payment Division: a progress bar of what is collected and the remaining balance, then one row per player to mark Paid or Unpaid and switch Cash or GCash. Filter by Unpaid, Paid or Waitlist, search by name, use Mark all as paid when a group pays together, and Export to Excel for a spreadsheet. Players added in the game are charged too, and a Play now game takes a fee you type in. Split a court rental (folded away) shares a court booking between players. In a quick session it logs a court rental and splits it across everyone who played, and can show the split on the Live Board.",
   },
   {
     icon: Trophy, title: "Stats",
@@ -36,7 +36,7 @@ const FEATURES = [
   },
   {
     icon: MonitorPlay, title: "Live Board",
-    body: "A read-only screen for a TV or phone: live courts, the queue and recent matches. Open it from Share Live Board in the top bar.",
+    body: "A read-only screen for a TV or phone: live courts with their scores, the queue and recent matches. Open it from Share Live Board in the top bar; an open play game has its own link and QR code.",
   },
 ];
 
@@ -49,7 +49,7 @@ const MODE_NOTES = {
 };
 
 const RULES = [
-  { title: "Scoring", body: "Games are usually to 11, win by 2, and only the serving side scores. CourtFlow records who won each match, not the points." },
+  { title: "Scoring", body: "Games are usually to 11, win by 2, and only the serving side scores. CourtFlow can keep the score for you (side-out or rally, to 11, 15 or 21) from the Score button on a court, or just record who won each match." },
   { title: "Serving", body: "Serve underhand, diagonally into the opponent's box. In doubles, both partners usually serve before the serve passes to the other team." },
   { title: "Double bounce", body: "The serve and its return must each bounce once before anyone volleys. After that, either side may hit the ball out of the air." },
   { title: "The kitchen", body: "The 7-foot zone at the net. You can't volley while standing in it, even if your momentum carries you in after the hit." },
