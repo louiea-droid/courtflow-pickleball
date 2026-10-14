@@ -49,7 +49,7 @@ export default function AccountApp() {
   };
   const dismissToast = () => { clearTimeout(toastTimer.current); setToast(null); };
   const clubActions = useClubActions({ uid, name, notify });
-  const activeGame = activeGames[0];
+  const activeGame = activeGames.find((g) => g.status) || activeGames[0]; // a game you play in first, else one you host
   const gameShortcut = activeGame ? (
     <a
       className="acct-header-game"
@@ -134,7 +134,7 @@ export default function AccountApp() {
         ) : route === "clubs-find" ? (
           <FindClubs myClubs={clubs} navigate={navigate} />
         ) : (
-          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} friendships={friendships} inbox={inbox} sessions={sessions} activeGames={activeGames} navigate={navigate} />
+          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} friendships={friendships} inbox={inbox} sessions={sessions} activeGames={activeGames.filter((g) => g.status)} navigate={navigate} />
         )}
       </main>
       {showDelete && (

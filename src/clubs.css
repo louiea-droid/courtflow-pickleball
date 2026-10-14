@@ -515,3 +515,4 @@ button.acct-brand:hover{background:var(--side-hover)}
   filter:blur(18px);transform:translate3d(50vw,30vh,0) translate(-50%,-50%);will-change:transform
 }
 @media (prefers-reduced-motion:reduce){.clublogin-ball{opacity:.6}}
+.hub-empty a{color:var(--accent-ink);font-weight:700}

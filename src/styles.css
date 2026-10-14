@@ -1799,3 +1799,9 @@ button.ci-btn:focus-visible{outline:2px solid var(--accent-bright);outline-offse
   .fee-status{grid-column:2;grid-row:1;min-width:92px;min-height:40px}
   .method-switch{grid-row:2}
 }
+/* Serve badge: a solid chip (the bar's text color) with the team color on it, so "Server 2" stays readable on any team color. */
+.live-team-head.team1 .live-serve,.scorekeeper-side.team1 .scorekeeper-side-top em{background:var(--on-team1);color:var(--team1)}
+.live-team-head.team2 .live-serve,.scorekeeper-side.team2 .scorekeeper-side-top em{background:var(--on-team2);color:var(--team2)}
+.live-team-head .live-serve{font-size:clamp(11px,1.25vh,13px);font-weight:900;padding:2px 9px}
+.scorekeeper-side-top em{font-size:12px;font-weight:900;padding:3px 9px}
+@media(max-width:700px){.scorekeeper-side-top em{font-size:11px;padding:2px 7px}}

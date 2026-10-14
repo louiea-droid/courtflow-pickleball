@@ -7,10 +7,12 @@ import { normalizeMode } from "../data/constants";
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-// Track the signed-in player's live games so the same result powers Home and the global header.
+// Track the signed-in person's live games so the same result powers Home and the global header: games they
+// are queued in (with a `status`), and games they run as owner or manager (no `status`, `host: true`).
+// Home only shows the first kind; the header's Back to game button follows either.
 export function useActiveGames(uid, clubs) {
   const [games, setGames] = useState([]);
-  const clubsKey = JSON.stringify(clubs.map(({ id, clubName }) => [id, clubName]));
+  const clubsKey = JSON.stringify(clubs.map(({ id, clubName, role }) => [id, clubName, role]));
 
   useEffect(() => {
     const watchedClubs = JSON.parse(clubsKey);
@@ -23,17 +25,18 @@ export function useActiveGames(uid, clubs) {
     const stopAll = [];
     const publish = () => {
       const next = [];
-      watchedClubs.forEach(([clubId, clubName]) => {
+      watchedClubs.forEach(([clubId, clubName, role]) => {
         (clubEvents.get(clubId) || []).forEach((eventId) => {
           const game = liveGames.get(`${clubId}/${eventId}`);
           if (!game) return;
           const status = queueStatus({ players: game.players, courts: game.courts, uid, format: game.event.format, mode: normalizeMode(game.event.mode) || "Balanced", now: Date.now() });
-          if (!status) return;
+          const hosts = role === "owner" || role === "manager";
+          if (!status && !hosts) return;
           const clubPath = `/clubs/${encodeURIComponent(clubId)}/event/${encodeURIComponent(eventId)}`;
           next.push({
             club: { id: clubId, clubName },
             event: game.event,
-            status,
+            ...(status ? { status } : { host: true }),
             gamePath: `${clubPath}/game`,
             queuePath: `${clubPath}/queue`,
           });

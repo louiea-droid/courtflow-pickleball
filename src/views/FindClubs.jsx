@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, Search } from "lucide-react";
+import { MapPin, Plus, Search } from "lucide-react";
 import PageTitle from "../components/PageTitle";
 import { useDirectory } from "../hooks/useMembership";
 import { ROLE_LABEL, clubPath, filterClubs } from "../utils/clubs";
@@ -12,10 +12,13 @@ export default function FindClubs({ myClubs, navigate }) {
   const mine = new Map(myClubs.map((c) => [c.id, c.role]));
   const shown = filterClubs(clubs, text);
   const open = (id) => (e) => { e.preventDefault(); navigate(clubPath(id)); };
+  const create = (e) => { e.preventDefault(); navigate("/clubs/new"); };
 
   return (
     <div className="page-narrow">
-      <PageTitle title="Clubs" sub="Every public club: search, open one and ask to join. Private clubs are joined with an invite link." />
+      <PageTitle title="Clubs" sub="Every public club: search, open one and ask to join. Private clubs are joined with an invite link.">
+        <a className="primary" href="/clubs/new" onClick={create}><Plus size={15} /> Create a club</a>
+      </PageTitle>
       <label className="find-search">
         <Search size={16} />
         <input
@@ -28,7 +31,10 @@ export default function FindClubs({ myClubs, navigate }) {
       ) : error ? (
         <div className="panel notice"><p>Couldn't load the clubs. Check your connection and try again.</p></div>
       ) : !shown.length ? (
-        <p className="hub-empty">{text.trim() ? "No public club matches that. Try another name or place." : "No public clubs yet."}</p>
+        <p className="hub-empty">
+          {text.trim() ? "No public club matches that. Try another name or place." : "No public clubs yet."}{" "}
+          <a href="/clubs/new" onClick={create}>Create a club</a> to start your own.
+        </p>
       ) : (
         <div className="find-list">
           {shown.map((c) => (
