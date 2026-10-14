@@ -185,8 +185,10 @@ await assertFails(deleteDoc(g(stranger, "pub", "courts/court-1")));
 // ---- Join requests for an event (a player's request): a validated pending create, one read by id, never a list
 const req = (clubId) => (db) => collection(db, `clubs/${clubId}/events/e1/requests`);
 const pubReq = req("pub"), privReq = req("priv");
-const goodReq = { name: "Dee", contact: "0917 555 0100", method: "online", ref: "GC1", seatId: "seat-1", status: "pending", createdAt: Date.now() };
-const cashReq = { name: "Dee", contact: "0917", method: "cash", seatId: "seat-2", status: "pending", createdAt: Date.now() };
+// A booking has a name and how they pay; no phone number. Paying online carries a receipt photo (a JPEG data URL).
+const RECEIPT = "data:image/jpeg;base64,";
+const goodReq = { name: "Dee", method: "online", receipt: RECEIPT + "AAAA", seatId: "seat-1", status: "pending", createdAt: Date.now() };
+const cashReq = { name: "Dee", method: "cash", seatId: "seat-2", status: "pending", createdAt: Date.now() };
 await assertSucceeds(setDoc(doc(pubReq(anon), "r1"), goodReq)); // public club, nobody signed in
 await assertSucceeds(setDoc(doc(pubReq(anon), "r2"), cashReq));
 await assertSucceeds(setDoc(doc(pubReq(stranger), "r16"), { ...goodReq, createdAt: Date.now() - 60000 }));
@@ -198,6 +200,20 @@ await assertFails(setDoc(doc(pubReq(quick), "r20"), { ...goodReq, seatId: "seat-
 await assertFails(setDoc(doc(pubReq(legacy), "r21"), { ...goodReq, seatId: "seat-21", uid: "c1" }));
 await assertFails(setDoc(doc(pubReq(stranger), "r22"), { ...goodReq, seatId: "seat-22", uid: 7 }));
 await assertSucceeds(setDoc(doc(pubReq(quick), "r23"), { ...goodReq, seatId: "seat-23" })); // a quick session still books without one
+// The phone number is optional now: an old client's request (with one) still works, a wrong-shaped one does not.
+await assertSucceeds(setDoc(doc(pubReq(anon), "c1"), { ...cashReq, seatId: "seat-c1", contact: "0917" }));
+await assertFails(setDoc(doc(pubReq(anon), "c2"), { ...cashReq, seatId: "seat-c2", contact: "x".repeat(41) }));
+await assertFails(setDoc(doc(pubReq(anon), "c3"), { ...cashReq, seatId: "seat-c3", contact: 917 }));
+// Receipt: online needs one, cash must not carry one, and it has to be a JPEG data URL under the size cap.
+const { receipt: _r, ...onlineNoReceipt } = goodReq;
+await assertFails(setDoc(doc(pubReq(anon), "rc1"), { ...onlineNoReceipt, seatId: "seat-rc1" })); // paying online means attaching a receipt
+await assertFails(setDoc(doc(pubReq(anon), "rc2"), { ...cashReq, seatId: "seat-rc2", receipt: RECEIPT + "AAAA" })); // cash has nothing to attach
+await assertFails(setDoc(doc(pubReq(anon), "rc3"), { ...goodReq, seatId: "seat-rc3", receipt: "data:image/png;base64,AAAA" }));
+await assertFails(setDoc(doc(pubReq(anon), "rc4"), { ...goodReq, seatId: "seat-rc4", receipt: "https://example.com/r.jpg" }));
+await assertFails(setDoc(doc(pubReq(anon), "rc5"), { ...goodReq, seatId: "seat-rc5", receipt: 5 }));
+await assertSucceeds(setDoc(doc(pubReq(anon), "rc6"), { ...goodReq, seatId: "seat-rc6", receipt: RECEIPT + "A".repeat(400000 - RECEIPT.length) })); // exactly at the cap
+await assertFails(setDoc(doc(pubReq(anon), "rc7"), { ...goodReq, seatId: "seat-rc7", receipt: RECEIPT + "A".repeat(400001 - RECEIPT.length) })); // one over
+await assertSucceeds(setDoc(doc(pubReq(anon), "rc8"), { ...goodReq, seatId: "seat-rc8", ref: "GC1" })); // an old client's reference number still fits
 await assertFails(setDoc(doc(pubReq(anon), "r3"), { ...goodReq, status: "approved" }));
 await assertFails(setDoc(doc(pubReq(anon), "r4"), { ...goodReq, extra: 1 }));
 await assertFails(setDoc(doc(pubReq(anon), "r5"), { ...goodReq, name: "" }));

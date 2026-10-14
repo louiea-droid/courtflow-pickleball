@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
-import { CalendarDays, Check, Clock, Wallet } from "lucide-react";
+import { CalendarDays, Check, Clock, ImagePlus, Wallet } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db, firebaseConfigured } from "./firebase";
 import { useEvents } from "./hooks/useEvents";
@@ -12,6 +12,7 @@ import { DEFAULT_DISPLAY } from "./data/constants";
 import { isAccountUser } from "./utils/account";
 import { liveChips } from "./utils/liveBoard";
 import { docsOf } from "./hooks/useLiveDocs";
+import { compressImage } from "./utils/receipt";
 
 // The player's own requests live on their device: the request id is the only key to
 // read it back (rules allow a single get, never a list).
@@ -40,31 +41,44 @@ function useMyRequests(clubId, mine) {
   return status;
 }
 
-function JoinForm({ event, clubId, onSent, onCancel }) {
+// The booking form: a name and how they pay. Paying online asks for a screenshot of the receipt, shrunk on the phone and
+// saved on the private request for the host to check. No phone number: the host confirms on the event page.
+function JoinForm({ event, clubId, autoOpen, onSent, onCancel }) {
   const [name, setName] = useState("");
-  const [contact, setContact] = useState("");
   const [method, setMethod] = useState("cash");
-  const [ref, setRef] = useState("");
+  const [receipt, setReceipt] = useState("");
+  const [receiptError, setReceiptError] = useState("");
+  const [reading, setReading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const file = useRef(null);
   const paid = event.fee > 0;
+  const online = paid && method === "online";
   // A signed-in account (not a quick session or an old club login) links the booking to the person, so their
   // Home can show their place in the queue. Everyone else books exactly as before.
   const [uid, setUid] = useState(null);
   useEffect(() => (firebaseConfigured ? onAuthStateChanged(auth, (u) => setUid(isAccountUser(u) ? u.uid : null)) : undefined), []);
 
+  const attach = async (picked) => {
+    if (!picked) return;
+    setReading(true);
+    setReceiptError("");
+    try { setReceipt(await compressImage(picked)); } catch (err) { setReceiptError(err.message); }
+    setReading(false);
+  };
+
   const submit = async (e) => {
     e.preventDefault();
-    if (busy) return;
+    if (busy || reading || (online && !receipt)) return;
     setBusy(true);
     setError("");
     const rid = crypto.randomUUID();
     const seatId = crypto.randomUUID();
     try {
       await setDoc(doc(db, "clubs", clubId, "events", event.id, "requests", rid), {
-        name: name.trim(), contact: contact.trim(),
+        name: name.trim(),
         method: paid ? method : "cash",
-        ...(paid && method === "online" && ref.trim() ? { ref: ref.trim() } : {}),
+        ...(online ? { receipt } : {}),
         seatId, status: "pending", createdAt: Date.now(),
         ...(uid ? { uid } : {}),
       });
@@ -79,38 +93,51 @@ function JoinForm({ event, clubId, onSent, onCancel }) {
     <form className="op-form" onSubmit={submit}>
       <label>
         Your name
-        <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" required autoFocus />
-      </label>
-      <label>
-        Mobile number
-        <input value={contact} onChange={(e) => setContact(e.target.value)} maxLength={40} inputMode="tel" autoComplete="tel" required />
+        <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" required autoFocus={!autoOpen} />
       </label>
       {paid && (
         <fieldset className="op-pay">
           <legend>How will you pay {money(event.fee)}?</legend>
-          <label className="check">
-            <input type="radio" name={`pay-${event.id}`} checked={method === "cash"} onChange={() => setMethod("cash")} />
-            Cash at the venue
-          </label>
-          <label className="check">
-            <input type="radio" name={`pay-${event.id}`} checked={method === "online"} onChange={() => setMethod("online")} />
-            Online in advance
-          </label>
-          {method === "online" && (
-            <>
-              {event.payInfo && <p className="op-payinfo">{event.payInfo}</p>}
-              <label>
-                Payment reference number
-                <input value={ref} onChange={(e) => setRef(e.target.value)} maxLength={60} placeholder="From your receipt" />
+          <div className="op-methods">
+            {[["cash", "Cash at the venue", "Pay the host when you arrive"], ["online", "Pay online", "Send it now and attach your receipt"]].map(([key, title, sub]) => (
+              <label key={key} className={`op-method${method === key ? " on" : ""}`}>
+                <input type="radio" name={`pay-${event.id}`} checked={method === key} onChange={() => setMethod(key)} />
+                <b>{title}</b>
+                <small>{sub}</small>
               </label>
-            </>
+            ))}
+          </div>
+          {online && (
+            <div className="op-online">
+              {event.payInfo && <p className="op-payinfo">{event.payInfo}</p>}
+              <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { attach(e.target.files?.[0]); e.target.value = ""; }} />
+              {receipt ? (
+                <div className="op-receipt-preview">
+                  <img src={receipt} alt="Your payment receipt" />
+                  <div>
+                    <b><Check size={14} /> Receipt attached</b>
+                    <span>
+                      <button type="button" className="outline" onClick={() => file.current?.click()}>Replace</button>
+                      <button type="button" className="text" onClick={() => setReceipt("")}>Remove</button>
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" className="op-drop" disabled={reading} onClick={() => file.current?.click()}>
+                  <ImagePlus size={22} aria-hidden="true" />
+                  <b>{reading ? "Preparing your picture…" : "Attach a screenshot of your receipt"}</b>
+                  <small>Needed so the host can confirm your payment</small>
+                </button>
+              )}
+              {receiptError && <p className="op-error" role="alert">{receiptError}</p>}
+            </div>
           )}
         </fieldset>
       )}
       {error && <p className="op-error" role="alert">{error}</p>}
-      <div className="modalactions">
-        <button type="button" className="outline" onClick={onCancel}>Cancel</button>
-        <button className="primary" disabled={busy || !name.trim() || !contact.trim()}>
+      <div className="op-actions">
+        {!autoOpen && <button type="button" className="outline" onClick={onCancel}>Cancel</button>}
+        <button className="primary" disabled={busy || reading || !name.trim() || (online && !receipt)}>
           {busy ? "Sending…" : "Send request"}
         </button>
       </div>
@@ -138,11 +165,11 @@ function LiveStrip({ clubId, eventId }) {
   );
 }
 
-function EventCard({ e, clubId, mine, onSent }) {
-  const [joining, setJoining] = useState(false);
+function EventCard({ e, clubId, mine, autoOpen = false, onSent }) {
+  const asked = mine.some((m) => m.eventId === e.id);
+  const [joining, setJoining] = useState(autoOpen && !asked);
   const { confirmed, waitlist } = splitAttendees(e);
   const left = Math.max(0, e.maxPlayers - confirmed.length);
-  const asked = mine.some((m) => m.eventId === e.id);
 
   return (
     <article className="op-card">
@@ -169,7 +196,7 @@ function EventCard({ e, clubId, mine, onSent }) {
       {e.notes && <p className="op-notes">{e.notes}</p>}
 
       {joining ? (
-        <JoinForm event={e} clubId={clubId} onCancel={() => setJoining(false)} onSent={(m) => { setJoining(false); onSent(m); }} />
+        <JoinForm event={e} clubId={clubId} autoOpen={autoOpen} onCancel={() => setJoining(false)} onSent={(m) => { setJoining(false); onSent(m); }} />
       ) : asked ? (
         <p className="op-asked"><Check size={14} /> You've asked to join. See your status above.</p>
       ) : (
@@ -210,7 +237,9 @@ function MyBookings({ mine, events, status }) {
 }
 
 export default function OpenPlay() {
-  const clubId = new URLSearchParams(window.location.search).get("club");
+  const params = new URLSearchParams(window.location.search);
+  const clubId = params.get("club");
+  const wanted = params.get("event"); // a link to one game opens its form
   // Only public clubs have a public booking page. Anything else (a private club, a deleted one,
   // a made-up id) gets one calm message.
   const [access, setAccess] = useState("checking");
@@ -285,7 +314,7 @@ export default function OpenPlay() {
       <section aria-label="Upcoming open play">
         <h2>Upcoming</h2>
         {upcoming.map((e) => (
-          <EventCard key={e.id} e={e} clubId={clubId} mine={mine.filter(isActive)} onSent={sent} />
+          <EventCard key={e.id} e={e} clubId={clubId} mine={mine.filter(isActive)} autoOpen={upcoming.length === 1 || e.id === wanted} onSent={sent} />
         ))}
         {!upcoming.length && (
           <div className="empty op-empty"><Wallet size={18} /> No open play scheduled right now. Check back soon.</div>

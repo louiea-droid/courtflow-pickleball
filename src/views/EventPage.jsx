@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, CheckCheck, Download, Pencil, Play, Share2, Trash2 } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
+import Modal from "../components/Modal";
 import DateTile from "../components/DateTile";
 import { FeeFilters, FeeProgress, MethodSwitch, StatusPill } from "../components/PaymentParts";
 import RowMenu from "../components/RowMenu";
@@ -10,7 +11,7 @@ import { feeCsv, feeReport, feeTotals, gameSummary } from "../utils/gameSession"
 import { downloadCsv } from "../utils/download";
 
 // One player: the same status pill and Cash / GCash switch as the game's Payment page; refund and remove live behind "⋯".
-function AttendeeRow({ a, request, note, eventId, actions, onRemove }) {
+function AttendeeRow({ a, request, note, eventId, actions, onRemove, onReceipt }) {
   const paid = a.paid === "paid";
   const refunded = a.paid === "refunded";
   const sub = [note, request?.contact].filter(Boolean).join(" · ");
@@ -25,6 +26,7 @@ function AttendeeRow({ a, request, note, eventId, actions, onRemove }) {
       <RowMenu
         label={`More for ${a.name}`}
         items={[
+          ...(request?.receipt ? [{ label: "View receipt", onSelect: () => onReceipt(a.name, request.receipt) }] : []),
           ...(paid ? [{ label: "Refund", onSelect: () => actions.setPaid(eventId, a.id, "refunded") }] : []),
           { label: "Remove from event", danger: true, onSelect: () => onRemove(a) },
         ]}
@@ -48,6 +50,8 @@ export default function EventPage({
   const [search, setSearch] = useState("");
   const [confirmAll, setConfirmAll] = useState(false);
   const [removing, setRemoving] = useState(null);
+  const [viewing, setViewing] = useState(null); // a payment receipt on screen: { name, src }
+  const showReceipt = (name, src) => setViewing({ name, src });
   const back = (e) => { e.preventDefault(); navigate(`${base}/host`); };
 
   if (!event) {
@@ -124,9 +128,14 @@ export default function EventPage({
                     <div className="attendee-row" key={r.id}>
                       <div className="attendee-name">
                         <b>{r.name}</b>
-                        <small>{[r.contact, r.method === "online" ? `Online${r.ref ? ` · ref ${r.ref}` : ""}` : "Pays cash"].join(" · ")}</small>
+                        <small>{[r.contact, r.method === "online" ? `Pays online${r.ref ? ` · ref ${r.ref}` : ""}${r.receipt ? "" : " · no receipt"}` : "Pays cash"].filter(Boolean).join(" · ")}</small>
                       </div>
                       <div className="pay-controls">
+                        {r.receipt && (
+                          <button type="button" className="receipt-thumb" aria-label={`View ${r.name}'s receipt`} onClick={() => showReceipt(r.name, r.receipt)}>
+                            <img src={r.receipt} alt="" />
+                          </button>
+                        )}
                         <button type="button" className="tiny accent" onClick={() => actions.approve(event.id, r)}>Approve</button>
                         <button type="button" className="tiny outline" onClick={() => actions.decline(event.id, r)}>Decline</button>
                       </div>
@@ -158,7 +167,7 @@ export default function EventPage({
                   </div>
                 )}
                 {shownConfirmed.map((a) => (
-                  <AttendeeRow key={a.id} a={a} request={requestOf(a)} eventId={event.id} actions={actions} onRemove={setRemoving} />
+                  <AttendeeRow key={a.id} a={a} request={requestOf(a)} eventId={event.id} actions={actions} onRemove={setRemoving} onReceipt={showReceipt} />
                 ))}
                 {confirmed.length > 0 && !shownConfirmed.length && <div className="event-empty"><span>No players match.</span></div>}
                 {!confirmed.length && (
@@ -173,7 +182,7 @@ export default function EventPage({
                 <div className="booking-block">
                   <h4>Waitlist <span className="count-badge">{waitlist.length}</span></h4>
                   {shownWaitlist.map((a) => (
-                    <AttendeeRow key={a.id} a={a} request={requestOf(a)} note={`#${waitlist.indexOf(a) + 1} in line`} eventId={event.id} actions={actions} onRemove={setRemoving} />
+                    <AttendeeRow key={a.id} a={a} request={requestOf(a)} note={`#${waitlist.indexOf(a) + 1} in line`} eventId={event.id} actions={actions} onRemove={setRemoving} onReceipt={showReceipt} />
                   ))}
                 </div>
               )}
@@ -215,6 +224,11 @@ export default function EventPage({
         </div>
       </div>
 
+      {viewing && (
+        <Modal title="Payment receipt" label={viewing.name} close={() => setViewing(null)} className="receipt-modal">
+          <img className="receipt-full" src={viewing.src} alt={`${viewing.name}'s payment receipt`} />
+        </Modal>
+      )}
       {removing && (
         <ConfirmDialog
           title={`Remove ${removing.name}?`}

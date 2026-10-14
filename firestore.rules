@@ -414,12 +414,15 @@ service cloud.firestore {
     // line, so it must be near the real time.
     function validEventRequest(clubId, eventId) {
       let d = request.resource.data;
-      return d.keys().hasOnly(['name', 'contact', 'method', 'ref', 'seatId', 'status', 'createdAt', 'uid'])
-        && d.keys().hasAll(['name', 'contact', 'method', 'seatId', 'status', 'createdAt'])
+      return d.keys().hasOnly(['name', 'contact', 'method', 'ref', 'receipt', 'seatId', 'status', 'createdAt', 'uid'])
+        && d.keys().hasAll(['name', 'method', 'seatId', 'status', 'createdAt'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 60
-        && d.contact is string && d.contact.size() > 0 && d.contact.size() <= 40
+        && (!('contact' in d) || (d.contact is string && d.contact.size() <= 40)) // optional: older bookings carry a phone number
         && d.method in ['cash', 'online']
         && (!('ref' in d) || (d.ref is string && d.ref.size() <= 60))
+        // Paying online means attaching a receipt photo: a JPEG data URL of at most 400000 characters. Cash has nothing to attach.
+        && (d.method == 'cash' ? !('receipt' in d) : 'receipt' in d)
+        && (!('receipt' in d) || (d.receipt is string && d.receipt.size() <= 400000 && d.receipt.matches('data:image/jpeg;base64,.*')))
         && (!('uid' in d) || (d.uid is string && isRealUser() && d.uid == request.auth.uid))
         && d.seatId is string && d.seatId.size() > 0 && d.seatId.size() <= 60
         && d.status == 'pending'
@@ -490,7 +493,7 @@ service cloud.firestore {
 
         match /requests/{requestId} {
           // The request id is a random UUID the player keeps, so a single get works as "my booking"
-          // without exposing anyone else's request. Phone numbers: no public list.
+          // without exposing anyone else's request. Receipts (and older phone numbers): no public list.
           allow get: if canSeeClub(clubId);
           allow list: if isManager(clubId);
           allow create: if validEventRequest(clubId, eventId) && (isPublicClub(clubId) || isMember(clubId));

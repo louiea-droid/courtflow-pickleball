@@ -49,8 +49,7 @@ Already built:
   `clubs/{clubId}/events/{id}/requests` (not signed in, so `firestore.rules` allows a validated pending create and a single `get`
   by the random request id; only the host can list/update). Approving adds the attendee (attendee id = the request's public `seatId`, never the
   request id, so the public attendee list can't reach a phone number; `createdAt` must be within 10 min of server time because it
-  sets the place in line) so the player's page shows confirmed / waitlist / paid. Request and seat ids live in the player's localStorage. Phone numbers stay in the
-  request doc, never on the event. QR codes use `qrcode` (`QrCode.jsx`).
+  sets the place in line) so the player's page shows confirmed / waitlist / paid. Request and seat ids live in the player's localStorage. A booking asks for a name and how they pay, no phone number (`contact` is optional in the rules; older requests keep theirs and the host still sees it). Paying online needs a receipt: a screenshot shrunk on the phone to a JPEG data URL (`utils/receipt.js`: `compressImage`, `isReceipt`; check: `node src/utils/receipt.check.mjs`) and saved as `receipt` on the private request (rules: online requires it, cash must not carry one, JPEG data URL, at most 400000 characters). The host sees a thumbnail on the join request and **View receipt** in the player's "⋯" menu on the event page. Receipts and the old phone numbers stay on the request doc, never on the event. The booking form opens by itself when a club has one upcoming game, or for the game a link names (`/open-play?club=C&event=E`); with several games each card keeps its Join button. QR codes use `qrcode` (`QrCode.jsx`).
 - Delete account cascade: `utils/accountData.js` (`deleteAccountData`, `EVENT_SUBCOLLECTIONS`; step 3 adds the game
   subcollections there). Test: `tests/cascade.test.mjs` via `npm run test:rules`. Rules must be re-published in the Firebase
   console after any change to `firestore.rules`.
