@@ -57,7 +57,7 @@ export default function Queue({ queue, notCheckedIn, players, mixed, onCall, onC
   return (
     <>
       <div className="queue-toolbar">
-        <button type="button" className="outline" onClick={() => setShowCheckIn(true)}>
+        <button type="button" className="outline" data-tour="checkin" onClick={() => setShowCheckIn(true)}>
           <UserCheck size={15} /> Not Checked In<span className="count-badge">{notCheckedIn.length}</span>
         </button>
       </div>
@@ -97,8 +97,9 @@ export default function Queue({ queue, notCheckedIn, players, mixed, onCall, onC
                 title={p.lockedWithId ? `Locked with ${nameOf(p.lockedWithId)} — click to unlock` : "Lock in with another player"}
                 onClick={() => handleLockClick(p)}
               >
-                <Link2 size={12} />
-                {p.lockedWithId ? "Unlock" : pendingLockId === p.id ? "Cancel" : pendingLockId ? "Pair here" : "Lock In"}
+                <Link2 size={12} aria-hidden="true" />
+                {/* the words hide on a phone (icon only); the color still shows the state */}
+                <span className="lock-label">{p.lockedWithId ? "Unlock" : pendingLockId === p.id ? "Cancel" : pendingLockId ? "Pair here" : "Lock In"}</span>
               </button>
             </span>
             <span className="row-actions">

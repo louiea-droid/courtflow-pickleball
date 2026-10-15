@@ -30,6 +30,7 @@ assert.deepEqual(
   gameStartFields({}, 5),
   { status: "live", startedAt: 5, courts: 2, format: "Doubles", mode: "Balanced", autoRotate: true },
 );
+assert.deepEqual(gameStartFields({ defaults: { courts: 3 } }, 5, { courts: 4, mode: "Winners / Losers" }), { status: "live", startedAt: 5, courts: 4, format: "Doubles", mode: "Winners / Losers", autoRotate: true }); // the event's own settings win
 assert.equal(gameStartFields({ defaults: { courts: "0" } }, 1).courts, 2);
 assert.equal(gameStartFields({ defaults: { mode: "Skill Courts" } }, 1).mode, "Balanced"); // a removed mode in saved defaults
 assert.deepEqual(checkInFields(3, 12), { checked: true, checkedAt: 12, skill: 3 });

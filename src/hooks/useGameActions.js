@@ -28,7 +28,7 @@ export function useGameActions({ clubId, club, hostName, timeZone, notify }) {
     const now = Date.now();
     const batch = writeBatch(db);
     if (event.status !== "live") {
-      const fields = gameStartFields(acct, now);
+      const fields = gameStartFields(acct, now, event);
       batch.update(eventRef(event.id), fields);
       courtDocs(fields.courts, now).forEach((c) => batch.set(at(event.id, "courts", c.id), c.data));
     }

@@ -53,7 +53,7 @@ export function SettingsRow({ title, body, children, hidden }) {
 // Preset swatches plus a custom picker. The custom picker previews on the CSS
 // variable while dragging (React onChange fires every step) and saves once on
 // the native change event, so dragging doesn’t write to Firestore each frame.
-function ColorSwatches({ label, cssVar, presets, value, onChange }) {
+export function ColorSwatches({ label, cssVar, presets, value, onChange }) {
   const isCustom = !presets.some((p) => p.value === value);
   return (
     <div className="swatches" role="radiogroup" aria-label={label}>
@@ -183,7 +183,7 @@ export default function Settings({
         </div>
       </div>
 
-      <div className="account-group">
+      <div className="account-group" hidden={isClub}>
         <div className="eyebrow">Session defaults</div>
         <div className="panel account-panel">
           <SettingsRow title="Courts" body="How many courts a new session starts with.">
@@ -332,10 +332,11 @@ export default function Settings({
           <SettingsRow title="Theme color" body="Buttons, highlights, and active tabs. Pick a preset or your own.">
             <ColorSwatches label="Theme color" cssVar="--accent" presets={ACCENT_PRESETS} value={display.accent} onChange={(accent) => onSetDisplay({ accent })} />
           </SettingsRow>
-          <SettingsRow title="Team 1 color" body="Team 1 on every court, the Live Board, and its win button.">
+          {/* A club sets its team colors in each game's Court settings (event page) */}
+          <SettingsRow hidden={isClub} title="Team 1 color" body="Team 1 on every court, the Live Board, and its win button.">
             <ColorSwatches label="Team 1 color" cssVar="--team1" presets={TEAM_PRESETS} value={display.team1} onChange={(team1) => onSetDisplay({ team1 })} />
           </SettingsRow>
-          <SettingsRow title="Team 2 color" body="Team 2 on every court, the Live Board, and its win button.">
+          <SettingsRow hidden={isClub} title="Team 2 color" body="Team 2 on every court, the Live Board, and its win button.">
             <ColorSwatches label="Team 2 color" cssVar="--team2" presets={TEAM_PRESETS} value={display.team2} onChange={(team2) => onSetDisplay({ team2 })} />
           </SettingsRow>
           <SettingsRow title="Time zone" body="Used for the clock, check-in times, and dates across the app and Live Board.">

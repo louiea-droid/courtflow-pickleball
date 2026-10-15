@@ -15,9 +15,9 @@ const ICONS = {
   settings: Settings,
 };
 
-function Nav({ icon: Icon, label, active, onClick }) {
+function Nav({ icon: Icon, label, active, onClick, tourKey }) {
   return (
-    <button onClick={onClick} className={`nav ${active ? "active" : ""}`} title={label}>
+    <button onClick={onClick} className={`nav ${active ? "active" : ""}`} title={label} data-tour={`nav-${tourKey}`}>
       <Icon />
       <span>{label}</span>
     </button>
@@ -44,7 +44,7 @@ export default function Sidebar({
         <nav>
           {NAV_ITEMS.filter((item) => !hiddenTabs.includes(item.key)).map((item) => (
             <Nav
-              key={item.key}
+              key={item.key} tourKey={item.key}
               icon={ICONS[item.key]}
               label={item.label}
               active={tab === item.key}
@@ -67,7 +67,7 @@ export default function Sidebar({
                 <ArrowLeft /> <span>{backLink.label}</span>
               </button>
             )}
-            <button className="sidebar-endsession" onClick={onEndSession} title={endLabel}>
+            <button className="sidebar-endsession" data-tour="end" onClick={onEndSession} title={endLabel}>
               <Flag /> <span>{endLabel}</span>
             </button>
             <button

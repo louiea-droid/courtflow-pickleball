@@ -24,6 +24,16 @@ The Help page (`/help`, `src/views/Help.jsx`, content in `src/data/help.js`) sho
 | `game-queue.png` | Ann | the same game, Queue tab | viewport |
 | `modes.png` | Ann | the same game, Dashboard with the Mode picker open | viewport |
 | `quick-session.png` | Ann | `/club` (reuses the signed-in account) | viewport (wait for "Live Court Rotation") |
+| `event-page.png` | Ann | `/clubs/pub/event/thursday` (wait for "Back to game") | viewport |
+| `players.png` | Ann | the `thursday` game, Players tab (Cards) | viewport |
+| `payment.png` | Ann | the `thursday` game, Payment tab | viewport |
+| `stats.png` | Ann | the `thursday` game, Stats tab | viewport |
+| `umpires.png` | Ann | the `thursday` game, Dashboard, Umpires, then Create link | the `.modal` element (510 x 465) |
+| `scorekeeper.png` | Ann | the `thursday` game, the score button on Court 1, a few rallies tapped | the `.modal` element (510 x 573) |
+| `rental-split.png` | Ann | `/club`, Payment tab, filled in: label, rate 400, hours 2, courts 2 | viewport |
+| `live-board.png` | anyone | `/live?club={Ann's uid}` (the seed prints it) | viewport |
+
+The last eight are used by the queue app's Guide cards (`src/data/guide.js`, checked by `node src/utils/guide.check.mjs`). Set `localStorage` `courtflow.tourOffered.quick` / `.event` to `1` first, or the tour offer shows in the shot.
 
 Tips: pages load lazily, so wait until the content (not the spinner) shows before capturing; check each image after saving. Keep each file under 250 KB.
 

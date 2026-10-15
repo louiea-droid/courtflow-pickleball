@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { CalendarPlus, ChevronDown, Link2, Play, RefreshCw, Settings as SettingsIcon, Share2, Users, Wrench } from "lucide-react";
+import { CalendarPlus, ChevronDown, Link2, Play, RefreshCw, Share2, Users, Wrench } from "lucide-react";
 import ConfirmDialog from "./ConfirmDialog";
 import ShareModal from "./ShareModal";
 import { useInvite } from "../hooks/useMembership";
@@ -70,9 +70,6 @@ export default function ClubHeaderActions({
                 <button className="club-tools-item" onClick={() => { closeMenu(); onPlayNow(); }}><Play size={15} /> Play now</button>
                 <button className="club-tools-item" onClick={() => { closeMenu(); onShareBookingPage(); }}><Share2 size={15} /> Share booking page</button>
                 <span className="club-tools-divider" role="separator" />
-                <a className="club-tools-item" href={clubPath(clubId, "/settings")} onClick={(e) => { e.preventDefault(); closeMenu(); navigate(clubPath(clubId, "/settings")); }}>
-                  <SettingsIcon size={15} /> Settings
-                </a>
                 <a className="club-tools-item" href={clubPath(clubId, "/members")} onClick={(e) => { e.preventDefault(); closeMenu(); navigate(clubPath(clubId, "/members")); }}>
                   <Users size={15} /> Manage members
                 </a>

@@ -1,44 +1,17 @@
+import { useState } from "react";
 import {
-  LogIn, LayoutDashboard, ListOrdered, Users, Receipt, Trophy, MonitorPlay, CalendarCheck,
+  LogIn, LayoutDashboard, ListOrdered, Users, Receipt, Trophy, MonitorPlay, CalendarCheck, Compass, UserCheck, ChevronRight,
 } from "lucide-react";
+import Modal from "../components/Modal";
 import StarDisplay from "../components/StarDisplay";
 import { MODE_DESCRIPTIONS, COMING_SOON_MODES } from "../data/constants";
+import { GUIDE_FEATURES } from "../data/guide";
 import { SKILL_LEVELS } from "../utils/courtLevels";
 
-const FEATURES = [
-  {
-    icon: LogIn, title: "Quick session",
-    body: "No account needed. Open the app and your session is ready, saved in this browser. When play is done, End Session in the sidebar archives the stats and resets game counts (see Stats, Past Sessions).",
-  },
-  {
-    icon: CalendarCheck, title: "Open play game",
-    body: "Signed-in hosts run a game from an event: Proceed to game adds the people who booked, and the same queue app runs the courts. End game keeps everything and saves who paid, ready to export from the event page; Reopen game picks it back up. The Back to game button in the top bar follows you around the app while a game is live.",
-  },
-  {
-    icon: LayoutDashboard, title: "Dashboard",
-    body: "Every court at a glance. Press Score on a court to keep the score point by point, or record a winner and the court rotates by your mode. Up Next previews who goes on each court (you can edit it); Auto-fill seats all open courts at once, and Undo on the toast fixes a mis-tap. Umpires lets a volunteer score a court from their own phone.",
-  },
-  {
-    icon: ListOrdered, title: "Queue",
-    body: "Who is waiting, fewest games first, then longest wait. Send someone straight to an open court, skip them to the back, or lock two players as a pair. Not Checked In opens a list with a search box: check people in the moment they arrive. Someone who already has a skill level is checked in right away; only an unrated player is asked for theirs.",
-  },
-  {
-    icon: Users, title: "Players",
-    body: "Add players, set their skill stars and gender, or edit and remove them. Switch between Cards and List at the top: each shows games, wins, losses and win percentage, and your choice is remembered on this device.",
-  },
-  {
-    icon: Receipt, title: "Payment",
-    body: "In an open play game this is Payment Division: a progress bar of what is collected and the remaining balance, then one row per player to mark Paid or Unpaid and switch Cash or GCash. Filter by Unpaid, Paid or Waitlist, search by name, use Mark all as paid when a group pays together, and Export to Excel for a spreadsheet. Players added in the game are charged too, and a Play now game takes a fee you type in. Split a court rental (folded away) shares a court booking between players. In a quick session it logs a court rental and splits it across everyone who played, and can show the split on the Live Board.",
-  },
-  {
-    icon: Trophy, title: "Stats",
-    body: "The leaderboard by win percentage, with games won. Export to CSV, or open Past Sessions for earlier results.",
-  },
-  {
-    icon: MonitorPlay, title: "Live Board",
-    body: "A read-only screen for a TV or phone: live courts with their scores, the queue and recent matches. Open it from Share Live Board in the top bar; an open play game has its own link and QR code.",
-  },
-];
+const ICONS = {
+  quick: LogIn, "open-play": CalendarCheck, dashboard: LayoutDashboard, umpires: UserCheck, queue: ListOrdered,
+  players: Users, payment: Receipt, stats: Trophy, "live-board": MonitorPlay,
+};
 
 const MODE_NOTES = {
   "Balanced": "Next in the queue.",
@@ -87,25 +60,84 @@ function Section({ id, title, sub, children }) {
   );
 }
 
-export default function Guide() {
+// A screenshot from public/help/; a missing file shows only its caption. Tapping it opens the full size.
+function Shot({ shot }) {
+  const [broken, setBroken] = useState(false);
+  return (
+    <figure className="guide-shot">
+      {!broken && (
+        <a href={shot.src} target="_blank" rel="noopener noreferrer" title="Open full size" style={{ maxWidth: shot.w }}>
+          <img src={shot.src} alt={shot.alt} width={shot.w} height={shot.h} loading="lazy" onError={() => setBroken(true)} />
+        </a>
+      )}
+      <figcaption>{shot.caption}</figcaption>
+    </figure>
+  );
+}
+
+// One feature in full: what it is, pictures, the steps, then the finer points.
+function FeatureDetail({ feature, close }) {
+  return (
+    <Modal title={feature.title} label="Guide" close={close} className="guide-modal">
+      <div className="guide-detail">
+        <p className="guide-detail-summary">{feature.summary}</p>
+        <Shot shot={feature.shots[0]} />
+        <h4>How it works</h4>
+        <ol className="guide-steps">
+          {feature.steps.map((step) => <li key={step}><p>{step}</p></li>)}
+        </ol>
+        {feature.shots.slice(1).map((s) => <Shot key={s.src} shot={s} />)}
+        {feature.notes.length > 0 && (
+          <>
+            <h4>Good to know</h4>
+            <div className="guide-cards guide-notes">
+              {feature.notes.map((n) => (
+                <article className="guide-card" key={n.title}>
+                  <div><strong>{n.title}</strong><p>{n.body}</p></div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+export default function Guide({ onStartTour }) {
+  const [open, setOpen] = useState(null); // the feature whose details are showing
   return (
     <div className="guide">
+      {onStartTour && (
+        <div className="panel guide-tour">
+          <span className="guide-ico"><Compass size={18} /></span>
+          <div>
+            <strong>New here? Take the quick tour</strong>
+            <p>A short walk through the real screens: players, check-in, courts, umpires, the Live Board and payments.</p>
+          </div>
+          <button type="button" className="primary" data-tour="tour-start" onClick={onStartTour}>Start tour</button>
+        </div>
+      )}
       <nav className="guide-jump" aria-label="Guide sections">
         {SECTIONS.map(([id, label]) => (
           <a key={id} href={`#guide-${id}`} onClick={(e) => jump(e, id)}>{label}</a>
         ))}
       </nav>
 
-      <Section id="how" title="How CourtFlow works" sub="What each part of the app does.">
+      <Section id="how" title="How CourtFlow works" sub="Tap a card for the details, with pictures.">
         <div className="guide-cards">
-          {FEATURES.map((f) => (
-            <article className="guide-card" key={f.title}>
-              <span className="guide-ico"><f.icon size={16} /></span>
-              <div><strong>{f.title}</strong><p>{f.body}</p></div>
-            </article>
-          ))}
+          {GUIDE_FEATURES.map((f) => {
+            const Icon = ICONS[f.id] || Compass;
+            return (
+              <button type="button" className="guide-card guide-card-link" key={f.id} onClick={() => setOpen(f)} aria-haspopup="dialog">
+                <span className="guide-ico"><Icon size={16} /></span>
+                <div><strong>{f.title}</strong><p>{f.card}</p><span className="guide-more">See how it works <ChevronRight size={14} /></span></div>
+              </button>
+            );
+          })}
         </div>
       </Section>
+      {open && <FeatureDetail feature={open} close={() => setOpen(null)} />}
 
       <Section id="modes" title="Rotation modes" sub="How the queue decides who plays next. Change it from the mode picker or in Settings.">
         <p className="guide-intro">

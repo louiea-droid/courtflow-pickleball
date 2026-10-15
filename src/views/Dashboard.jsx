@@ -581,13 +581,13 @@ export default function Dashboard({
       <div className="heading">
         <div><h2>Live Courts</h2><p>{manual ? "Custom mode: record a winner to clear the court, then build the next match yourself." : "Record a winner to rotate the completed players."}</p></div>
         <div className="heading-actions">
-          <button className="outline" onClick={onOpenUmpires}><UserCheck size={14} /> Umpires</button>
+          <button className="outline" data-tour="umpires" onClick={onOpenUmpires}><UserCheck size={14} /> Umpires</button>
           <button className="outline" onClick={onAddCourt} disabled={courts.length >= 8}>
             <Plus size={14} /> Add Court
           </button>
           {!manual && (
             <>
-              <button className="outline" onClick={onAutoFill}><Zap size={14} /> Auto-fill</button>
+              <button className="outline" data-tour="autofill" onClick={onAutoFill}><Zap size={14} /> Auto-fill</button>
               <button
                 className={`pill toggle ${autoRotateOn ? "" : "off"}`}
                 onClick={onToggleAutoRotate}
@@ -650,7 +650,7 @@ export default function Dashboard({
             </div>
           ))}
         </div>
-        <div className="panel">
+        <div className="panel" data-tour="match-log">
           <PanelHead title="Match Log" sub="Recent results this session." />
           {matchLog.length
             ? matchLog.slice(0, LOWER_ROWS).map((m, i) => <MatchLogRow match={m} latest={i === 0} key={m.id} />)

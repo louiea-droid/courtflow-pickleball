@@ -110,5 +110,8 @@ export function useEventActions({ clubId, club, events, hostName, timeZone, noti
     notify(`${request.name} declined.`);
   };
 
-  return { save, remove, add, setPaid, setPaidMany, patch, kick, approve, decline, setRef };
+  // Court settings (courts, format, mode) only: no club copy, so a walk-in game (never public) can change them too.
+  const setCourts = (eventId, change) => updateDoc(eventRef(eventId), change);
+
+  return { save, remove, add, setPaid, setPaidMany, patch, kick, approve, decline, setRef, setCourts };
 }

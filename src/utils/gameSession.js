@@ -19,9 +19,10 @@ export function buildGameSession(account = {}, event = {}) {
   };
 }
 
-// The settings a game starts with, from the account's Session defaults.
-export function gameStartFields(account = {}, now) {
-  const d = account.defaults || {};
+// The settings a game starts with: the event's own Court settings if the host set them, else the club's Session defaults.
+export function gameStartFields(account = {}, now, event = {}) {
+  const d = { ...account.defaults };
+  for (const k of ["courts", "format", "mode"]) if (event[k] != null) d[k] = event[k];
   return {
     status: "live",
     startedAt: now,

@@ -36,6 +36,7 @@
 
   --shadow:0 15px 40px light-dark(#13231b12,#0005);--shadow-lg:0 20px 50px light-dark(#13231b1c,#0007);
   --shadow-sm:0 8px 18px light-dark(#13231b14,#0005);
+  --scrim:#06100aa8;
   --radius:15px;--ease:cubic-bezier(.22,1,.36,1);
   --sidebar-w:245px;--sidebar-w-tablet:210px;
 }
@@ -419,6 +420,16 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .guide-card p{margin:5px 0 0;color:var(--muted);font-size:13px;line-height:1.55}
 .guide-card em{display:block;margin-top:2px;font-style:normal;font-size:12.5px;font-weight:600;color:var(--accent-ink)}
 .guide-ico{flex-shrink:0;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-ink)}
+.guide-tour{display:flex;align-items:center;gap:14px;padding:16px 18px;margin:4px 0 14px;border-color:var(--accent-soft)}
+.guide-tour strong{display:block;font:700 16px "Space Grotesk";color:var(--ink)}
+.guide-tour p{margin:3px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
+.guide-tour .primary{margin-left:auto;flex-shrink:0}
+@media (max-width:600px){.guide-tour{flex-wrap:wrap}.guide-tour>div{flex:1 1 200px}.guide-tour .primary{width:100%;justify-content:center}}
+.guide-steps{list-style:none;counter-reset:step;margin:0 0 14px;padding:0;display:grid;gap:10px}
+.guide-steps li{counter-increment:step;display:grid;grid-template-columns:30px 1fr;column-gap:12px;padding:13px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.guide-steps li::before{content:counter(step);grid-row:span 2;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on-accent);font:700 13px "Space Grotesk"}
+.guide-steps strong{font-size:14px;color:var(--ink)}
+.guide-steps p{margin:3px 0 0;color:var(--muted);font-size:13px;line-height:1.55;max-width:72ch}
 .guide-skill-grid{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:2px 16px}
 .guide-skill-row{display:grid;grid-template-columns:100px 190px 1fr;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft)}
 .guide-skill-row:last-child{border-bottom:0}
@@ -612,7 +623,18 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .player-chip:hover{transform:translateY(-1px)}
 .player-chip.selected{border-color:var(--accent);background:var(--accent-soft)}
 .player-chip.selected svg{color:var(--accent-2)}
-.cost-preview{grid-template-columns:1fr 1fr;margin:2px 0 0}
+.cost-select-head em{font-style:normal;color:var(--muted);letter-spacing:0;text-transform:none;font-weight:600;margin-left:6px}
+.cost-form input.peso,.rental-fold input.peso{padding-left:26px}
+.cost-calc-grid label:first-child{position:relative}
+.cost-calc-grid label:first-child::after{content:"₱";position:absolute;left:11px;bottom:11px;font:700 14px "Space Grotesk";color:var(--muted);pointer-events:none;letter-spacing:0}
+.rental-total{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--soft-2)}
+.rental-math{display:flex;align-items:baseline;gap:6px 22px;flex-wrap:wrap;color:var(--muted);font-size:12px;font-weight:600}
+.rental-math b{display:block;font:700 22px "Space Grotesk";color:var(--ink);margin-top:2px}
+.rental-math .rental-each b{color:var(--accent-ink)}
+.rental-math small{flex-basis:100%;font-size:12px}
+.rental-total button.primary{margin-left:auto}
+@media (max-width:520px){.rental-total button.primary{width:100%;justify-content:center}}
 .cost-row{
   display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;
   padding:10px 4px;border-bottom:1px solid var(--line-soft)
@@ -657,15 +679,15 @@ form.confirm-modal .modalactions{margin-top:4px}
 .danger:hover{background:#c93a2e;border-color:#c93a2e;box-shadow:0 8px 18px #e6483a33}
 .icon{padding:6px;background:var(--soft);border:0}
 .icon:hover{background:var(--soft-2)}
-.modal form,.cost-form form{display:grid;gap:15px}
-.modal label,.cost-form label{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:800}
-.modal input,.modal select,.cost-form input,.cost-form select{
+.modal form,.cost-form form,.rental-fold form{display:grid;gap:15px}
+.modal label,.cost-form label,.rental-fold label,.open-play-fee-input{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:800}
+.modal input,.modal select,.cost-form input,.cost-form select,.rental-fold input,.rental-fold select,.open-play-fee-input input{
   width:100%;display:block;margin-top:7px;border:1px solid var(--line);border-radius:10px;padding:11px 12px;
   background:var(--panel);font-size:14px;color:var(--ink);font-weight:600;
   transition:border-color .15s ease,box-shadow .15s ease,background .15s ease
 }
-.modal input:hover,.modal select:hover,.cost-form input:hover,.cost-form select:hover{border-color:var(--line-strong)}
-.modal input::placeholder,.cost-form input::placeholder{color:var(--faint);font-weight:500}
+.modal input:hover,.modal select:hover,.cost-form input:hover,.cost-form select:hover,.rental-fold input:hover,.rental-fold select:hover,.open-play-fee-input input:hover{border-color:var(--line-strong)}
+.modal input::placeholder,.cost-form input::placeholder,.rental-fold input::placeholder,.open-play-fee-input input::placeholder{color:var(--faint);font-weight:500}
 .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
 .field-select{position:relative;margin-top:7px}
@@ -1046,8 +1068,11 @@ form.confirm-modal .modalactions{margin-top:4px}
 
   /* Compact queue & not-checked-in tables */
   .table{padding:8px}
-  .row{grid-template-columns:20px 1fr auto;row-gap:6px;padding:8px 6px;gap:6px}
-  .row>*:nth-child(n+3):nth-child(-n+7){display:none}
+  /* Skill, games, W/L and wait fold into the name's meta line; the lock button (7th) stays so pairs can be locked here too */
+  .row{grid-template-columns:20px minmax(0,1fr) auto auto;row-gap:6px;padding:8px 6px;gap:6px}
+  .row>*:nth-child(n+3):nth-child(-n+6){display:none}
+  .row .lock-btn{padding:5px 8px}
+  .row .lock-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .row-actions{justify-content:flex-end}
   .row-actions .tiny{padding:5px 7px;font-size:9.5px}
   .person{min-width:0}
@@ -1886,3 +1911,49 @@ button.ci-btn:focus-visible{outline:2px solid var(--accent-bright);outline-offse
 .receipt-modal{width:min(560px,100%)}
 .receipt-full{display:block;max-width:100%;max-height:72vh;margin:0 auto;border-radius:12px}
 .op-form input[type=file]{display:none}
+
+/* ---------- Guided tour (components/Tour.jsx) ---------- */
+.tour{position:fixed;inset:0;z-index:80;animation:fadeIn .25s ease both}
+.tour-dim{position:fixed;inset:0;background:var(--scrim)}
+.tour-spot{position:fixed;border-radius:14px;box-shadow:0 0 0 2px var(--accent),0 0 0 9999px var(--scrim);transition:top .45s var(--ease),left .45s var(--ease),width .45s var(--ease),height .45s var(--ease),box-shadow .3s ease,border-radius .45s var(--ease)}
+.tour-spot.is-empty{box-shadow:0 0 0 0 transparent,0 0 0 9999px var(--scrim);border-radius:50%}
+.tour-card{position:fixed;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lg);padding:14px 16px 16px;transition:top .45s var(--ease),left .45s var(--ease)}
+.tour-copy{animation:tourCopy .3s var(--ease) both}
+@keyframes tourCopy{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.tour-card-top{display:flex;align-items:center;justify-content:space-between;margin:-4px -6px 2px 0}
+.tour-count{font-size:12px;font-weight:700;color:var(--muted)}
+.tour-card h3{margin:0 0 6px;font:700 17px "Space Grotesk"}
+.tour-card p{margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+.tour-image{display:block;width:100%;height:auto;max-height:46vh;object-fit:contain;margin-top:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft-2)}
+.tour-bar{height:4px;border-radius:4px;background:var(--soft-2);margin:14px 0 12px;overflow:hidden}
+.tour-bar i{display:block;height:100%;background:var(--accent);transition:width .45s var(--ease)}
+.tour-actions{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.tour-skip{margin-right:auto;color:var(--muted)}
+.tour-offer{position:fixed;right:18px;bottom:22px;z-index:65;width:min(380px,calc(100vw - 32px));display:grid;gap:12px;
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lg);padding:16px;animation:fadeSlideUp .3s var(--ease) both}
+.tour-offer b{display:block;font:700 16px "Space Grotesk";margin-bottom:3px}
+.tour-offer span{color:var(--muted);font-size:13px;line-height:1.5}
+.tour-offer-actions{display:flex;gap:8px;justify-content:flex-end}
+@media (max-width:700px){.tour-offer{right:16px;left:16px;width:auto;bottom:86px}}
+@media (prefers-reduced-motion:reduce){.tour-spot,.tour-card,.tour-bar i{transition:none}.tour,.tour-copy,.tour-offer{animation:none}}
+
+/* ---------- Guide: clickable feature cards and their details window (views/Guide.jsx, data/guide.js) ---------- */
+.guide-card-link{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease,transform .15s var(--ease)}
+.guide-card-link:hover{border-color:var(--accent);box-shadow:var(--shadow-sm)}
+.guide-card-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.guide-more{display:inline-flex;align-items:center;gap:2px;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--accent-ink)}
+.guide-card-link:hover .guide-more svg{transform:translateX(2px)}
+.guide-more svg{transition:transform .15s var(--ease)}
+.guide-modal{width:min(780px,100%);max-height:calc(100vh - 36px);max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain}
+.guide-detail{display:grid;gap:14px}
+.guide-detail-summary{margin:-6px 0 0;color:var(--ink-2);font-size:14.5px;line-height:1.6;max-width:68ch}
+.guide-detail h4{margin:6px 0 -4px;font:700 16px "Space Grotesk";color:var(--ink)}
+.guide-detail .guide-steps{margin:0}
+.guide-detail .guide-steps li{align-items:center}
+.guide-detail .guide-steps p{margin:0;color:var(--ink-2)}
+.guide-notes{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.guide-shot{margin:0;display:grid;gap:7px}
+.guide-shot a{display:block;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--soft-2)}
+.guide-shot img{display:block;width:100%;height:auto}
+.guide-shot figcaption{color:var(--muted);font-size:12.5px}
+@media (max-width:600px){.guide-modal{padding:16px}.guide-modal .modaltop h3{font-size:21px}}

@@ -34,6 +34,8 @@ import Players from "./views/Players";
 import Cost from "./views/Cost";
 import Stats from "./views/Stats";
 import Guide from "./views/Guide";
+import Tour, { TourOffer } from "./components/Tour";
+import { tourSeenKey, tourSteps } from "./data/tour";
 import Settings from "./views/Settings";
 import { queueOrder } from "./utils/queueStatus";
 
@@ -67,6 +69,21 @@ export default function QueueApp({
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // The guided tour: started from the Guide, and offered once per device per kind (quick session / open play game).
+  const [touring, setTouring] = useState(false);
+  const [tourOffer, setTourOffer] = useState(() => {
+    try { return !localStorage.getItem(tourSeenKey(kind)); } catch { return false; }
+  });
+  const markTourSeen = () => {
+    setTourOffer(false);
+    try { localStorage.setItem(tourSeenKey(kind), "1"); } catch { /* private mode: it may be offered again */ }
+  };
+  const startTour = () => { markTourSeen(); setTouring(true); };
+  const showTourStep = (step) => {
+    setTab(step.tab);
+    setShowUmpires(step.open === "umpires"); // the tour shows the real Umpires window for that step
+    setMenuOpen(!!step.side && window.matchMedia("(max-width: 860px)").matches); // the sidebar is a drawer there
+  };
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("cf-sidebar-collapsed") === "1");
 
   useEffect(() => {
@@ -812,7 +829,7 @@ export default function QueueApp({
             />
           )}
           {tab === "stats" && <Stats players={players} exportCsv={exportCsv} sessionId={kind === "quick" ? base[1] : null} format={session.format} />}
-          {tab === "guide" && <Guide />}
+          {tab === "guide" && <Guide onStartTour={startTour} />}
           {tab === "settings" && kind === "quick" && (
             <Settings
               mode="quick" canChangePassword={false}
@@ -885,6 +902,12 @@ export default function QueueApp({
           />
         )}
         <Toast toast={toast} onDismiss={dismissToast} />
+        {touring && (
+          <Tour steps={tourSteps(kind)} onStep={showTourStep} onClose={() => { setTouring(false); setMenuOpen(false); setShowUmpires(false); }} />
+        )}
+        {tourOffer && !touring && (
+          <TourOffer title={isEventGame ? "New to running an open play game?" : "New to CourtFlow?"} onStart={startTour} onDismiss={markTourSeen} />
+        )}
       </main>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, CircleHelp, LogOut, UserRound } from "lucide-react";
+import { ChevronDown, CircleHelp, LogOut, Settings as SettingsIcon, UserRound } from "lucide-react";
 
-export default function AccountMenu({ name, email, onSignOut, navigate }) {
+export default function AccountMenu({ name, email, onSignOut, navigate, settingsPath = null }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
   const triggerRef = useRef(null);
@@ -65,6 +65,11 @@ export default function AccountMenu({ name, email, onSignOut, navigate }) {
         <a className="account-menu-item" href="/settings" onClick={goToProfile}>
           <UserRound size={16} /> Profile
         </a>
+        {settingsPath && (
+          <a className="account-menu-item" href={settingsPath} onClick={(e) => { e.preventDefault(); setOpen(false); navigate(settingsPath); }}>
+            <SettingsIcon size={16} /> Settings
+          </a>
+        )}
         <a className="account-menu-item" href="/help" onClick={goToHelp}>
           <CircleHelp size={16} /> Help
         </a>

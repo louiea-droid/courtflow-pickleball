@@ -19,7 +19,7 @@ export default function ModeSelect({ mode, onChange }) {
   }, [open]);
 
   return (
-    <div className="mode-select" ref={ref}>
+    <div className="mode-select" data-tour="mode" ref={ref}>
       <button type="button" className="mode-select-trigger" onClick={() => setOpen((o) => !o)}>
         <span className="mode-select-label">MODE</span>
         <b>{mode}</b>

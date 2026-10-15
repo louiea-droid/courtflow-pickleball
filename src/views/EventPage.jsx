@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { ArrowLeft, CheckCheck, Download, Pencil, Play, Share2, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCheck, Download, LayoutGrid, Pencil, Play, Share2, Trash2 } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Modal from "../components/Modal";
+import CourtSettingsModal from "../components/CourtSettingsModal";
 import DateTile from "../components/DateTile";
 import { FeeFilters, FeeProgress, MethodSwitch, StatusPill } from "../components/PaymentParts";
 import RowMenu from "../components/RowMenu";
@@ -42,7 +43,7 @@ function AttendeeRow({ a, request, note, eventId, actions, onRemove, onReceipt }
 }
 
 export default function EventPage({
-  event, requests, actions, ready, gamePlayers, gameLoaded, feeRecord, onEdit, onShare, onPickPlayers, onOpenGame, onReopen, navigate, base,
+  event, requests, actions, ready, gamePlayers, gameLoaded, feeRecord, onEdit, onShare, onPickPlayers, onOpenGame, onReopen, onSaveCourts, courtDefaults, clubDisplay, onSetDisplay, navigate, base,
 }) {
   const [name, setName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -50,6 +51,7 @@ export default function EventPage({
   const [search, setSearch] = useState("");
   const [confirmAll, setConfirmAll] = useState(false);
   const [removing, setRemoving] = useState(null);
+  const [courtSettings, setCourtSettings] = useState(false);
   const [viewing, setViewing] = useState(null); // a payment receipt on screen: { name, src }
   const showReceipt = (name, src) => setViewing({ name, src });
   const back = (e) => { e.preventDefault(); navigate(`${base}/host`); };
@@ -211,6 +213,9 @@ export default function EventPage({
               ) : (
                 <button type="button" className="primary event-main-action" onClick={onPickPlayers}><Play size={15} /> Proceed to game</button>
               )}
+              {event.status !== "ended" && (
+                <button type="button" className="outline event-secondary-action" onClick={() => setCourtSettings(true)}><LayoutGrid size={14} /> Court settings</button>
+              )}
               {!event.walkIn && (
                 <>
                   <button type="button" className="outline event-secondary-action" onClick={() => onEdit(event)}><Pencil size={14} /> Edit event</button>
@@ -224,6 +229,7 @@ export default function EventPage({
         </div>
       </div>
 
+      {courtSettings && <CourtSettingsModal event={event} defaults={courtDefaults} display={clubDisplay} onSave={onSaveCourts} onSetDisplay={onSetDisplay} close={() => setCourtSettings(false)} />}
       {viewing && (
         <Modal title="Payment receipt" label={viewing.name} close={() => setViewing(null)} className="receipt-modal">
           <img className="receipt-full" src={viewing.src} alt={`${viewing.name}'s payment receipt`} />

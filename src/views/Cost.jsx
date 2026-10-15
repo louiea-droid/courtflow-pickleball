@@ -246,7 +246,7 @@ export default function Cost({
   };
 
   const form = (
-    <form onSubmit={submit}>
+    <form className="rental-form" onSubmit={submit}>
       <label>
         Court / label
         <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Court 1" />
@@ -254,8 +254,8 @@ export default function Cost({
 
       <div className="cost-calc-grid">
         <label>
-          Rate (₱ / hr)
-          <input type="number" min="0" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="0.00" />
+          Rate per hour
+          <input className="peso" type="number" min="0" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="0.00" />
         </label>
         <label>
           Hours
@@ -268,7 +268,7 @@ export default function Cost({
       </div>
 
       <div className="cost-select-head">
-        <label>Splitting between</label>
+        <label>Splitting between <em>{selected.length} of {selectablePlayers.length}</em></label>
         {selectablePlayers.length > 0 && (
           <button type="button" className="text" onClick={toggleSelectAll}>
             {allSelected ? "Clear all" : "Select all"}
@@ -280,6 +280,7 @@ export default function Cost({
           <button
             type="button"
             key={p.id}
+            aria-pressed={selected.includes(p.id)}
             className={`player-chip ${selected.includes(p.id) ? "selected" : ""}`}
             onClick={() => toggleSelected(p.id)}
           >
@@ -290,16 +291,12 @@ export default function Cost({
         {!selectablePlayers.length && <span className="section-hint">Add players first, then come back here.</span>}
       </div>
 
-      <div className="cards cost-preview">
-        <div className="stat"><span>TOTAL</span><b>{money(total)}</b><small>rate × hours × courts</small></div>
-        <div className="stat">
-          <span>PER PLAYER</span>
-          <b>{money(perPerson)}</b>
+      <div className="rental-total">
+        <div className="rental-math">
+          <span>Total <b>{money(total)}</b></span>
+          <span className="rental-each">Each <b>{money(perPerson)}</b></span>
           <small>{`${selected.length || 0} splitting${!isOpenPlay && costDefaults.roundTo ? `, rounded up to ₱${costDefaults.roundTo}` : ""}`}</small>
         </div>
-      </div>
-
-      <div className="modalactions">
         <button className="primary" disabled={!canSave}><Save size={14} /> Save Entry</button>
       </div>
     </form>
@@ -322,7 +319,10 @@ export default function Cost({
           {form}
         </details>
       ) : (
-        <div className="panel cost-form">{form}</div>
+        <div className="panel cost-form">
+          <PanelHead title="Split a court rental" sub="Share a court booking between players" />
+          {form}
+        </div>
       )}
 
       {(!isOpenPlay || historyEntries.length > 0) && (

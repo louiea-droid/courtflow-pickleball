@@ -223,6 +223,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
       onSignOut={acct.signOutUser} navigate={navigate} clubs={myClubs} club={sideClub}
       friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
       headerAction={headerAction} notifications={notifications}
+      settingsPath={sideClub && canManage ? clubPath(clubId, "/settings") : null}
     />
   );
   const inShell = (content) => <div className="acct-shell">{sidebar(null)}<main className="acct-main">{content}</main></div>;
@@ -303,6 +304,8 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
           gamePlayers={gamePlayers} gameLoaded={gameLoaded} feeRecord={eventCosts.find((c) => c.id === "fee-report")} base={base} navigate={navigate}
           onPickPlayers={() => setGamePick(true)} onOpenGame={() => navigate(`${base}/event/${eventId}/game`)}
           onReopen={() => reopenGame(eventId)} onEdit={setEventModal} onShare={() => setShowShare(true)}
+          onSaveCourts={(change) => actions.setCourts(eventId, change)} courtDefaults={club?.defaults}
+          clubDisplay={club?.display} onSetDisplay={(change) => clubActions.updateClub(clubId, { display: { ...club.display, ...change } })}
         />
       );
     }

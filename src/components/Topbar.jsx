@@ -13,13 +13,13 @@ export default function Topbar({ tab, onOpenMenu, onShare, onAddPlayer, eyebrow,
         <p>{subtitle}</p>
       </div>
       <div className="actions">
-        <button className="primary" onClick={onAddPlayer}><Plus /> Add Player</button>
+        <button className="primary" data-tour="add-player" onClick={onAddPlayer}><Plus /> Add Player</button>
         <PhClock />
         {showShare && (
-          <button className="outline" onClick={onShare}><Share2 /> Share<span className="share-btn-full"> Live Board</span></button>
+          <button className="outline" data-tour="share" onClick={onShare}><Share2 /> Share<span className="share-btn-full"> Live Board</span></button>
         )}
       </div>
-      <button className="fab-add" onClick={onAddPlayer} aria-label="Add player"><Plus /></button>
+      <button className="fab-add" data-tour="add-player" onClick={onAddPlayer} aria-label="Add player"><Plus /></button>
     </header>
   );
 }
