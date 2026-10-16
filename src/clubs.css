@@ -258,7 +258,7 @@ button.acct-brand:hover{background:var(--side-hover)}
    shared rules in styles.css keep serving the dialogs that reuse them. ---- */
 .clublogin{--accent-ink:color-mix(in srgb,var(--accent) 50%,var(--ink));padding:24px 16px}
 .clublogin-wrap{width:min(400px,100%);display:grid;gap:18px}
-.clublogin-brand{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--ink);font:700 19px "Space Grotesk"}
+.clublogin-brand{text-decoration:none;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--ink);font:700 19px "Space Grotesk"}
 .clublogin-brand img{height:34px;width:auto}
 .clublogin .clublogin-card{width:100%;padding:22px;gap:16px;text-align:left}
 .clublogin-head h1{margin:0;font:700 24px/1.15 "Space Grotesk";letter-spacing:-.4px}

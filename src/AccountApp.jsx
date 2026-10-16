@@ -10,6 +10,7 @@ import { friendBuckets } from "./utils/friends";
 import { useClubActions } from "./hooks/useClubActions";
 import { applyTheme } from "./utils/theme";
 import AccountLogin from "./components/AccountLogin";
+import Landing from "./landing/Landing";
 import AccountSidebar from "./components/AccountSidebar";
 import { useManagerJoinRequests } from "./hooks/useManagerJoinRequests";
 import { buildNotifications } from "./utils/notifications";
@@ -101,13 +102,19 @@ export default function AccountApp() {
       </div>
     );
   }
+  // Signed out: "/" is the public landing page; /signup and /signin (and any other link, e.g. an invite) show the sign-in screen.
   if (acct.status === "out") {
+    const path = window.location.pathname.replace(/\/+$/, "") || "/";
+    if (path === "/") return <Landing navigate={navigate} />;
     return (
       <AccountLogin
+        key={path} initialMode={path === "/signup" ? "signup" : "signin"} onHome={() => navigate("/")}
         onSignIn={acct.signIn} onSignUp={acct.signUp} onGoogle={acct.signInGoogle} onReset={acct.resetPassword}
       />
     );
   }
+  // Signed in from /signin or /signup: show Home under its own address.
+  if (["/signin", "/signup"].includes(window.location.pathname)) window.history.replaceState(null, "", "/");
 
   if (clubId && route.startsWith("club")) {
     return <ClubApp key={clubId} acct={acct} clubId={clubId} route={route} eventId={eventId} navigate={navigate} inbox={inbox} activeGame={activeGame} notifications={notifications} />;
