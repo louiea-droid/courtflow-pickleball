@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CircleHelp } from "lucide-react";
 import { collection, doc, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { auth, db } from "./firebase";
@@ -19,7 +20,25 @@ function Page({ children, scoring = false }) {
     <div className={`umpire-page${scoring ? " scoring" : ""}`}>
       <h1>Umpire</h1>
       {children}
+      <HowItWorks open={!scoring} />
     </div>
+  );
+}
+
+// The volunteer flow, start to finish. Open until they are scoring, where "How scoring works" takes over.
+function HowItWorks({ open }) {
+  return (
+    <details className="scorekeeper-card scorekeeper-help umpire-how" open={open}>
+      <summary><CircleHelp size={16} /> How it works</summary>
+      <ol>
+        <li><b>Type your name</b> and tap Start umpiring. No account needed; the host sees your name.</li>
+        <li><b>Claim one free court.</b> Only you score it until you release it.</li>
+        <li><b>After each rally, tap the team that won it.</b> The screen calls the score and keeps track of the server.</li>
+        <li><b>Wrong tap?</b> Undo takes it back. Fix the score sets a team's points by hand.</li>
+        <li><b>When a team wins</b>, the game saves itself after 5 seconds (Undo before then keeps it going). The host records the result and the next match comes to your court.</li>
+        <li><b>Done?</b> Tap Release court so someone else can take it.</li>
+      </ol>
+    </details>
   );
 }
 
