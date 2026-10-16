@@ -103,6 +103,25 @@ Today players pay outside the app and the host checks receipt screenshots. With 
 - [ ] Featured clubs at the top of Find session.
 - [ ] Tournaments and brackets as a paid add-on (needs its own design).
 
+## Phase 5 (future): white-label licensing
+
+Owner wants this for later (2026-10-16), after the Club plan works. A bigger customer (a venue chain, a large club, a league or a federation) gets **their own copy of CourtWave under their own name, logo and colors**. CourtWave keeps the product and can license it again to the next customer.
+
+- **What they pay** *(guess, set per deal)*: a one-time setup fee, plus a yearly license or maintenance fee (updates, hosting help, support).
+- **What to build first:**
+  - [ ] Branding from settings, not code: app name, logo, colors, page titles and the landing page text read from one config per deployment, instead of "CourtWave" written in many files.
+  - [ ] One Firebase project per customer (their own data, rules and hosting address or domain), deployed from the same code.
+  - [ ] A short setup guide: create the Firebase project, set the config, publish the rules and indexes, deploy.
+  - [ ] Their own Android app build (name, icon, package id) once the Android app exists.
+- **Paperwork:** a license agreement (what they may and may not do, e.g. no reselling, no copying the code), who owns their data (they do), support terms, and what happens if they stop paying. Have a lawyer write or check it.
+- **Before offering it:** the name "CourtWave" checked and, ideally, registered as a trademark (IPOPHL), so customers license a name CourtWave owns.
+
+**Done when:** one paying customer runs their own branded copy from the same code.
+
+## Selling the whole business (much later, not planned)
+
+Kept only as a long-term exit. A buyer pays for revenue and users, not for the code alone. What keeps that door open costs little now: clean ownership of the code, a registered name, accounts (Firebase, domain, payments) that can be transferred, the docs in `docs/` and `CLAUDE.md`, and a privacy policy that allows user data to move to a new owner.
+
 ---
 
 ## Costs to expect
@@ -124,3 +143,4 @@ Today players pay outside the app and the host checks receipt screenshots. With 
 3. Online payments: host's own merchant account (a) or CourtWave pays out (b).
 4. Who pays the booking fee.
 5. Early-access thank-you for the first clubs.
+6. White-label (Phase 5): when to start, and the setup and yearly fees.
