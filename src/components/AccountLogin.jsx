@@ -8,8 +8,8 @@ const COPY = {
   reset: { title: "Reset your password", blurb: "Enter your email and we'll send you a link to choose a new password.", action: "Send reset link", icon: LogIn },
 };
 
-export default function AccountLogin({ onSignIn, onSignUp, onGoogle, onReset }) {
-  const [mode, setMode] = useState("signin");
+export default function AccountLogin({ onSignIn, onSignUp, onGoogle, onReset, initialMode = "signin", onHome }) {
+  const [mode, setMode] = useState(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -68,10 +68,11 @@ export default function AccountLogin({ onSignIn, onSignUp, onGoogle, onReset }) 
     <div className="clublogin clublogin-fx">
       <div className="clublogin-ball" ref={ball} aria-hidden="true" />
       <div className="clublogin-wrap">
-        <div className="clublogin-brand">
-          <img src="/images/courtwave.png" alt="" />
+        <a className="clublogin-brand" href="/" onClick={onHome && ((e) => { e.preventDefault(); onHome(); })}>
+          <img className="logo-dark" src="/images/courtwave.png" alt="" />
+          <img className="logo-light" src="/images/courtwave-light.png" alt="" />
           <b>CourtWave</b>
-        </div>
+        </a>
 
         <form className="clublogin-card" onSubmit={submit}>
           {mode === "reset" ? (

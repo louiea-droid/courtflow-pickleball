@@ -302,7 +302,8 @@ export default function OpenPlay() {
   return (
     <div className="openplay">
       <header className="op-header">
-        <img className="op-logo" src="/images/courtwave.png" alt="" />
+        <img className="op-logo logo-dark" src="/images/courtwave.png" alt="" />
+        <img className="op-logo logo-light" src="/images/courtwave-light.png" alt="" />
         <div>
           {hostName && <p>{hostName}</p>}
           <h1>Open play</h1>

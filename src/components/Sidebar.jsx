@@ -35,7 +35,7 @@ export default function Sidebar({
       <aside className={`sidebar ${open ? "open" : ""} ${collapsed ? "collapsed" : ""}`}>
         <div className="sidebar-top">
           <div className="brand">
-            <img className="mark" src="/images/courtwave.png" alt="" />
+            <img className="mark" src="/images/courtwave-light.png" alt="" />
             <span className="wordmark-whole">Court<span>Wave</span></span>
           </div>
           <button className="icon sidebar-close" onClick={onClose} aria-label="Close menu"><X /></button>

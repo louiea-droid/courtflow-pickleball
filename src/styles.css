@@ -5,6 +5,10 @@
 :root{color-scheme:light}
 :root[data-theme="dark"]{color-scheme:dark}
 :root[data-theme="system"]{color-scheme:light dark}
+/* The logo has a dark version (.logo-dark) and a white-letter one for dark backgrounds (.logo-light); screens that follow the theme render both. */
+:root:not([data-theme="dark"]):not([data-theme="system"]) .logo-light,:root[data-theme="dark"] .logo-dark{display:none}
+@media (prefers-color-scheme:light){:root[data-theme="system"] .logo-light{display:none}}
+@media (prefers-color-scheme:dark){:root[data-theme="system"] .logo-dark{display:none}}
 :root{
   --accent:#2fa55b;
   --bg:light-dark(#f3f6f4,#0c1310);--panel:light-dark(#fff,#141c18);

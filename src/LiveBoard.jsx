@@ -252,7 +252,8 @@ export default function LiveBoard() {
     <div className="liveboard">
       <header className="liveboard-header">
         <div className="liveboard-brand">
-          <img className="liveboard-logo" src="/images/courtwave.png" alt="CourtWave" />
+          <img className="liveboard-logo logo-dark" src="/images/courtwave.png" alt="CourtWave" />
+          <img className="liveboard-logo logo-light" src="/images/courtwave-light.png" alt="CourtWave" />
           <div>
             <div className="eyebrow">LIVE BOARD</div>
             <h1>{session.location}</h1>
