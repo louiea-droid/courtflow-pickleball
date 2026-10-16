@@ -54,6 +54,12 @@ export function spotsLabel(event) {
   return left <= 0 ? "Full, waitlist open" : left === 1 ? "1 spot left" : `${left} spots left`;
 }
 
+// How full a session is, 0..1 (for the little bar on a card), or null when it has no seat limit.
+export function fillRatio(event) {
+  if (!event.maxPlayers) return null;
+  return Math.min(1, splitAttendees(event).confirmed.length / event.maxPlayers);
+}
+
 export function groupByDate(events) {
   const groups = [];
   for (const e of events) {
@@ -77,10 +83,15 @@ export function weekDays(start) {
   return days;
 }
 
-export function filterSessions(events, text, date) {
+// Find session filters: a day (or "any"), the search text, and the quick chips: one level, only sessions with a free seat,
+// only your clubs (`clubs`, a Set of club ids).
+export function filterSessions(events, text, date, { level = null, hasSpots = false, clubs = null } = {}) {
   const q = (text || "").trim().toLowerCase();
   return events.filter((e) => (date === "any" || e.date === date)
-    && (!q || [e.clubName, e.clubLocation, e.title, e.level].some((v) => (v || "").toLowerCase().includes(q))));
+    && (!q || [e.clubName, e.clubLocation, e.title, e.level].some((v) => (v || "").toLowerCase().includes(q)))
+    && (!level || e.level === level)
+    && (!hasSpots || !e.maxPlayers || fillRatio(e) < 1)
+    && (!clubs || clubs.has(e.clubId)));
 }
 
 // A group heading: "Today, Fri, Oct 9".

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, CheckCheck, Download, LayoutGrid, Pencil, Play, Share2, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCheck, ChevronDown, Download, LayoutGrid, Pencil, Play, Share2, Trash2, UserPlus } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import Modal from "../components/Modal";
 import CourtSettingsModal from "../components/CourtSettingsModal";
@@ -202,29 +202,35 @@ export default function EventPage({
               </section>
             )}
 
+            {/* One main game button, the everyday actions in a small grid, and the rare one under More. */}
             <section className="event-game-tools" aria-label="Game and event actions">
               {event.status === "ended" ? (
                 <button type="button" className="primary event-main-action" onClick={onReopen}><Play size={15} /> Reopen game</button>
               ) : event.status === "live" ? (
-                <>
-                  <button type="button" className="primary event-main-action" onClick={onOpenGame}><Play size={15} /> Back to game</button>
-                  {!event.walkIn && <button type="button" className="outline event-secondary-action" onClick={onPickPlayers}>Add players to game</button>}
-                </>
+                <button type="button" className="primary event-main-action" onClick={onOpenGame}><Play size={15} /> Back to game</button>
               ) : (
                 <button type="button" className="primary event-main-action" onClick={onPickPlayers}><Play size={15} /> Proceed to game</button>
               )}
-              {event.status !== "ended" && (
-                <button type="button" className="outline event-secondary-action" onClick={() => setCourtSettings(true)}><LayoutGrid size={14} /> Court settings</button>
-              )}
-              {!event.walkIn && (
-                <>
-                  <button type="button" className="outline event-secondary-action" onClick={() => onEdit(event)}><Pencil size={14} /> Edit event</button>
-                  <button type="button" className="outline event-secondary-action" onClick={onShare}><Share2 size={14} /> Share booking page</button>
-                </>
-              )}
+              <div className="event-action-grid">
+                {event.status !== "ended" && (
+                  <button type="button" className="outline event-secondary-action" onClick={() => setCourtSettings(true)}><LayoutGrid size={14} /> Court settings</button>
+                )}
+                {!event.walkIn && (
+                  <>
+                    <button type="button" className="outline event-secondary-action" onClick={() => onEdit(event)}><Pencil size={14} /> Edit event</button>
+                    <button type="button" className="outline event-secondary-action" onClick={onShare}><Share2 size={14} /> Share booking</button>
+                  </>
+                )}
+                {event.status === "live" && !event.walkIn && (
+                  <button type="button" className="outline event-secondary-action" onClick={onPickPlayers}><UserPlus size={14} /> Add players</button>
+                )}
+              </div>
             </section>
 
-            <button type="button" className="event-delete-action" onClick={() => setConfirmDelete(true)}><Trash2 size={14} /> Delete event</button>
+            <details className="event-more">
+              <summary>More <ChevronDown size={14} /></summary>
+              <button type="button" className="event-delete-action" onClick={() => setConfirmDelete(true)}><Trash2 size={14} /> Delete event</button>
+            </details>
           </aside>
         </div>
       </div>

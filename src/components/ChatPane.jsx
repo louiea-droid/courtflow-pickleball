@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowLeft, EyeOff, Send, Trash2 } from "lucide-react";
 import ConfirmDialog from "./ConfirmDialog";
 import { useMessages } from "../hooks/useChats";
-import { MESSAGE_MAX, chatTitle, validateMessage } from "../utils/chat";
+import { MESSAGE_MAX, chatTitle, clubIdOfChat, validateMessage } from "../utils/chat";
+import { badgeColor, clubInitial } from "../utils/clubs";
 import { formatDate, formatTime } from "../utils/format";
 
 const COUNTER_FROM = 900;
@@ -76,9 +77,10 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
     <section className="chat-pane" aria-label={`Chat: ${title}`}>
       <header className="chat-head">
         <button className="outline chat-back" type="button" onClick={onBack} aria-label={backLabel}><ArrowLeft size={16} /></button>
+        {!direct && <span className="inbox-badge" style={{ background: badgeColor(clubIdOfChat(chat.id) || "") }} aria-hidden="true">{clubInitial(title)}</span>}
         <div>
           <h2>{title}</h2>
-          {!direct && <p>Only members of this club can read and write here.</p>}
+          <p>{direct ? "Direct message" : "Club chat · only members can read and write"}</p>
         </div>
         {direct && <button className="outline chat-hide" type="button" onClick={() => setHiding(true)}><EyeOff size={15} /> Hide conversation</button>}
       </header>
@@ -90,13 +92,17 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
           <p className="chat-empty">No messages yet. Say hello.</p>
         ) : <>
           {hasMore && <button className="outline chat-earlier" type="button" onClick={showEarlier}>Load earlier messages</button>}
-          {messages.map((m) => {
+          {messages.map((m, i) => {
           const mine = m.from === uid;
+          const day = new Date(m.createdAt).toDateString();
+          const newDay = i === 0 || new Date(messages[i - 1].createdAt).toDateString() !== day;
           return (
-            <article key={m.id} className={`chat-msg${mine ? " mine" : ""}`}>
+            <Fragment key={m.id}>
+            {newDay && <p className="chat-day"><span>{sameDay(m.createdAt) ? "Today" : formatDate(m.createdAt)}</span></p>}
+            <article className={`chat-msg${mine ? " mine" : ""}`}>
               <div className="chat-msg-head">
                 <b>{mine ? "You" : m.name}</b>
-                <time dateTime={new Date(m.createdAt).toISOString()}>{whenLabel(m.createdAt)}</time>
+                <time dateTime={new Date(m.createdAt).toISOString()}>{formatTime(m.createdAt)}</time>
                 {(mine || canModerate || direct) && (
                   <button className="chat-msg-del" type="button" aria-label={`Delete message from ${mine ? "you" : m.name}`} onClick={() => setRemoving(m)}>
                     <Trash2 size={14} />
@@ -105,6 +111,7 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
               </div>
               <p>{m.text}</p>
             </article>
+            </Fragment>
           );
         })}</>}
       </div>
@@ -116,7 +123,7 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
             value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKeyDown} rows={2}
             placeholder="Write a message" aria-label="Message" enterKeyHint="send"
           />
-          <button className="primary" type="button" onClick={send} disabled={busy || !text.trim()}><Send size={15} /> Send</button>
+          <button className="chat-send" type="button" onClick={send} disabled={busy || !text.trim()} aria-label="Send"><Send size={17} /></button>
         </div>
         {text.length >= COUNTER_FROM && (
           <p className={`chat-count${text.trim().length > MESSAGE_MAX ? " over" : ""}`}>{text.trim().length} / {MESSAGE_MAX}</p>

@@ -110,22 +110,35 @@ export function useActiveGames(uid, clubs) {
   return games;
 }
 
+// Home's "Your game": one ticket per live game you're queued in. The left side says where you stand in big
+// type; the right stub names the court and opens the queue.
 export default function ActiveQueue({ games, navigate }) {
-  return games.map(({ club, event, status, queuePath }) => (
-    <article className="queue-card" key={`${club.id}/${event.id}`}>
-      <div>
-        <p className="queue-card-club">
-          {club.clubName}
-          <span className="queue-live"><i aria-hidden="true" />{status.state === "playing" ? "Playing now" : "Queue is active"}</span>
-        </p>
-        <p className="queue-card-line">
-          {status.state === "playing" ? <>You're on <b>court {status.court}</b></>
-            : status.upNext ? <b>You're up next{status.nextOn ? ` on court ${status.nextOn}` : ""}</b>
-              : status.nextOn ? <><b>Next on court {status.nextOn}</b> · about {status.waitMins} min</>
-              : <><b>You're #{status.position} in line</b> · {plural(status.ahead, "player")} ahead · about {status.waitMins} min</>}
-        </p>
-      </div>
-      <a className="outline" href={queuePath} onClick={(e) => { e.preventDefault(); navigate(queuePath); }}>View queue</a>
-    </article>
-  ));
+  return games.map(({ club, event, status, queuePath }) => {
+    const playing = status.state === "playing";
+    const big = playing ? `On court ${status.court}` : status.upNext ? "You're up next" : status.nextOn ? "Next on court" : `#${status.position} in line`;
+    const sub = playing ? "Playing now. Good luck!"
+      : status.upNext ? (status.nextOn ? `On court ${status.nextOn} when it frees up` : "Get ready")
+        : status.nextOn ? `About ${status.waitMins} min`
+          : `${plural(status.ahead, "player")} ahead · about ${status.waitMins} min`;
+    const court = playing ? status.court : status.nextOn;
+    const ahead = !playing && !status.upNext && !status.nextOn ? Math.min(status.ahead, 4) : 0;
+    return (
+      <article className="queue-card" key={`${club.id}/${event.id}`}>
+        <div className="queue-card-main">
+          <p className="queue-card-club"><i aria-hidden="true" />{club.clubName} · {event.title || "Open play"} · {playing ? "Playing now" : "Queue is active"}</p>
+          <p className="queue-card-big">{big}</p>
+          <p className="queue-card-line">{sub}</p>
+          {ahead > 0 && (
+            <span className="queue-dots" aria-hidden="true">
+              {Array.from({ length: ahead }, (_, i) => <i key={i} />)}<i className="me" /><i /><i />
+            </span>
+          )}
+        </div>
+        <div className="queue-card-stub">
+          {court ? <><small>{playing ? "Your court" : "Next court"}</small><b>Court {court}</b></> : <small>Your place updates live</small>}
+          <a className="outline" href={queuePath} onClick={(e) => { e.preventDefault(); navigate(queuePath); }}>View queue</a>
+        </div>
+      </article>
+    );
+  });
 }

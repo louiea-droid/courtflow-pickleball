@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
-import { CalendarDays, Check, Clock, ImagePlus, Wallet } from "lucide-react";
+import { Check, Clock, ImagePlus, MapPin, Wallet } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db, firebaseConfigured } from "./firebase";
 import { useEvents } from "./hooks/useEvents";
@@ -11,6 +11,7 @@ import { byStart, endHM, isListed, myStatus, splitAttendees } from "./utils/book
 import { DEFAULT_DISPLAY } from "./data/constants";
 import { isAccountUser } from "./utils/account";
 import { liveChips } from "./utils/liveBoard";
+import { badgeColor, clubInitial } from "./utils/clubs";
 import { docsOf } from "./hooks/useLiveDocs";
 import { compressImage } from "./utils/receipt";
 
@@ -91,6 +92,10 @@ function JoinForm({ event, clubId, autoOpen, onSent, onCancel }) {
 
   return (
     <form className="op-form" onSubmit={submit}>
+      <div className="op-form-head">
+        <h4>Save your spot</h4>
+        <small>{paid ? `${money(event.fee)} per player` : "Free to join"}</small>
+      </div>
       <label>
         Your name
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" required autoFocus={!autoOpen} />
@@ -134,6 +139,7 @@ function JoinForm({ event, clubId, autoOpen, onSent, onCancel }) {
           )}
         </fieldset>
       )}
+      {paid && <p className="op-total"><span>Total</span><b>{money(event.fee)}</b></p>}
       {error && <p className="op-error" role="alert">{error}</p>}
       <div className="op-actions">
         {!autoOpen && <button type="button" className="outline" onClick={onCancel}>Cancel</button>}
@@ -158,7 +164,7 @@ function LiveStrip({ clubId, eventId }) {
       <span className="op-live-tag"><i aria-hidden="true" /> Live now</span>
       {chips.length ? chips.map((c) => (
         <span className="op-live-chip" key={c.id}>
-          {c.name} <b className="t1">{c.t1}</b><em>-</em><b className="t2">{c.t2}</b>
+          <small>{c.name}</small> <b className="t1">{c.t1}</b><em>-</em><b className="t2">{c.t2}</b>
         </span>
       )) : <span className="op-live-none">Game in progress</span>}
     </div>
@@ -170,14 +176,14 @@ function EventCard({ e, clubId, mine, autoOpen = false, onSent }) {
   const [joining, setJoining] = useState(autoOpen && !asked);
   const { confirmed, waitlist } = splitAttendees(e);
   const left = Math.max(0, e.maxPlayers - confirmed.length);
+  const pct = Math.min(100, Math.round((confirmed.length / e.maxPlayers) * 100));
 
   return (
-    <article className="op-card">
+    <article className={`op-card${e.status === "live" ? " live" : ""}`}>
       <div className="op-card-top">
         <DateTile date={e.date} />
         <div className="op-card-title">
-          <h3>{e.title}</h3>
-          <p><CalendarDays size={13} /> {formatDay(e.date)}</p>
+          <h3>{e.title}<span className="sr-only">, {formatDay(e.date)}</span></h3>
           <p><Clock size={13} /> {formatHM(e.startTime)} – {formatHM(endHM(e))}</p>
         </div>
       </div>
@@ -187,11 +193,9 @@ function EventCard({ e, clubId, mine, autoOpen = false, onSent }) {
       <div className="op-facts">
         <span className="pill">{e.fee > 0 ? money(e.fee) : "Free"}</span>
         {e.level && e.level !== "Any Level" && <span className="pill off">{e.level}</span>}
-        <span className={`pill ${left ? "off" : ""}`}>
-          {left ? `${left} of ${e.maxPlayers} spots left` : waitlist.length ? `Full · ${waitlist.length} waiting` : "Full"}
-        </span>
       </div>
-      <div className="bar" aria-hidden="true"><i style={{ width: `${Math.min(100, (confirmed.length / e.maxPlayers) * 100)}%` }} /></div>
+      <p className="op-fill"><span>{left ? `${left} of ${e.maxPlayers} spots left` : "Full"}</span><span>{left ? `${pct}%` : waitlist.length ? `${waitlist.length} waiting` : ""}</span></p>
+      <div className="bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
 
       {e.notes && <p className="op-notes">{e.notes}</p>}
 
@@ -200,7 +204,7 @@ function EventCard({ e, clubId, mine, autoOpen = false, onSent }) {
       ) : asked ? (
         <p className="op-asked"><Check size={14} /> You've asked to join. See your status above.</p>
       ) : (
-        <button className="primary op-join" onClick={() => setJoining(true)}>
+        <button className={`primary op-join${left ? "" : " wait"}`} onClick={() => setJoining(true)}>
           {left ? "Join this open play" : "Join the waitlist"}
         </button>
       )}
@@ -301,13 +305,19 @@ export default function OpenPlay() {
 
   return (
     <div className="openplay">
-      <header className="op-header">
-        <img className="op-logo logo-dark" src="/images/courtwave.png" alt="" />
-        <img className="op-logo logo-light" src="/images/courtwave-light.png" alt="" />
-        <div>
-          {hostName && <p>{hostName}</p>}
-          <h1>Open play</h1>
+      <header className="op-hero">
+        <img className="op-logo" src="/images/courtwave-light.png" alt="CourtWave" />
+        <div className="op-hero-club">
+          <span className="op-badge" style={{ background: badgeColor(clubId) }} aria-hidden="true">{clubInitial(hostName)}</span>
+          <div>
+            <h1>Open play{hostName && <> at <span>{hostName}</span></>}</h1>
+            <p>{club?.location && <><MapPin size={13} /> {club.location} · </>}Pick a game and save your spot</p>
+          </div>
         </div>
+        <svg className="op-hero-wave" viewBox="0 0 375 44" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 26 C80 8 150 38 230 20 S340 6 375 16 V44 H0Z" fill="var(--lime)" />
+          <path d="M0 34 C90 18 160 44 240 30 S350 20 375 26 V44 H0Z" fill="var(--bg)" />
+        </svg>
       </header>
 
       <MyBookings mine={mine} events={events} status={status} />

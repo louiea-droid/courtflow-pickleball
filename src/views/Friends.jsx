@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageSquare, Search, UserPlus } from "lucide-react";
+import { Copy, MessageSquare, Search, UserPlus } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageTitle from "../components/PageTitle";
 import { useChatActions } from "../hooks/useChatActions";
@@ -7,13 +7,13 @@ import { useFriendActions, useFriendSearch } from "../hooks/useFriends";
 import { friendBuckets, relationTo } from "../utils/friends";
 
 const HINTS = {
-  idle: "Search by name or friend code. Your own code is on your Profile.",
+  idle: "Search by name or friend code.",
   short: "Type at least 2 letters of a name, or paste a friend code.",
   error: "Couldn't search. Check your connection and try again.",
 };
 
 // Find people by name or friend code, answer requests, and see your friends.
-export default function Friends({ uid, name, friendships, ready, notify, navigate }) {
+export default function Friends({ uid, name, friendCode, friendships, ready, notify, navigate }) {
   const { friends, received, sent } = friendBuckets(friendships, uid);
   const actions = useFriendActions({ uid, name });
   const chat = useChatActions({ uid, name });
@@ -21,6 +21,14 @@ export default function Friends({ uid, name, friendships, ready, notify, navigat
   const [text, setText] = useState("");
   const [busy, setBusy] = useState("");
   const [confirm, setConfirm] = useState(null); // a friend being removed
+  const [copied, setCopied] = useState(false);
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(friendCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* the code is on screen to copy by hand */ }
+  };
 
   // One action at a time; a failure says so instead of failing silently.
   const act = async (key, fn, okMessage, failMessage) => {
@@ -55,8 +63,17 @@ export default function Friends({ uid, name, friendships, ready, notify, navigat
   };
 
   return (
-    <div className="page-narrow">
+    <div className="friends-page">
       <PageTitle title="Friends" sub="Find people by name or friend code and keep them close." />
+      <div className="friends-layout">
+      <aside className="friend-code-card" aria-label="Your friend code">
+        <small>Your friend code</small>
+        <code>{friendCode || "…"}</code>
+        <p>Share it so friends can add you.</p>
+        {friendCode && <button type="button" className="friend-code-copy" onClick={copyCode}><Copy size={14} /> {copied ? "Copied" : "Copy code"}</button>}
+        <svg viewBox="0 0 300 34" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20 C60 6 110 30 170 16 S260 6 300 14 V34 H0Z" fill="var(--lime)" /><path d="M0 26 C70 14 120 36 180 24 S270 16 300 22 V34 H0Z" fill="var(--brand-green)" /></svg>
+      </aside>
+      <div className="friends-main">
 
       <div className="panel members-block">
         <h2 className="club-section">Add a friend</h2>
@@ -86,8 +103,8 @@ export default function Friends({ uid, name, friendships, ready, notify, navigat
       </div>
 
       {(received.length > 0 || sent.length > 0) && (
-        <div className="panel members-block">
-          <h2 className="club-section">Requests <span className="count-badge">{received.length + sent.length}</span></h2>
+        <div className={`panel members-block${received.length ? " friend-requests" : ""}`}>
+          <h2 className="club-section">{received.length ? "Waiting for you" : "Requests"} <span className="count-badge">{received.length + sent.length}</span></h2>
           {received.map((f) => (
             <div className="member-row" key={f.id}>
               <div className="member-main"><b>{f.name}</b><small>Wants to be your friend</small></div>
@@ -123,6 +140,9 @@ export default function Friends({ uid, name, friendships, ready, notify, navigat
             </div>
           </div>
         ))}
+      </div>
+
+      </div>
       </div>
 
       {confirm && (

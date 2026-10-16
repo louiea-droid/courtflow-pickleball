@@ -1,6 +1,6 @@
 // Self-check for club helpers. Run: node src/utils/clubs.check.mjs
 import assert from "node:assert";
-import { ROLE_LABEL, canChangeRole, canRemove, clubPath, filterClubs, inviteUrl, joinRequestDoc, memberRecord, membershipCopy, newClubDoc, newInviteCode, permissions, validateClubInput, validateJoinMessage } from "./clubs.js";
+import { ROLE_LABEL, badgeColor, canChangeRole, clubInitial, canRemove, clubPath, filterClubs, inviteUrl, joinRequestDoc, memberRecord, membershipCopy, newClubDoc, newInviteCode, permissions, validateClubInput, validateJoinMessage } from "./clubs.js";
 
 // Input checks: each failure says what to fix.
 assert.equal(validateClubInput({ name: "Centro", visibility: "public" }), "");
@@ -93,3 +93,9 @@ assert.deepEqual(filterClubs(clubs, "zzz"), []);
 assert.deepEqual(filterClubs([{ id: "9" }], "a"), []); // a club without a name never matches or crashes
 
 console.log("clubs.check: ok");
+
+// Club badges: the same club always gets the same color; the initial is a capital, "?" when the name is empty.
+assert.equal(badgeColor("pub"), badgeColor("pub"));
+assert.match(badgeColor(""), /^#[0-9a-f]{6}$/);
+assert.equal(clubInitial(" pub club"), "P");
+assert.equal(clubInitial(""), "?");

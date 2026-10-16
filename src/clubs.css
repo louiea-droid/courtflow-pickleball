@@ -3,9 +3,9 @@
 .acct-shell{--page-max:1000px;--page-gutter:clamp(16px,4vw,40px);--card-line:light-dark(var(--line),var(--line-strong));--accent-ink:color-mix(in srgb,var(--accent) 50%,var(--ink))}
 
 /* ---- Frame: a dark sidebar (the queue app's look) beside the page; a drawer behind a menu button on phones ---- */
-.acct-side,.acct-topbar{--side-ink:#eef6f0;--side-muted:#a3b0a8;--side-line:#26332b;--side-hover:#1c2620;--side-active:#202c24}
+.acct-side,.acct-topbar{--side-muted:#a9bfb3}
 .acct-shell{display:flex;align-items:stretch;height:100vh;height:100dvh;min-height:0;overflow:hidden}
-.acct-side{width:248px;flex-shrink:0;position:sticky;top:0;height:100vh;height:100dvh;display:flex;flex-direction:column;gap:8px;padding:14px 12px;background:var(--nav);border-right:1px solid light-dark(transparent,#1a241e);color:var(--side-ink);z-index:40}
+.acct-side{width:248px;flex-shrink:0;position:sticky;top:0;height:100vh;height:100dvh;display:flex;flex-direction:column;gap:8px;padding:14px 12px;background:var(--nav);border-right:1px solid light-dark(transparent,#ffffff10);color:var(--side-ink);z-index:40}
 .acct-side-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .acct-brand{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 8px;color:var(--side-ink);text-decoration:none}
 .acct-brand img{height:30px;width:auto}
@@ -20,10 +20,10 @@ button.acct-brand:hover{background:var(--side-hover)}
 .acct-link svg{flex-shrink:0}
 .acct-link span:first-of-type{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .acct-link:hover{background:var(--side-hover);color:#fff}
-.acct-link[aria-current="page"]{background:var(--side-active);color:#fff;box-shadow:inset 3px 0 var(--accent-bright)}
-.acct-link.selected-club{background:var(--side-active);color:#fff;box-shadow:inset 3px 0 var(--accent-bright)}
+.acct-link[aria-current="page"]{background:var(--side-active);color:#fff;box-shadow:inset 3px 0 var(--lime)}
+.acct-link.selected-club{background:var(--side-active);color:#fff;box-shadow:inset 3px 0 var(--lime)}
 .acct-shell .acct-side a:focus-visible,.acct-shell .acct-topbar a:focus-visible{outline:2px solid var(--accent-bright);outline-offset:-2px}
-.acct-side .count-badge{background:var(--accent);color:var(--on-accent,#fff)}
+.acct-side .count-badge{background:var(--lime);color:var(--on-lime)}
 .acct-side-group{display:grid;gap:2px}
 .acct-side-group[aria-label="My clubs"]{flex:1;min-height:0;display:flex;flex-direction:column}
 .acct-side-group[aria-label="My clubs"]>.acct-side-sub{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--side-line) transparent}
@@ -85,7 +85,7 @@ button.acct-brand:hover{background:var(--side-hover)}
 
 /* ---- Page title ---- */
 .page-title{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 16px;margin:0 0 22px}
-.page-title h1{margin:0;font:700 28px/1.15 "Space Grotesk";letter-spacing:-.5px;overflow-wrap:anywhere}
+.page-title h1{margin:0;font:italic 700 clamp(28px,3.6vw,36px)/1.08 "Space Grotesk";letter-spacing:-.02em;overflow-wrap:anywhere}
 .page-title p{margin:6px 0 0;color:var(--muted);font-size:14px}
 .page-title-actions{display:flex;flex-wrap:wrap;gap:8px}
 .club-section{margin:0 0 6px;font:700 16px "Space Grotesk"}
@@ -160,8 +160,50 @@ button.acct-brand:hover{background:var(--side-hover)}
 .announcement-item>p{margin:6px 0 0;color:var(--ink-2);line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 .club-meta .pill.off{background:var(--soft);color:var(--ink-2)}
 .club-location{display:flex;align-items:center;gap:4px;margin:8px 0 0;color:var(--muted);font-size:13px}
+/* Club header and event page (2026-10-16 redesign) */
+.club-head{padding:18px 20px 0;border:1px solid var(--card-line);border-radius:22px;background:var(--panel)}
+.club-head:not(:has(.club-page-nav)){padding-bottom:18px}
+.club-head-top{flex-wrap:nowrap}
+.club-badge{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;flex-shrink:0;color:#fff;font:700 22px "Space Grotesk"}
+.club-head-title{display:grid;gap:5px;min-width:0;flex:1}
+.club-head h1,.club-head .club-name{margin:0;font:italic 700 clamp(22px,3vw,28px)/1.1 "Space Grotesk";letter-spacing:-.02em;overflow-wrap:anywhere}
+.club-place{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:12.5px;font-weight:600}
+.club-head .club-page-nav{margin-top:14px}
+.club-head .club-page-nav-link{border-radius:0;border-bottom-width:3px}
+.club-head .club-page-nav-link[aria-current="page"]{border-bottom-color:var(--lime);background:transparent}
+.club-head .club-about{margin:12px 0 16px}
+.acct-shell .event-head h1{font:italic 700 clamp(24px,3.4vw,32px)/1.1 "Space Grotesk";letter-spacing:-.02em}
+.acct-shell .event-head .date-tile{background:var(--brand-deep);border-color:transparent}
+.acct-shell .event-head .date-tile *{color:var(--lime)}
+.acct-shell .event-head .date-tile b,.acct-shell .event-head .date-tile strong{color:#fff}
+.acct-shell .event-game-status.is-live{display:flex;align-items:center;gap:10px;border-color:var(--lime);background:color-mix(in srgb,var(--lime) 18%,var(--panel))}
+.acct-shell .event-game-status.is-live::before{content:"";width:9px;height:9px;border-radius:50%;flex-shrink:0;background:var(--brand-green);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand-green) 25%,transparent)}
+.acct-shell .event-game-status.is-live .booking-money{color:var(--ink)}
+/* Money on a dark card */
+.acct-shell .event-fee-progress .fee-progress{border:0;background:var(--brand-deep);color:#fff}
+.acct-shell .event-fee-progress .fee-collected b{font:italic 700 28px "Space Grotesk";color:#fff}
+.acct-shell .event-fee-progress .fee-remaining b{color:var(--lime)}
+.acct-shell .event-fee-progress .fee-progress span,.acct-shell .event-fee-progress .fee-progress small{color:#bcd0c4}
+.acct-shell .event-fee-progress .fee-bar{background:#ffffff22}
+.acct-shell .event-fee-progress .fee-bar i{background:var(--lime)}
+/* One main button, a grid of small actions, Delete under More */
+.event-action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.event-action-grid .event-secondary-action{justify-content:center;min-height:42px;padding:6px 8px;font-size:12.5px;text-align:center}
+.event-action-grid .event-secondary-action:only-child,.event-action-grid .event-secondary-action:last-child:nth-child(odd){grid-column:1 / -1}
+.event-more{border-top:1px solid var(--card-line);padding-top:6px}
+.event-more summary{display:flex;align-items:center;justify-content:center;gap:6px;min-height:36px;list-style:none;cursor:pointer;color:var(--muted);font-weight:700;font-size:13px;border-radius:8px}
+.event-more summary::-webkit-details-marker{display:none}
+.event-more summary:hover{color:var(--ink)}
+.event-more summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.event-more[open] summary svg{transform:rotate(180deg)}
+.event-more .event-delete-action{width:100%;justify-content:center;border-top:0}
+/* The small actions show labels only, so each fits on one line in the narrow column */
+.event-action-grid .event-secondary-action svg{display:none}
+/* The tab strip edge masks match the header card, not the page */
+.club-head .club-page-nav{background:linear-gradient(to right,var(--panel),var(--panel)) left center/24px 100% no-repeat local,linear-gradient(to left,var(--panel),var(--panel)) right center/24px 100% no-repeat local,radial-gradient(farthest-side at 0 50%,color-mix(in srgb,var(--ink) 24%,transparent),transparent) left center/12px 100% no-repeat scroll,radial-gradient(farthest-side at 100% 50%,color-mix(in srgb,var(--ink) 24%,transparent),transparent) right center/12px 100% no-repeat scroll}
+@media (max-width:560px){.club-head{padding:14px 14px 0}.club-head-top{flex-wrap:wrap}.club-head-top .club-head-title{flex:1 1 calc(100% - 66px)}.club-head-top .club-tools-menu{margin-left:66px}}
 .club-about{margin:6px 0 0;color:var(--ink-2);max-width:62ch;line-height:1.55;overflow-wrap:anywhere}
-.acct-shell .event-head h1{font:700 28px/1.15 "Space Grotesk";letter-spacing:-.5px;overflow-wrap:anywhere}
+.acct-shell .event-head h1{overflow-wrap:anywhere}
 
 /* ---- Hub ---- */
 .hub-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
@@ -181,27 +223,84 @@ button.acct-brand:hover{background:var(--side-hover)}
 .hub-start p{margin:0 0 6px;color:var(--muted);max-width:52ch;line-height:1.5}
 .hub-empty{margin:8px 0 0;color:var(--muted);font-size:13.5px}
 
-/* ---- Home: the "Ready to play?" card ---- */
-.home-ready{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;margin:0 0 6px;padding:20px 22px;border-left:4px solid var(--accent)}
-.home-ready .club-section{margin:0 0 4px;font-size:19px}
-.home-ready p{margin:0;color:var(--muted);font-size:14px}
-.home-ready-actions{display:flex;flex-wrap:wrap;gap:10px}
+/* ---- Home (2026-10-16 redesign): welcome band on the wave, "Your game" ticket, Coming up card ---- */
+.home-hero{position:relative;overflow:hidden;margin:4px 0 0;padding:28px 30px 84px;border-radius:24px;background:var(--brand-deep);color:#eef5ef}
+:root[data-theme="dark"] .home-hero{background:#12291f}
+@media (prefers-color-scheme:dark){:root[data-theme="system"] .home-hero{background:#12291f}}
+.home-hero h1{margin:0 0 8px;font:italic 700 clamp(28px,4.4vw,40px)/1.05 "Space Grotesk";letter-spacing:-.02em;color:#fff}
+.home-hero h1 span{color:var(--lime)}
+.home-hero p{margin:0 0 20px;color:#bcd0c4;font-size:15px}
+.home-hero-actions{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:10px}
+.home-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border-radius:999px;font-weight:800;font-size:14px;text-decoration:none;transition:transform .15s var(--ease),box-shadow .2s ease,background .2s ease}
+.home-btn:hover{transform:translateY(-1px)}
+.home-btn.lime{background:var(--lime);color:var(--on-lime)}
+.home-btn.lime:hover{box-shadow:0 10px 24px #c6ef1f40}
+.home-btn.ghost{color:#eef5ef;box-shadow:inset 0 0 0 1.5px #ffffff45}
+.home-btn.ghost:hover{background:#ffffff12}
+.home-btn:focus-visible{outline:3px solid var(--lime);outline-offset:3px}
+.home-hero-wave{position:absolute;left:0;right:0;bottom:0;width:100%;height:70px}
 
-/* ---- Home: your active session (hidden while there is no card) ---- */
-.home-active,.home-upcoming{margin:24px 0 0}
-.home-active .club-section,.home-upcoming .club-section{margin:0 0 10px}
-.home-active-empty,.home-active-note{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:16px 20px;box-shadow:none}
-.home-active-empty p,.home-active-note p{margin:0;color:var(--muted);font-size:14.5px}
-.home-active:has(.queue-card) .home-active-empty{display:none}
-/* ponytail: the empty note waits ~1.2 s so it can't flash before the live queue cards have loaded; ActiveQueue could report "loaded" instead */
-.home-active-empty{animation:home-empty-in .25s ease 1.2s backwards}
-@keyframes home-empty-in{from{opacity:0}to{opacity:1}}
-.queue-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin:0 0 10px;padding:18px 20px;border:1px solid var(--accent-line);border-left:4px solid var(--accent);border-radius:15px;background:color-mix(in srgb,var(--accent) 7%,var(--panel))}
-.queue-card-club{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:0 0 6px;font:700 16px "Space Grotesk"}
-.queue-live{display:inline-flex;align-items:center;gap:7px;font:700 12.5px "DM Sans";color:var(--accent-ink)}
-.queue-live i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
-.queue-card-line{margin:0;color:var(--ink-2);font-size:15px}
-.queue-card-line b{color:var(--ink)}
+.home-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;align-items:start;margin:22px 0 0}
+.home-grid .club-section{margin:0 0 10px}
+.home-card{background:var(--panel);border:1px solid var(--card-line);border-radius:20px;padding:18px}
+.home-game-empty{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px}
+.home-game-empty b{font:700 15px "Space Grotesk"}
+.home-game-empty p{margin:3px 0 0;color:var(--muted);font-size:14px}
+
+/* Your game: a ticket; the main part says where you stand, a dashed stub names the court */
+.queue-card{display:grid;grid-template-columns:minmax(0,1fr) auto;margin:0 0 12px;border:1px solid var(--card-line);border-radius:20px;background:var(--panel);overflow:hidden;box-shadow:var(--shadow-sm)}
+.queue-card-main{padding:18px 20px;border-left:6px solid var(--lime);min-width:0}
+.queue-card-club{display:flex;align-items:center;gap:8px;margin:0;font:700 12.5px "DM Sans";color:var(--accent-ink)}
+.queue-card-club i{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--lime);box-shadow:0 0 0 3px #c6ef1f55;animation:pulseDot 2.2s ease-in-out infinite}
+.queue-card-big{margin:8px 0 4px;font:italic 700 clamp(28px,4vw,40px)/1 "Space Grotesk";letter-spacing:-.02em;color:var(--ink)}
+.queue-card-line{margin:0;color:var(--ink-2);font-size:14.5px}
+.queue-dots{display:flex;gap:5px;margin-top:12px}
+.queue-dots i{width:22px;height:6px;border-radius:9px;background:var(--accent)}
+.queue-dots i.me{background:var(--lime)}
+.queue-dots i.me~i{background:var(--line-strong)}
+.queue-card-stub{display:grid;align-content:center;justify-items:center;gap:6px;min-width:140px;padding:18px;border-left:2px dashed var(--card-line);background:var(--soft);text-align:center}
+.queue-card-stub small{color:var(--muted);font-size:12px;font-weight:700}
+.queue-card-stub b{font:700 26px "Space Grotesk";color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.queue-card-club i{animation:none}}
+
+/* Coming up: a day strip and compact rows with a fill bar */
+.home-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.home-card-head a{color:var(--accent-ink);font-weight:800;font-size:13px;text-decoration:none}
+.home-card-head a:hover{text-decoration:underline}
+.home-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:0 0 10px}
+.home-days button{position:relative;display:grid;justify-items:center;gap:1px;padding:7px 0 9px;border:1px solid var(--card-line);border-radius:12px;background:var(--panel);color:var(--muted);font:700 10.5px "DM Sans";cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.home-days button b{font:700 16px "Space Grotesk";color:var(--ink)}
+.home-days button.has::after{content:"";position:absolute;bottom:3px;width:4px;height:4px;border-radius:50%;background:var(--accent)}
+.home-days button:hover{border-color:var(--accent-line)}
+.home-days button[aria-pressed="true"]{background:var(--brand-deep);border-color:transparent;color:var(--lime)}
+.home-days button[aria-pressed="true"] b{color:#fff}
+.home-days button[aria-pressed="true"]::after{background:var(--lime)}
+.home-rows{display:grid}
+.home-rows .session-skeleton{height:58px;margin:6px 0}
+.home-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:11px 4px;border-top:1px solid var(--card-line);color:var(--ink);text-decoration:none;border-radius:10px;transition:background .15s ease}
+.home-row:hover{background:var(--hover)}
+.home-row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.home-badge{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;color:#fff;font:700 15px "Space Grotesk";flex-shrink:0}
+.home-badge.small{width:30px;height:30px;border-radius:9px;font-size:13px}
+.home-row-main{display:grid;gap:2px;min-width:0}
+.home-row-main b{display:flex;align-items:center;gap:6px;font-size:14.5px;overflow-wrap:anywhere}
+.home-row-main small{color:var(--muted);font-size:12.5px}
+.home-row .pill.live{padding:2px 8px;font-size:10px;background:var(--danger-soft);color:var(--danger-ink)}
+.home-row-side{display:grid;justify-items:end;gap:2px;text-align:right}
+.home-row-side b{font-size:13.5px}
+.home-row-side small{color:var(--muted);font-size:11.5px;font-weight:700}
+.home-row-side small.full{color:var(--danger-ink)}
+.home-fill{width:84px;height:6px;margin-top:3px;border-radius:9px;background:var(--line);overflow:hidden}
+.home-fill i{display:block;height:100%;border-radius:9px;background:var(--accent)}
+.home-note{margin:6px 0 2px;color:var(--muted);font-size:14px}
+@media (max-width:900px){.home-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){
+  .home-hero{padding:22px 20px 72px;border-radius:20px}
+  .queue-card{grid-template-columns:minmax(0,1fr)}
+  .queue-card-stub{grid-auto-flow:column;justify-content:space-between;border-left:0;border-top:2px dashed var(--card-line);text-align:left}
+  .home-days{gap:4px}
+  .home-days button{border-radius:10px}
+}
 
 /* ---- The read-only queue page ---- */
 .queue-list{display:grid;gap:0;margin:0;padding:0;list-style:none}
@@ -301,12 +400,6 @@ button.acct-brand:hover{background:var(--side-hover)}
 .find-search input{flex:1;min-height:44px;border:0;background:transparent;color:var(--ink);font:inherit}
 .find-search input:focus{outline:none;box-shadow:none;border:0}
 .find-list{display:grid;gap:10px}
-.find-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--card-line);border-radius:15px;background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s ease,background .15s ease}
-.find-row:hover{border-color:var(--accent-line);background:var(--hover)}
-.find-main{display:grid;gap:3px;flex:1}
-.find-main b{font:700 16px "Space Grotesk";overflow-wrap:anywhere}
-.find-main small{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:13px}
-.find-about{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .join-panel{display:grid;gap:12px;justify-items:start;padding:20px;margin:0 0 18px}
 .join-panel p{margin:0;color:var(--ink-2);line-height:1.5;max-width:62ch}
 .join-panel .club-section{margin:0}
@@ -367,6 +460,67 @@ button.acct-brand:hover{background:var(--side-hover)}
 }
 .chat-earlier{align-self:center;flex-shrink:0;min-height:44px}
 .chat-head .chat-hide{margin-left:auto;flex-shrink:0;min-height:44px}
+/* Clubs, Friends and Inbox (2026-10-16 redesign) */
+.clubs-page{max-width:900px}
+.clubs-tabs{display:inline-flex;flex-direction:row;gap:2px;margin:0 0 14px;padding:3px;border:1px solid var(--card-line);border-radius:999px;background:var(--panel)}
+.clubs-tabs a{min-height:36px;display:inline-flex;align-items:center;padding:0 16px;border-radius:999px;color:var(--muted);font-weight:800;font-size:13px;text-decoration:none;transition:background .15s ease,color .15s ease}
+.clubs-tabs a:hover{color:var(--ink)}
+.clubs-tabs a[aria-current="page"]{background:var(--brand-deep);color:var(--lime)}
+.clubs-tabs a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.club-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
+.club-card{display:grid;grid-template-columns:auto minmax(0,1fr);align-content:start;gap:12px;padding:16px;border:1px solid var(--card-line);border-radius:18px;background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s ease,transform .15s var(--ease),box-shadow .2s ease}
+.club-card:hover{border-color:var(--accent-line);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.club-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.club-card-badge{display:grid;place-items:center;width:48px;height:48px;border-radius:15px;color:#fff;font:700 19px "Space Grotesk"}
+.club-card-title{display:grid;gap:3px;align-content:center;min-width:0}
+.club-card-title b{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font:700 17px "Space Grotesk";overflow-wrap:anywhere}
+.club-card-title small{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:13px}
+.club-card .pill{padding:3px 9px;font-size:10.5px}
+.club-card .pill.off{background:var(--soft);color:var(--ink-2)}
+.club-card>p{grid-column:1 / -1;margin:0;color:var(--ink-2);font-size:13.5px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.club-card-foot{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:10px;border-top:1px solid var(--card-line)}
+.club-card-link{color:var(--accent-ink);font-weight:800;font-size:13px}
+.club-card-join{min-height:36px;padding:0 14px;font-size:13px}
+@media (prefers-reduced-motion:reduce){.club-card:hover{transform:none}}
+
+.friends-page{max-width:1000px}
+.friends-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;grid-template-areas:"main code";gap:16px;align-items:start}
+.friends-main{grid-area:main;min-width:0}
+.friend-code-card{grid-area:code;position:sticky;top:calc(var(--header-h,56px) + 16px);display:grid;justify-items:start;gap:6px;overflow:hidden;padding:18px 18px 46px;border-radius:20px;background:var(--brand-deep);color:#eef5ef}
+.friend-code-card small,.friend-code-card p{margin:0;color:#bcd0c4;font-size:13px}
+.friend-code-card code{font:700 28px "Space Grotesk";letter-spacing:.12em;color:var(--lime);overflow-wrap:anywhere}
+.friend-code-copy{display:inline-flex;align-items:center;gap:6px;min-height:38px;margin-top:6px;padding:0 14px;border:0;border-radius:999px;background:var(--lime);color:var(--on-lime);font:800 13px "DM Sans";cursor:pointer}
+.friend-code-copy:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.friend-code-card svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:34px}
+.friend-requests{border-color:var(--lime) !important;background:color-mix(in srgb,var(--lime) 14%,var(--panel))}
+@media (max-width:900px){
+  .friends-layout{grid-template-columns:minmax(0,1fr);grid-template-areas:"main" "code"}
+  .friend-code-card{position:relative;top:auto}
+}
+
+.inbox-search{display:flex;align-items:center;gap:8px;min-height:40px;margin:4px 4px 8px;padding:0 12px;border:1px solid var(--card-line);border-radius:12px;background:var(--bg);color:var(--muted)}
+.inbox-search input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit}
+.inbox-search input:focus{outline:none;box-shadow:none}
+.inbox-search:focus-within{border-color:var(--accent)}
+.inbox-badge{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;flex-shrink:0;color:#fff;font:700 15px "Space Grotesk"}
+.inbox-badge.dm{background:var(--soft);color:var(--accent-ink)}
+.inbox-row[aria-current="page"]{background:var(--soft);box-shadow:inset 3px 0 var(--lime)}
+.inbox-row.unread .inbox-row-main b{font-weight:800}
+.inbox-dot{background:var(--lime);box-shadow:0 0 0 2px color-mix(in srgb,var(--brand-green) 40%,transparent)}
+.chat-list{background:var(--bg)}
+.chat-day{align-self:center;margin:4px 0}
+.chat-day span{display:inline-block;padding:3px 10px;border:1px solid var(--card-line);border-radius:999px;background:var(--panel);color:var(--muted);font-size:11px;font-weight:800}
+.chat-msg{border:1px solid var(--card-line);border-radius:16px 16px 16px 4px;background:var(--panel)}
+.chat-msg .chat-msg-head b{color:var(--accent-ink);font-size:12px}
+.chat-msg.mine{border-color:transparent;border-radius:16px 16px 4px 16px;background:light-dark(var(--brand-deep),#1f6b42);color:#eef5ef}
+.chat-msg.mine .chat-msg-head b{color:var(--lime)}
+.chat-msg.mine .chat-msg-head time,.chat-msg.mine .chat-msg-del{color:#bcd0c4}
+.chat-composer textarea{border-radius:22px;padding:11px 16px;background:var(--bg);resize:none}
+.chat-send{display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border:0;border-radius:50%;background:var(--lime);color:var(--on-lime);cursor:pointer;transition:transform .15s var(--ease),opacity .15s ease}
+.chat-send:hover:not(:disabled){transform:scale(1.06)}
+.chat-send:disabled{opacity:.45;cursor:default}
+.chat-send:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chat-head .inbox-badge{width:38px;height:38px}
 
 /* ---- Find session: day chips and session cards ---- */
 .week-strip{display:flex;align-items:stretch;gap:4px;margin:0 0 12px;overflow-x:auto;scrollbar-width:none}
@@ -396,36 +550,40 @@ button.acct-brand:hover{background:var(--side-hover)}
 .session-full{color:var(--danger-ink)}
 .session-card .pill{padding:3px 8px;font-size:10px}
 .session-card .pill.live{background:var(--danger-soft);color:var(--danger-ink)}
-.session-date{grid-area:date}
-.home-upcoming .session-group .find-list{
-  grid-template-columns:repeat(auto-fill,minmax(min(100%,285px),330px));justify-content:start;gap:12px
-}
-.session-card.home-session-card{
-  grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 1fr;
-  grid-template-areas:"date side" "main main";align-items:start;gap:12px;
-  width:100%;max-width:330px;min-height:172px;padding:15px;border-radius:16px
-}
-.home-session-card .date-tile{width:48px;height:54px}
-.home-session-card .session-main{grid-area:main;align-content:start;gap:4px}
-.home-session-card .session-main>b{font-size:16px;line-height:1.25}
-.home-session-card .session-main small{font-size:12px;line-height:1.4}
-.home-session-card .session-side{grid-area:side;align-content:start;justify-items:end;gap:3px;padding-top:3px}
-.home-session-card .session-side>b{font-size:12.5px;line-height:1.25}
-.home-session-card .session-side small{justify-content:flex-end;font-size:11.5px}
-.home-session-card:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.home-upcoming .find-list:has(.session-skeleton){grid-template-columns:repeat(auto-fill,minmax(min(100%,285px),330px));justify-content:start}
-.home-upcoming .session-skeleton{width:100%;max-width:330px;height:172px;border:1px solid var(--card-line)}
+/* Find session (2026-10-16 redesign): one sticky bar for search, days and filters; cards with the club badge and a fill bar */
+.find-bar{position:sticky;top:var(--header-h,56px);z-index:6;margin:0 0 18px;padding:10px 0 12px;background:var(--bg);border-bottom:1px solid var(--card-line)}
+.find-bar .find-search{margin:0 0 10px}
+.find-bar .week-strip{margin:0}
+.find-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.find-chips button{min-height:32px;padding:0 12px;border:1px solid var(--card-line);border-radius:999px;background:var(--panel);color:var(--ink-2);font:700 12.5px "DM Sans";cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.find-chips button:hover{border-color:var(--accent-line)}
+.find-chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-ink)}
+.find-chips button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.week-day[aria-pressed="true"]{border-color:transparent;background:var(--brand-deep)}
+.week-day[aria-pressed="true"] small{color:var(--lime)}
+.week-day[aria-pressed="true"] b{color:#fff}
+.week-day[aria-pressed="true"] i.on{background:var(--lime)}
+.find-day{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:18px 0 10px;font:700 17px "Space Grotesk"}
+.find-day small{color:var(--muted);font:600 12.5px "DM Sans"}
+.session-group:first-of-type .find-day{margin-top:4px}
+.session-card{border-radius:18px;padding:14px 16px;transition:border-color .15s ease,background .15s ease,transform .15s var(--ease),box-shadow .2s ease}
+.session-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.session-card.live{border-color:var(--accent-line);box-shadow:inset 4px 0 var(--lime)}
+.session-card.live:hover{box-shadow:inset 4px 0 var(--lime),var(--shadow-sm)}
+.session-badge{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;color:#fff;font:700 18px "Space Grotesk";flex-shrink:0}
+.session-main b{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font:700 16px "Space Grotesk"}
+.session-card .pill.off{background:var(--soft);color:var(--ink-2)}
+.session-side b{font:700 16px "Space Grotesk"}
+.session-side small{font-weight:700}
+.session-fill{width:110px;height:7px;margin-top:4px;border-radius:9px;background:var(--line);overflow:hidden}
+.session-fill i{display:block;height:100%;border-radius:9px;background:var(--accent)}
+@media (prefers-reduced-motion:reduce){.session-card:hover{transform:none}}
 @media (max-width:560px){
   .session-card{grid-template-columns:auto minmax(0,1fr)}
   .session-side{grid-column:1 / -1;justify-items:start;text-align:left}
-  .session-card.home-session-card{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 1fr;grid-template-areas:"date side" "main main"}
-  .home-session-card .session-side{grid-column:auto;justify-items:end;text-align:right}
 }
 
 /* ---- Home: coming up, friends and inbox tiles, club list ---- */
-.home-day{margin:0 0 8px;color:var(--ink-2);font:700 13.5px "DM Sans"}
-.home-upcoming .session-group{margin:0 0 14px}
-.home-see-all{margin:2px 0 0}
 .session-skeleton{height:84px;border-radius:15px;background:linear-gradient(90deg,var(--soft),var(--soft-2),var(--soft));background-size:200% 100%;animation:session-shimmer 1.4s ease-in-out infinite}
 @keyframes session-shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.session-skeleton{animation:none}}
@@ -435,7 +593,7 @@ button.acct-brand:hover{background:var(--side-hover)}
 .home-tile svg{flex-shrink:0;color:var(--accent-ink)}
 .home-tile span:not(.count-badge){display:grid;flex:1;min-width:0}
 .home-tile small{color:var(--muted);font-size:12.5px;font-weight:700}
-.home-tile .count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;padding:2px 7px;background:var(--accent);color:var(--on-accent)}
+.home-tile .count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;padding:3px 10px;background:var(--lime);color:var(--on-lime)}
 .club-list{display:grid;gap:8px;margin:0 0 28px}
 .club-row{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 16px;border:1px solid var(--card-line);border-radius:13px;background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s ease,background .15s ease}
 .club-row:hover{border-color:var(--accent-line);background:var(--hover)}
@@ -555,5 +713,3 @@ button.acct-brand:hover{background:var(--side-hover)}
     radial-gradient(farthest-side at 100% 50%,color-mix(in srgb,var(--ink) 24%,transparent),transparent) right center/12px 100% no-repeat scroll;
 }
 @media (max-width:560px){.club-page-nav-link{padding:0 10px;gap:6px}}
-.home-upcoming .session-group .find-list,.home-upcoming .find-list:has(.session-skeleton){grid-template-columns:repeat(auto-fill,minmax(min(100%,285px),1fr))}
-.session-card.home-session-card,.home-upcoming .session-skeleton{max-width:none}

@@ -34,10 +34,10 @@ export const DEFAULT_COST = { rate: 0, roundTo: 0 }; // roundTo 0 = exact split
 export const DEFAULT_LIVE = { enabled: true, key: null, showSkill: true, showQueueRank: true, showStats: true };
 // theme: "light" | "dark" | "system" (follows the device). accent, team1, team2: any hex color.
 export const DEFAULT_DISPLAY = {
-  timeZone: "Asia/Manila", hour12: true, theme: "light", accent: "#2fa55b", team1: "#6c5ce0", team2: "#0e9488",
+  timeZone: "Asia/Manila", hour12: true, theme: "light", accent: "#1f7a4a", team1: "#6c5ce0", team2: "#0e9488",
 };
 export const ACCENT_PRESETS = [
-  { value: "#2fa55b", label: "Court green" },
+  { value: "#1f7a4a", label: "Court green" },
   { value: "#2f6fdb", label: "Blue" },
   { value: "#7a5af0", label: "Purple" },
   { value: "#d6457a", label: "Rose" },

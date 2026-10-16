@@ -20,7 +20,7 @@ import { applyDisplayPrefs } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import { isOver } from "./utils/bookings";
 import { uidBySeat } from "./utils/gameSession";
-import { ROLE_LABEL, clubPath } from "./utils/clubs";
+import { ROLE_LABEL, badgeColor, clubInitial, clubPath } from "./utils/clubs";
 import { DEFAULT_DISPLAY, DEFAULT_RULES, RULE_DEFAULTS_VERSION } from "./data/constants";
 import ClubHome from "./views/ClubHome";
 import ClubMembers from "./views/ClubMembers";
@@ -349,11 +349,15 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
       <main className="acct-main">
         <section className={`club-head${isMember ? "" : " solo"}`}>
           <div className="club-head-top">
-            {/* One h1 per page: the club name on the overview, the page title on the other screens. */}
-            {route === "club" ? <h1>{club.name}</h1> : <p className="club-name">{club.name}</p>}
-            <div className="club-meta">
-              {ROLE_LABEL[role] && <span className="pill">{ROLE_LABEL[role]}</span>}
-              <span className="pill off">{club.visibility === "public" ? "Public club" : "Private club"}</span>
+            <span className="club-badge" style={{ background: badgeColor(clubId) }} aria-hidden="true">{clubInitial(club.name)}</span>
+            <div className="club-head-title">
+              {/* One h1 per page: the club name on the overview, the page title on the other screens. */}
+              {route === "club" ? <h1>{club.name}</h1> : <p className="club-name">{club.name}</p>}
+              <div className="club-meta">
+                {ROLE_LABEL[role] && <span className="pill">{ROLE_LABEL[role]}</span>}
+                <span className="pill off">{club.visibility === "public" ? "Public club" : "Private club"}</span>
+                {club.location && <span className="club-place"><MapPin size={12} /> {club.location}</span>}
+              </div>
             </div>
             {isMember && (
               <ClubHeaderActions
@@ -366,7 +370,6 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
           {clubTabs.length > 0 && (
             <ClubTabs tabs={clubTabs} label={`${club.name} navigation`} navigate={navigate} />
           )}
-          {route === "club" && club.location && <p className="club-location"><MapPin size={13} /> {club.location}</p>}
           {route === "club" && club.description && <p className="club-about">{club.description}</p>}
         </section>
         {screen()}

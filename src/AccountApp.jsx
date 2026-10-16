@@ -18,7 +18,6 @@ import { useActiveGames } from "./components/ActiveQueue";
 import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Toast from "./components/Toast";
 import Hub from "./views/Hub";
-import MyClubs from "./views/MyClubs";
 import Friends from "./views/Friends";
 import Inbox from "./views/Inbox";
 import FindSession from "./views/FindSession";
@@ -39,7 +38,7 @@ export default function AccountApp() {
   const { friendships, ready: friendsReady } = useFriendships(uid);
   const inbox = useInbox(uid, clubs);
   // One Find session query shared by Home and the Find session page; off on every other screen.
-  const sessions = useSessions(route === "hub" || route === "sessions");
+  const sessions = useSessions(["hub", "sessions", "clubs", "clubs-find"].includes(route)); // club cards show each club's next session
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [showDelete, setShowDelete] = useState(false);
@@ -136,17 +135,15 @@ export default function AccountApp() {
         ) : route === "clubs-new" ? (
           <CreateClub onCreate={clubActions.createClub} navigate={navigate} />
         ) : route === "friends" ? (
-          <Friends uid={uid} name={name} friendships={friendships} ready={friendsReady} notify={notify} navigate={navigate} />
+          <Friends uid={uid} name={name} friendCode={acct.account?.friendCode} friendships={friendships} ready={friendsReady} notify={notify} navigate={navigate} />
         ) : route === "inbox" ? (
           <Inbox uid={uid} name={name} clubs={clubs} clubsReady={clubsReady} inbox={inbox} chatId={chatId} navigate={navigate} />
         ) : route === "help" ? (
           <Help navigate={navigate} />
         ) : route === "sessions" ? (
           <FindSession clubs={clubs} sessions={sessions} navigate={navigate} />
-        ) : route === "clubs" ? (
-          <MyClubs clubs={clubs} ready={clubsReady} navigate={navigate} />
-        ) : route === "clubs-find" ? (
-          <FindClubs myClubs={clubs} navigate={navigate} />
+        ) : route === "clubs" || route === "clubs-find" ? (
+          <FindClubs tab={route === "clubs" ? "mine" : "all"} myClubs={clubs} myReady={clubsReady} sessions={sessions.sessions} navigate={navigate} />
         ) : (
           <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} friendships={friendships} inbox={inbox} sessions={sessions} activeGames={activeGames.filter((g) => g.status)} navigate={navigate} />
         )}

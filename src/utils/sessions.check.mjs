@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { addDays, dayHeading, filterSessions, groupByDate, listedSessions, metaFor, needsSync, queryFromDate, sessionMeta, spotsLabel, weekDays } from "./sessions.js";
+import { addDays, dayHeading, filterSessions, fillRatio, groupByDate, listedSessions, metaFor, needsSync, queryFromDate, sessionMeta, spotsLabel, weekDays } from "./sessions.js";
 
 const club = { name: "Ace Club", visibility: "public", location: "Manila" };
 assert.deepEqual(sessionMeta("c1", club), { clubPublic: true, clubId: "c1", clubName: "Ace Club", clubLocation: "Manila" });
@@ -42,6 +42,9 @@ assert.equal(needsSync({ walkIn: true, ...meta, clubPublic: false }, meta), fals
 assert.equal(needsSync({ walkIn: true, ...meta }, meta), true); // a walk-in flagged public is repaired
 
 assert.equal(spotsLabel({ maxPlayers: 0, attendees: [] }), "Open");
+assert.equal(fillRatio({ maxPlayers: 0, attendees: [] }), null);
+assert.equal(fillRatio(ev("a", "d", "t", { attendees: [{}, {}] })), 0.5);
+assert.equal(fillRatio(ev("a", "d", "t", { attendees: [{}, {}, {}, {}, {}, {}] })), 1); // the waitlist doesn't overflow the bar
 assert.equal(spotsLabel(ev("a", "d", "t", { attendees: [{}, {}, {}, {}] })), "Full, waitlist open");
 assert.equal(spotsLabel(ev("a", "d", "t", { attendees: [{}, {}, {}] })), "1 spot left");
 assert.equal(spotsLabel(ev("a", "d", "t", { attendees: [{}] })), "3 spots left");
@@ -62,6 +65,10 @@ assert.deepEqual(filterSessions(named, " MIXER ", "any").map((e) => e.id), ["1"]
 assert.deepEqual(filterSessions(named, "cebu", "any").map((e) => e.id), ["2"]);
 assert.deepEqual(filterSessions(named, "beginner", "any").map((e) => e.id), ["2"]);
 assert.deepEqual(filterSessions(named, "", "2026-10-10").map((e) => e.id), ["2"]);
+assert.deepEqual(filterSessions(named, "", "any", { level: "Beginner" }).map((e) => e.id), ["2"]);
+assert.deepEqual(filterSessions(named, "", "any", { clubs: new Set(["someone-else"]) }).map((e) => e.id), []);
+assert.deepEqual(filterSessions(named, "", "any", { clubs: new Set([named[0].clubId]) }).map((e) => e.id), ["1", "2"]);
+assert.deepEqual(filterSessions([ev("f", "d", "t", { attendees: [{}, {}, {}, {}] }), ev("o", "d", "t")], "", "any", { hasSpots: true }).map((e) => e.id), ["o"]);
 assert.equal(dayHeading("2026-10-09", "2026-10-09"), "Today, Fri, Oct 9");
 assert.equal(dayHeading("2026-10-10", "2026-10-09"), "Tomorrow, Sat, Oct 10");
 assert.match(dayHeading("2026-10-12", "2026-10-09"), /Oct 12/);

@@ -29,8 +29,12 @@ export function getGlobalTheme(fallback = "system") {
   }
 }
 
+const OLD_DEFAULT_ACCENT = "#2fa55b";
+
 export function applyTheme(display = {}, { persist = true, global = false } = {}) {
-  const { theme, accent, team1, team2 } = { ...DEFAULT_DISPLAY, ...display };
+  const { theme, accent: picked, team1, team2 } = { ...DEFAULT_DISPLAY, ...display };
+  // The old default green (before the CourtWave brand) follows the new default; any other pick is kept.
+  const accent = picked === OLD_DEFAULT_ACCENT ? DEFAULT_DISPLAY.accent : picked;
   if (global) {
     try { localStorage.setItem(GLOBAL_THEME_KEY, theme); } catch { /* private mode */ }
   }

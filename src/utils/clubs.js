@@ -47,6 +47,11 @@ export function permissions(role) {
 export const clubPath = (clubId, rest = "") => `/clubs/${encodeURIComponent(clubId)}${rest}`;
 
 // Role names as shown on screen (hub cards, club header).
+// A steady color per club for its initial badge (Home, Find session, the club header), so a club looks the same everywhere.
+const BADGE_COLORS = ["#1f7a4a", "#6c5ce0", "#0e9488", "#e0701f", "#2f6fdb", "#d6457a", "#8a6d1e"];
+export const badgeColor = (id = "") => BADGE_COLORS[[...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % BADGE_COLORS.length];
+export const clubInitial = (name = "") => (name.trim()[0] || "?").toUpperCase();
+
 export const ROLE_LABEL = { owner: "Owner", manager: "Manager", member: "Member" };
 
 // ---- Part B: joining ----
