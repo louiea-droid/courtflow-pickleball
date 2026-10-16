@@ -192,7 +192,7 @@ export default function LiveBoard() {
   }, []);
 
   useEffect(() => {
-    document.title = session.location ? `${session.location} — Live Board` : "CourtFlow — Live Board";
+    document.title = session.location ? `${session.location} — Live Board` : "CourtWave — Live Board";
   }, [session.location]);
 
   if (!firebaseConfigured) {
@@ -252,7 +252,7 @@ export default function LiveBoard() {
     <div className="liveboard">
       <header className="liveboard-header">
         <div className="liveboard-brand">
-          <img className="liveboard-logo" src="/images/courtflow logo.png" alt="CourtFlow" />
+          <img className="liveboard-logo" src="/images/courtwave.png" alt="CourtWave" />
           <div>
             <div className="eyebrow">LIVE BOARD</div>
             <h1>{session.location}</h1>

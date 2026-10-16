@@ -86,7 +86,7 @@ export default function Profile({ acct, onDelete }) {
           <SettingsRow hidden={!acct.hasPassword} title="Password" body="Can't be looked up or displayed, only changed.">
             <button className="outline" onClick={() => setShowPassword(true)}><KeyRound size={14} /> Change password</button>
           </SettingsRow>
-          <SettingsRow title="Appearance" body="Choose light, dark, or match your device. This applies throughout CourtFlow.">
+          <SettingsRow title="Appearance" body="Choose light, dark, or match your device. This applies throughout CourtWave.">
             <div className="account-select">
               <Select
                 value={theme}

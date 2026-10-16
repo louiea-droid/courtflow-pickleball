@@ -724,7 +724,7 @@ export default function QueueApp({
     const csv = rows.map((r) => r.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    a.download = "courtflow-stats.csv";
+    a.download = "courtwave-stats.csv";
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -744,7 +744,7 @@ export default function QueueApp({
     return (
       <div className="loading">
         <span className="spinner" />
-        Loading CourtFlow…
+        Loading CourtWave…
       </div>
     );
   }
@@ -906,7 +906,7 @@ export default function QueueApp({
           <Tour steps={tourSteps(kind)} onStep={showTourStep} onClose={() => { setTouring(false); setMenuOpen(false); setShowUmpires(false); }} />
         )}
         {tourOffer && !touring && (
-          <TourOffer title={isEventGame ? "New to running an open play game?" : "New to CourtFlow?"} onStart={startTour} onDismiss={markTourSeen} />
+          <TourOffer title={isEventGame ? "New to running an open play game?" : "New to CourtWave?"} onStart={startTour} onDismiss={markTourSeen} />
         )}
       </main>
     </div>

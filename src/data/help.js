@@ -47,7 +47,7 @@ export const MAJOR = [
     ],
     shots: [
       { src: "/help/host-events.png", w: 1280, h: 900, alt: "The Open play tab listing a club's sessions with spots and a New open play button.", caption: "The host's list of open play." },
-      { src: "/help/booking-page.png", w: 620, h: 709, alt: "The public booking page showing upcoming open play with fee, level, spots left and a Join button.", caption: "What a player sees on the booking page." },
+      { src: "/help/booking-page.png", w: 620, h: 995, alt: "The public booking page showing upcoming open play with fee, level, spots left and a Join button.", caption: "What a player sees on the booking page." },
     ],
     go: { to: "/clubs", label: "Open your clubs" },
   },

@@ -103,7 +103,8 @@ input:focus,select:focus{
 .mark{width:48px;height:48px;border-radius:0;background:transparent;color:#247943;display:grid;place-items:center;font:700 22px "Space Grotesk";transition:transform .3s var(--ease);object-fit:contain}
 .brand:hover .mark{transform:rotate(-8deg) scale(1.15)}
 .brand b{font:700 18px "Space Grotesk";display:block}
-.wordmark-whole{display:block;height:38px;width:auto;mix-blend-mode:screen}
+.wordmark-whole{display:block;font:italic 800 25px/1 "Space Grotesk";letter-spacing:-.02em;color:#fff;white-space:nowrap}
+.wordmark-whole span{color:#c6ef1f}
 .brand small,.session small{color:#909d94;font-size:11px}
 
 .session{

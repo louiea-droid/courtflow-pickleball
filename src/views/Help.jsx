@@ -83,7 +83,7 @@ export default function Help({ navigate }) {
   return (
     <div className="help-page" ref={pageRef}>
       <div className="help-top">
-        <PageTitle title="Help" sub="How CourtFlow works, from finding a session to how the queue picks who plays next." />
+        <PageTitle title="Help" sub="How CourtWave works, from finding a session to how the queue picks who plays next." />
         <div className="help-searchbar">
           <label className="find-search">
             <Search size={16} />

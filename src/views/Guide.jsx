@@ -22,7 +22,7 @@ const MODE_NOTES = {
 };
 
 const RULES = [
-  { title: "Scoring", body: "Games are usually to 11, win by 2, and only the serving side scores. CourtFlow can keep the score for you (side-out or rally, to 11, 15 or 21) from the Score button on a court, or just record who won each match." },
+  { title: "Scoring", body: "Games are usually to 11, win by 2, and only the serving side scores. CourtWave can keep the score for you (side-out or rally, to 11, 15 or 21) from the Score button on a court, or just record who won each match." },
   { title: "Serving", body: "Serve underhand, diagonally into the opponent's box. In doubles, both partners usually serve before the serve passes to the other team." },
   { title: "Double bounce", body: "The serve and its return must each bounce once before anyone volleys. After that, either side may hit the ball out of the air." },
   { title: "The kitchen", body: "The 7-foot zone at the net. You can't volley while standing in it, even if your momentum carries you in after the hit." },
@@ -124,7 +124,7 @@ export default function Guide({ onStartTour }) {
         ))}
       </nav>
 
-      <Section id="how" title="How CourtFlow works" sub="Tap a card for the details, with pictures.">
+      <Section id="how" title="How CourtWave works" sub="Tap a card for the details, with pictures.">
         <div className="guide-cards">
           {GUIDE_FEATURES.map((f) => {
             const Icon = ICONS[f.id] || Compass;

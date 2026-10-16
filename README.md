@@ -1,4 +1,4 @@
-# CourtFlow — React + Firebase Pickleball Queue
+# CourtWave — React + Firebase Pickleball Queue
 
 ## Stack
 - React

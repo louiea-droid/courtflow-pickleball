@@ -41,7 +41,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
         <button className="acct-menu-btn acct-open" type="button" aria-label="Open menu" aria-expanded={open} aria-controls="acct-side" onClick={() => setOpen(true)}>
           <Menu size={20} />
         </button>
-        <a className="acct-brand" href="/" onClick={go("/")}><img src="/images/courtflow.png" alt="" /><b>CourtFlow</b></a>
+        <a className="acct-brand" href="/" onClick={go("/")}><img src="/images/courtwave.png" alt="" /><b>CourtWave</b></a>
         {headerAction}
         {notifications && <NotificationBell items={notifications} navigate={navigate} />}
         <AccountMenu name={name} email={email} onSignOut={onSignOut} navigate={navigate} settingsPath={settingsPath} />
@@ -50,7 +50,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
       <aside className={`acct-side${open ? " open" : ""}`} id="acct-side">
         <div className="acct-side-top">
           {/* On a wide screen the logo collapses and expands the sidebar (Home is the first link); the drawer on a phone hides it */}
-          <button className="acct-brand" type="button" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((c) => !c)}><img src="/images/courtflow.png" alt="" /><b>CourtFlow</b></button>
+          <button className="acct-brand" type="button" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((c) => !c)}><img src="/images/courtwave.png" alt="" /><b>CourtWave</b></button>
           <button className="acct-menu-btn acct-side-close" type="button" aria-label="Close menu" onClick={() => setOpen(false)}><X size={18} /></button>
         </div>
         <div className="acct-side-scroll">

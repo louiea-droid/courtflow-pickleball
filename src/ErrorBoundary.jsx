@@ -10,7 +10,7 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    console.error("CourtFlow crashed:", error, info?.componentStack);
+    console.error("CourtWave crashed:", error, info?.componentStack);
   }
 
   render() {

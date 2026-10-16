@@ -69,8 +69,8 @@ export default function AccountLogin({ onSignIn, onSignUp, onGoogle, onReset }) 
       <div className="clublogin-ball" ref={ball} aria-hidden="true" />
       <div className="clublogin-wrap">
         <div className="clublogin-brand">
-          <img src="/images/courtflow.png" alt="" />
-          <b>CourtFlow</b>
+          <img src="/images/courtwave.png" alt="" />
+          <b>CourtWave</b>
         </div>
 
         <form className="clublogin-card" onSubmit={submit}>
