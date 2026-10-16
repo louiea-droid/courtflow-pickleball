@@ -3,7 +3,7 @@ import ActiveQueue from "../components/ActiveQueue";
 import PageTitle from "../components/PageTitle";
 import SessionCard from "../components/SessionCard";
 import { useToday } from "../hooks/useToday";
-import { ROLE_LABEL } from "../utils/clubs";
+import { ROLE_LABEL, clubPath, permissions } from "../utils/clubs";
 import { friendBuckets } from "../utils/friends";
 import { dayHeading, groupByDate } from "../utils/sessions";
 
@@ -18,6 +18,13 @@ export default function Hub({ uid, name, clubs, ready, friendships = [], inbox =
   const { friends, received } = friendBuckets(friendships, uid);
   const { sessions, ready: sessionsReady, error: sessionsError } = sessionsState;
   const mine = new Set(clubs.map((c) => c.id));
+  const managed = new Set(clubs.filter((c) => permissions(c.role).canManage).map((c) => c.id));
+  // A session you manage opens its event page; any other opens the booking page on that one session.
+  const sessionLink = (s) => {
+    if (!managed.has(s.clubId)) return { href: `/open-play?club=${encodeURIComponent(s.clubId)}&event=${encodeURIComponent(s.id)}` };
+    const path = clubPath(s.clubId, `/event/${encodeURIComponent(s.id)}`);
+    return { href: path, onClick: to(path) };
+  };
   const today = useToday();
   // The next few sessions, your own clubs' first within a day.
   const upcoming = [...sessions]
@@ -63,7 +70,7 @@ export default function Hub({ uid, name, clubs, ready, friendships = [], inbox =
               <div className="session-group" key={g.date}>
                 <h3 className="home-day">{dayHeading(g.date, today)}</h3>
                 <div className="find-list">
-                  {g.events.map((s) => <SessionCard key={`${s.clubId}/${s.id}`} session={s} mine={mine.has(s.clubId)} compact />)}
+                  {g.events.map((s) => <SessionCard key={`${s.clubId}/${s.id}`} session={s} mine={mine.has(s.clubId)} compact {...sessionLink(s)} />)}
                 </div>
               </div>
             ))}
