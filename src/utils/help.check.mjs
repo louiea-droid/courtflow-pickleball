@@ -24,7 +24,7 @@ assert.ok(MINOR.length >= 10);
 const queueText = JSON.stringify(MAJOR.at(-1));
 assert.ok(queueText.includes(`${DEFAULT_GAME_MINUTES} minutes`), "the wait estimate says the game length the code uses");
 assert.ok(queueText.includes(`${DEFAULT_RULES.maxWinStreak} wins in a row`), "the win-streak cap says the code's default");
-assert.ok(queueText.includes("fewest games"), "the pick order is stated");
+assert.ok(queueText.includes("waited longest go first") && queueText.includes("fewest games"), "the pick order is stated");
 for (const mode of ["Balanced", "Skill Separated", "Custom", "Winners / Losers", "Mixed Doubles"]) assert.ok(queueText.includes(mode), `${mode} is explained`);
 // Statements the code review corrected: keep them true
 assert.ok(queueText.includes("since their last game"), "the tie-break is who has waited longer, not only who checked in first");

@@ -1,5 +1,5 @@
 // Where a person stands in a live game, for the Home card. Pure: no Firestore (the hook reads the data).
-// The line is the queue app's order (fewest games, then earliest check-in); the next match on each court is the
+// The line is the queue app's order (longest wait first, then fewest games); the next match on each court is the
 // app's own pick (see queueStatus). Later rounds can still shift, so the wait is an estimate and the screens say "about".
 import { upNextByCourt } from "./rotationModes.js";
 
@@ -7,12 +7,13 @@ export const DEFAULT_GAME_MINUTES = 15;
 
 const onCourt = (c) => [...(c.teamA || []), ...(c.teamB || [])];
 
-// Checked-in players who are not on a court, in the order they will be picked.
+// Checked-in players who are not on a court, in the order they will be picked: whoever has waited longest
+// (since checking in or since their last game ended) first, then fewest games, then id.
 export function queueOrder(players, courts) {
   const playing = new Set(courts.flatMap(onCourt));
   return players
     .filter((p) => p.checked && !playing.has(p.id))
-    .sort((a, b) => (a.games || 0) - (b.games || 0) || (a.checkedAt || 0) - (b.checkedAt || 0) || (a.id < b.id ? -1 : 1));
+    .sort((a, b) => (a.checkedAt || 0) - (b.checkedAt || 0) || (a.games || 0) - (b.games || 0) || (a.id < b.id ? -1 : 1));
 }
 
 // null when the person isn't a checked-in player of this game; { state: "playing", court }; or

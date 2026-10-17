@@ -5,10 +5,14 @@ import { DEFAULT_GAME_MINUTES, queueOrder, queueStatus } from "./queueStatus.js"
 const P = (id, o = {}) => ({ id, checked: true, games: 0, checkedAt: 1, ...o });
 const court = (n, a = [], b = []) => ({ id: `court-${n}`, courtNumber: n, teamA: a, teamB: b });
 
-// order: fewest games first, then earliest check-in, then id; not-checked-in and on-court players are out
+// order: longest wait (earliest checkedAt) first, then fewest games, then id; not-checked-in and on-court players are out
 const players = [P("a", { games: 2 }), P("b", { games: 0, checkedAt: 5 }), P("c", { games: 0, checkedAt: 3 }), P("d", { checked: false }), P("e")];
 const courts = [court(1, ["e"], [])];
-assert.deepEqual(queueOrder(players, courts).map((p) => p.id), ["c", "b", "a"]);
+assert.deepEqual(queueOrder(players, courts).map((p) => p.id), ["a", "c", "b"]);
+// a late arrival with no games waits behind early players who have played more
+assert.deepEqual(queueOrder([P("early", { games: 3, checkedAt: 10 }), P("late", { games: 0, checkedAt: 20 })], []).map((p) => p.id), ["early", "late"]);
+// same wait: fewest games first
+assert.deepEqual(queueOrder([P("x", { games: 2, checkedAt: 7 }), P("y", { games: 1, checkedAt: 7 })], []).map((p) => p.id), ["y", "x"]);
 
 // not in the game, not checked in, nobody
 assert.equal(queueStatus({ players, courts, uid: "x", format: "Doubles" }), null);
@@ -49,7 +53,7 @@ assert.equal(queueStatus({ players: [tieB, tieA], courts: busy, uid: "u", format
 assert.equal(queueStatus({ players: [me], courts: [], uid: "u", format: "Doubles" }).upNext, true);
 // Older player docs may lack games or checkedAt: they count as 0, so the order is still stable
 const legacy = [{ id: "z", checked: true }, { id: "y", checked: true, games: 1 }, { id: "x", checked: true, games: 0, checkedAt: 5 }];
-assert.deepEqual(queueOrder(legacy, []).map((p) => p.id), ["z", "x", "y"]);
+assert.deepEqual(queueOrder(legacy, []).map((p) => p.id), ["z", "y", "x"]);
 // with a mode the next match is the queue app's own pick (upNextByCourt)
 const playing4 = [court(1, ["x1", "x2"], ["x3", "x4"])];
 const line = (meAt) => Array.from({ length: 6 }, (_, i) => i === meAt ? P("me", { uid: "u", checkedAt: i }) : P(`w${i}`, { checkedAt: i }));

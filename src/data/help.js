@@ -108,7 +108,7 @@ export const MAJOR = [
       },
       {
         title: "Who is picked next",
-        body: "Players with the fewest games go first. Players with the same number of games are ordered by who has waited longer: since they checked in, or since their last game ended. So someone who has just played drops to the back, and a late arrival with no games moves ahead of players who have played more. The host can also send a player to the back or swap two places. Every mode starts from this order.",
+        body: "Players who have waited longest go first: since they checked in, or since their last game ended. Players who have waited the same time are ordered by fewest games. So someone who has just played drops to the back, and a late arrival joins the back of the line instead of jumping ahead of players who were already waiting. The host can also send a player to the back or swap two places. Every mode starts from this order.",
       },
       {
         title: "Seeing where you stand",

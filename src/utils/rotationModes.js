@@ -1,6 +1,6 @@
 import { matchesCourtLevel, skillLevelLabel, pickForLevel } from "./courtLevels.js";
 
-// ---- Social shuffle. Fairness comes first: the front player (fewest games, longest wait) always plays.
+// ---- Social shuffle. Fairness comes first: the front player (longest wait, then fewest games) always plays.
 // Only the other seats are chosen, from the next few in the queue, by the fewest recent repeat
 // partners (heavy) and opponents (light). Skipping someone who waited longer costs more than a repeat
 // saves, so variety only wins when the wait difference is small. No history (or a pool no bigger than

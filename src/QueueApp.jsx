@@ -84,6 +84,18 @@ export default function QueueApp({
     setShowUmpires(step.open === "umpires"); // the tour shows the real Umpires window for that step
     setMenuOpen(!!step.side && window.matchMedia("(max-width: 860px)").matches); // the sidebar is a drawer there
   };
+  // The host's edited Up Next matches (see Dashboard), by court id. Kept here, not in the Dashboard, so switching
+  // to Queue or Players and back doesn't lose them; saved per session on this device so a reload keeps them too.
+  const draftsKey = `cf-upnext-drafts:${base.join("/")}`;
+  const [upNextDrafts, setUpNextDrafts] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(draftsKey)) || {}; } catch { return {}; }
+  });
+  useEffect(() => {
+    try {
+      if (Object.keys(upNextDrafts).length) localStorage.setItem(draftsKey, JSON.stringify(upNextDrafts));
+      else localStorage.removeItem(draftsKey);
+    } catch { /* private mode: the edits still last while the app is open */ }
+  }, [draftsKey, upNextDrafts]);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("cf-sidebar-collapsed") === "1");
 
   useEffect(() => {
@@ -373,10 +385,46 @@ export default function QueueApp({
     notify(`Mode set to ${newMode}.`);
   }
 
-  async function startNextMatch(courtId) {
+  // Players held in another court's locked Up Next, so a fresh pick or a top-up never takes them.
+  const heldElsewhere = (courtId) => new Set(Object.entries(upNextDrafts)
+    .filter(([id]) => id !== courtId).flatMap(([, ids]) => ids || []).filter(Boolean));
+
+  // A court's locked Up Next as [teamA, teamB], seat for seat. Its empty seats (a locked player left the queue
+  // and the host hasn't filled the seat) are topped up from `pool` (court level and locks apply), so the court
+  // never starts short. null when nobody in it is still waiting. `filled`: how many seats were topped up.
+  function seatDraft(c, nextIds, pool, need) {
+    const half = need / 2;
+    const waitingIds = new Set(queue.map((p) => p.id));
+    const keep = (ids) => (ids || []).filter((id) => id && waitingIds.has(id));
+    let teamA = keep(nextIds?.slice(0, half));
+    let teamB = keep(nextIds?.slice(half));
+    if (!teamA.length && !teamB.length) return null;
+    const open = need - teamA.length - teamB.length;
+    if (open > 0) {
+      const kept = new Set([...teamA, ...teamB]);
+      const seated = playersOf([...teamA, ...teamB]);
+      const room = seated.filter((p) => (teamA.includes(p.id) ? teamA : teamB).length < half);
+      const blocked = new Set(seated.filter((p) => p.lockedWithId && !room.includes(p)).map((p) => p.lockedWithId));
+      const { taken } = selectToJoin({
+        pool: pool.filter((p) => !kept.has(p.id) && !blocked.has(p.id)), court: c, seated, mode, need: open, pullSeatedPartners: room,
+      });
+      [teamA, teamB] = seatJoiners(teamA, teamB, taken, need,
+        mixedTeams ? (p, A, B) => mixedSideFor(p, playersOf(A), playersOf(B)) : null);
+    }
+    return { teamA, teamB, filled: Math.max(0, teamA.length + teamB.length - (need - open)) };
+  }
+
+  // nextIds: the court's locked Up Next (Dashboard). A full one is seated as it is. Returns true when it was used.
+  async function startNextMatch(courtId, nextIds = null) {
     const need = session.format === "Singles" ? 2 : 4;
     const c = courts.find((x) => x.id === courtId);
-    const { taken: next } = selectForCourt({ pool: queue, court: c, mode, need, now: Date.now() });
+    if (nextIds?.length === need && nextIds.every(Boolean)) {
+      await updateDoc(at("courts", courtId), { teamA: nextIds.slice(0, need / 2), teamB: nextIds.slice(need / 2), start: Date.now() });
+      notify(`Court ${c?.courtNumber ?? ""} match started.`);
+      return true;
+    }
+    const held = heldElsewhere(courtId);
+    const { taken: next } = selectForCourt({ pool: queue.filter((p) => !held.has(p.id)), court: c, mode, need, now: Date.now() });
     if (next.length < need) {
       if (next.length === 0 && queue.length > 0) {
         return notify("Not enough matching players are checked in yet for this court/mode.");
@@ -387,6 +435,7 @@ export default function QueueApp({
     const [teamA, teamB] = splitTeams(next, mode, rules.avoidRepeatPartners);
     await updateDoc(at("courts", courtId), { teamA, teamB, start: Date.now() });
     notify(`Court ${c?.courtNumber ?? ""} match started.`);
+    return false;
   }
 
   async function sendPreviewToCourt(teamAIds, teamBIds) {
@@ -453,16 +502,25 @@ export default function QueueApp({
 
   async function autoFillCourts() {
     const need = session.format === "Singles" ? 2 : 4;
-    let pool = [...queue];
-    if (!pool.length) return notify("Queue is empty.");
+    if (!queue.length) return notify("Queue is empty.");
+    // Players locked in any court's Up Next are only seated on that court, from its draft.
+    let pool = queue.filter((p) => !heldElsewhere(null).has(p.id));
     const batch = writeBatch(db);
     let filledAny = false;
+    const usedDrafts = [];
     courts.forEach((c) => {
       const wasEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
       let teamA = [...(c.teamA || [])];
       let teamB = [...(c.teamB || [])];
       const openSlots = need - (teamA.length + teamB.length);
-      if (openSlots > 0) {
+      const fromDraft = wasEmpty && openSlots > 0 ? seatDraft(c, upNextDrafts[c.id], pool, need) : null;
+      if (fromDraft?.teamA.length + fromDraft?.teamB.length === need) {
+        const ids = new Set([...fromDraft.teamA, ...fromDraft.teamB]);
+        pool = pool.filter((p) => !ids.has(p.id));
+        ({ teamA, teamB } = fromDraft);
+        usedDrafts.push(c.id);
+        filledAny = true;
+      } else if (openSlots > 0) {
         if (wasEmpty) {
           // Fresh match: let the session mode decide how the group is formed.
           const { taken, remaining } = selectForCourt({ pool, court: c, mode, need, now: Date.now() });
@@ -498,6 +556,7 @@ export default function QueueApp({
     });
     if (!filledAny) return notify("All courts are full, or no waiting players match the open courts' levels.");
     await batch.commit();
+    if (usedDrafts.length) setUpNextDrafts((cur) => Object.fromEntries(Object.entries(cur).filter(([id]) => !usedDrafts.includes(id))));
     notify("Filled open seats from the queue.");
   }
 
@@ -576,6 +635,7 @@ export default function QueueApp({
     // instead of leaving the winners on a court with an empty side.
     const stay = wantStay && (!autoPick || challengers.length === need / 2);
     let usedEdit = false;
+    let toppedUp = 0;
     if (stay) {
       batch.update(courtRef, {
         [side === "A" ? "teamA" : "teamB"]: winners,
@@ -588,11 +648,14 @@ export default function QueueApp({
       const finished = queue.length < need
         ? [...winners, ...losers].map((id) => after[id]).filter(Boolean)
         : [];
-      const pool = [...queue, ...finished];
-      const waitingIds = new Set(queue.map((p) => p.id));
-      usedEdit = Boolean(nextIds) && nextIds.length === need && nextIds.every((id) => waitingIds.has(id));
-      const { taken: next } = usedEdit ? { taken: [] } : selectForCourt({ pool, court: c, mode, need, now });
-      const [teamA, teamB] = usedEdit ? [nextIds.slice(0, need / 2), nextIds.slice(need / 2)] : splitTeams(next, mode, rules.avoidRepeatPartners);
+      // Never take players locked in another court's Up Next.
+      const held = heldElsewhere(c.id);
+      const pool = [...queue, ...finished].filter((p) => !held.has(p.id));
+      const fromDraft = seatDraft(c, nextIds, pool, need);
+      usedEdit = Boolean(fromDraft);
+      toppedUp = fromDraft?.filled || 0;
+      const [teamA, teamB] = fromDraft ? [fromDraft.teamA, fromDraft.teamB]
+        : splitTeams(selectForCourt({ pool, court: c, mode, need, now }).taken, mode, rules.avoidRepeatPartners);
       batch.update(courtRef, { teamA, teamB, start: Date.now(), winStreak: 0, stayingIds: [] });
     } else {
       batch.update(courtRef, { teamA: [], teamB: [], start: Date.now(), winStreak: 0, stayingIds: [] });
@@ -604,13 +667,15 @@ export default function QueueApp({
     // 10s window (a swap, a manual add) is overwritten. Fine for a mis-tap fix.
     const undoResult = async () => {
       await undo.commit();
+      // The Up Next that went on court is waiting again, so it is locked back in as it was.
+      if (usedEdit) setUpNextDrafts((cur) => ({ ...cur, [courtId]: nextIds }));
       notify(`Result on Court ${c.courtNumber} undone.`);
     };
     notify(
       stay ? `Winners stay on Court ${c.courtNumber} (${streak} in a row).`
         : capped ? `Court ${c.courtNumber}: ${streak} wins in a row, so the winners rest at the back of the queue.`
           : wantStay ? `Court ${c.courtNumber}: nobody matching is waiting to challenge, so the court rotated.`
-            : `Court ${c.courtNumber} rotated.`,
+            : `Court ${c.courtNumber} rotated.${toppedUp ? ` ${toppedUp} empty Up Next seat${toppedUp > 1 ? "s were" : " was"} filled from the queue.` : ""}`,
       10000, { label: "Undo", run: undoResult },
     );
     return usedEdit;
@@ -792,6 +857,7 @@ export default function QueueApp({
               onAddCourt={addCourt} onRemoveCourt={removeCourt} onSetCourtLevel={setCourtLevel} onRenameCourt={renameCourt}
               onStartNext={startNextMatch} onSwapQueueOrder={swapQueueOrder} onSkipQueued={skipQueuedPlayer}
               onEditPlayer={setEditingPlayer} onSendToCourt={sendPreviewToCourt} rules={rules}
+              drafts={upNextDrafts} setDrafts={setUpNextDrafts}
               claims={claims} onScore={scoreCourt} onOpenUmpires={() => setShowUmpires(true)}
               claimRecording={(courtId, at) => claimRecording(base, courtId, at)}
               onStopScore={(courtId) => clearScore(base, courtId).catch(() => notify("Couldn't stop the score. Try again.", 4000))}

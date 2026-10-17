@@ -471,7 +471,7 @@ export default function Dashboard({
   session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer, addPlayerToCourt, notify,
   autoRotateOn, onToggleAutoRotate, onAutoFill, onAddCourt, onRemoveCourt, onSetCourtLevel, onRenameCourt,
   onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue, rules,
-  claims = [], onScore, onOpenUmpires, onStopScore, claimRecording,
+  claims = [], onScore, onOpenUmpires, onStopScore, claimRecording, drafts, setDrafts,
 }) {
   const scoreSettings = { style: rules.scoreStyle, to: rules.scoreTo, singles: session.format === "Singles" };
   const need = session.format === "Singles" ? 2 : 4;
@@ -483,10 +483,14 @@ export default function Dashboard({
   const hasOpenCourt = courts.some((c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0);
   const topPlayers = rankPlayers(players).slice(0, 3);
   // Up Next matches the host has edited (fixed seats, see CourtPreview), by court id. A seat whose player is no
-  // longer waiting (played, checked out) is emptied rather than refilled.
-  const [drafts, setDrafts] = useState({});
+  // longer waiting (played, checked out) is emptied rather than refilled. Held by QueueApp so a tab switch keeps them.
   const waiting = new Set(queue.map((p) => p.id));
-  const draftOf = (key) => drafts[key]?.map((id) => (id && waiting.has(id) ? id : null));
+  // A draft with nobody left in it (all played or checked out, or saved from an older session) is no draft.
+  const draftOf = (key) => {
+    const seats = drafts[key]?.map((id) => (id && waiting.has(id) ? id : null));
+    return seats?.some(Boolean) ? seats : null;
+  };
+  const dropDraft = (courtId) => setDrafts(({ [courtId]: _, ...rest }) => rest);
 
   // Reserve consecutive, non-overlapping, level-matched slices of the queue:
   // first for any open courts (shown inline via "Start Next Match"), then one
@@ -496,7 +500,10 @@ export default function Dashboard({
   // A result seats this court's edited Up Next (when every seat is filled) instead of a fresh pick; then the edit is done.
   const winWithEdit = async (courtId, side, scoreText = null) => {
     const edit = draftOf(courtId);
-    if (await recordWin(courtId, side, edit?.every(Boolean) ? edit : null, scoreText)) setDrafts(({ [courtId]: _, ...rest }) => rest);
+    if (await recordWin(courtId, side, edit, scoreText)) dropDraft(courtId);
+  };
+  const startWithEdit = async (courtId) => {
+    if (await onStartNext(courtId, draftOf(courtId))) dropDraft(courtId);
   };
   // "Record umpire results automatically" (Settings): a game the umpire's screen saved records itself. The first open
   // Dashboard to claim the court records it (a transaction, so two hosts never record it twice); an Undo of that result
@@ -519,10 +526,27 @@ export default function Dashboard({
   const isEmptyCourt = (c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
   const picks = upNextByCourt({
     pool: queue.filter((p) => !held.has(p.id)),
-    courts: courts.filter((c) => isEmptyCourt(c) || !draftOf(c.id)), // an edited busy court keeps its own seats
+    courts: courts.filter((c) => !draftOf(c.id)), // a court with a locked Up Next keeps its own seats
     mode, need, now: Date.now(),
   });
-  const courtViews = courts.map((c) => ({ court: c, upNext: isEmptyCourt(c) ? picks[c.id] || [] : [] }));
+  // Up Next doesn't change by itself: as soon as a court's pick is a full match it is locked in as a draft, the
+  // same as a host edit. From then on only the host changes it (swap, add, remove); a locked player who leaves
+  // the queue leaves an empty seat for the host to fill. Custom mode has no Up Next, so nothing is locked there.
+  useEffect(() => {
+    if (manual) return;
+    const lock = {};
+    courts.forEach((c) => {
+      const group = picks[c.id];
+      if (draftOf(c.id) || !group || group.length < need) return;
+      const [a, b] = splitTeams(group, mode, rules.avoidRepeatPartners);
+      lock[c.id] = [...a, ...b];
+    });
+    if (Object.keys(lock).length) setDrafts((cur) => ({ ...cur, ...lock }));
+  });
+  const draftPlayers = (courtId) => (draftOf(courtId) || []).filter(Boolean).map((id) => players.find((p) => p.id === id)).filter(Boolean);
+  const courtViews = courts.map((c) => ({
+    court: c, upNext: !isEmptyCourt(c) ? [] : draftOf(c.id) ? draftPlayers(c.id) : picks[c.id] || [],
+  }));
   // One "Up Next" preview per court, always — so adding/removing a court
   // immediately adds/removes its preview box too. An open court just mirrors
   // the same "ready now" group already shown inline on its own card; a live
@@ -602,7 +626,7 @@ export default function Dashboard({
       <div className="courts">
         {courtViews.map(({ court: c, upNext }) => (
           <Court key={c.id} c={c} players={players} queue={queue} need={need} upNext={upNext}
-            win={winWithEdit} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={onStartNext} onSetLevel={onSetCourtLevel}
+            win={winWithEdit} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={startWithEdit} onSetLevel={onSetCourtLevel}
             onRemoveCourt={onRemoveCourt} canRemove={courts.length > 1} onRenameCourt={onRenameCourt}
             alertAfterMin={rules.gameAlertMinutes} manual={manual}
             claims={claims} scoreSettings={scoreSettings} onScore={onScore} onStopScore={onStopScore} autoRecord={!!rules.autoRecord} />
