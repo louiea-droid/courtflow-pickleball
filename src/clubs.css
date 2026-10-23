@@ -384,8 +384,8 @@ button.acct-brand:hover{background:var(--side-hover)}
 .clublogin .clublogin-card .clublogin-alert{background:var(--danger-soft);border:1px solid var(--danger-line);color:var(--danger-ink);font-size:13px}
 .clublogin .clublogin-card .clublogin-note{background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent-ink);font-size:13px}
 .clublogin-foot{margin:0;text-align:center}
-.clublogin-quick-link{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 14px;border:1px solid var(--accent-line);border-radius:12px;background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, transparent), var(--panel));color:var(--accent-ink);font-weight:800;text-decoration:none;box-shadow:inset 0 1px 0 color-mix(in srgb, var(--accent) 16%, transparent), 0 8px 18px color-mix(in srgb, var(--accent) 16%, transparent)}
-.clublogin-quick-link:hover{border-color:var(--accent);background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 18%, transparent), var(--soft));transform:translateY(-1px)}
+.clublogin-quick-link{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 14px;border:1px solid var(--accent-line);border-radius:12px;background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, transparent), var(--panel)) var(--panel);color:var(--accent-ink);font-weight:800;text-decoration:none;box-shadow:inset 0 1px 0 color-mix(in srgb, var(--accent) 16%, transparent), 0 8px 18px color-mix(in srgb, var(--accent) 16%, transparent)}
+.clublogin-quick-link:hover{border-color:var(--accent);background:linear-gradient(180deg, color-mix(in srgb, var(--accent) 18%, transparent), var(--soft)) var(--panel);transform:translateY(-1px)}
 .clublogin-quick-link span:first-child{font-size:14px;line-height:1.2}
 .clublogin-quick-note{color:var(--muted);font-size:11.5px;font-weight:700;letter-spacing:.02em;text-transform:none}
 @media (max-width:420px){
@@ -657,22 +657,46 @@ button.acct-brand:hover{background:var(--side-hover)}
   .help-section,.help-minor article{scroll-margin-top:8px}
 }
 
-/* Sign-in backdrop: a theme-aware gradient and a soft accent ball that follows the pointer */
-.clublogin-fx{
-  position:relative;overflow:hidden;
+/* Sign-in: one screen, never scrolls. The deep green brand art (logo, line, the logo's swoosh drawn big,
+   swelling on its own) fills the whole page and the form floats on it as a card, on the right on a wide
+   screen and under a short brand strip on a phone. A lit lime line trails the pointer (.clublogin-trail,
+   drawn by AccountLogin) between the art and the card. */
+.clublogin.clublogin-fx{height:100vh;height:100dvh;min-height:0;padding:0;overflow:hidden;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:minmax(0,1fr);
   background:
-    radial-gradient(60% 50% at 15% 0%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%),
-    radial-gradient(55% 55% at 100% 100%,color-mix(in srgb,var(--team2,var(--accent)) 18%,transparent),transparent 70%),
-    var(--bg)
+    radial-gradient(55% 50% at 82% 18%,color-mix(in srgb,var(--lime) 11%,transparent),transparent 70%),
+    radial-gradient(70% 65% at 0% 0%,color-mix(in srgb,var(--brand-green) 50%,transparent),transparent 72%),
+    linear-gradient(168deg,var(--side-active) 0%,var(--brand-deep) 48%,color-mix(in srgb,var(--brand-deep) 62%,#000) 100%)}
+.clublogin-art{grid-area:1/1/2/3;align-self:stretch;position:relative;z-index:0;overflow:hidden;display:flex;flex-direction:column;gap:clamp(16px,4vh,40px);padding:clamp(24px,5vh,48px) clamp(24px,4vw,56px);color:var(--side-ink)}
+.clublogin-art .clublogin-brand{justify-content:flex-start;color:var(--side-ink);font:italic 700 21px "Space Grotesk"}
+.clublogin-art .clublogin-brand img{height:36px}
+.clublogin-pitch{max-width:min(30rem,38vw);position:relative;z-index:1}
+.clublogin-pitch h2{margin:0;font:italic 700 clamp(34px,4.4vw,58px)/1 "Space Grotesk";letter-spacing:-.03em;color:var(--side-ink)}
+.clublogin-pitch p{margin:14px 0 0;max-width:34ch;color:var(--side-ink-2);font-size:15px;line-height:1.55}
+.clublogin-swoosh{position:absolute;left:-4%;bottom:0;width:108%;height:62%;z-index:0;overflow:visible}
+.clublogin-swoosh .s0{fill:none;stroke:color-mix(in srgb,var(--lime) 22%,transparent);stroke-width:1.2;vector-effect:non-scaling-stroke}
+.clublogin-swoosh .s1{fill:var(--side-panel)}
+.clublogin-swoosh .s2{fill:var(--brand-green)}
+.clublogin-swoosh .s3{fill:var(--lime)}
+.clublogin-trail{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:visible;
+  filter:drop-shadow(0 0 5px color-mix(in srgb,var(--lime) 80%,transparent)) drop-shadow(0 0 14px color-mix(in srgb,var(--lime) 35%,transparent))}
+.clublogin-trail stop{stop-color:var(--lime)}
+.clublogin-trail.dive{z-index:0} /* under the brand art: the line slips behind the waves and the headline */
+.clublogin-fx>.clublogin-wrap{grid-area:1/2/2/3;z-index:2;align-self:center;justify-self:center;min-height:0;padding:clamp(16px,4vh,40px) 24px;gap:clamp(10px,2vh,16px)}
+.clublogin-fx .clublogin-card{padding:clamp(18px,3vh,26px);gap:clamp(10px,1.8vh,15px);border:1px solid var(--line);border-radius:20px;background:var(--panel);box-shadow:0 24px 60px color-mix(in srgb,#000 40%,transparent);animation:none}
+.clublogin-fx .clublogin-card input,.clublogin-fx .clublogin-card .primary,.clublogin-fx .clublogin-google{min-height:clamp(40px,5.4vh,46px)}
+.clublogin-fx .clublogin-quick-link{flex-direction:row;justify-content:center;gap:8px;padding:10px 14px}
+.clublogin-fx>.theme-toggle{position:absolute;top:16px;right:16px;bottom:auto;z-index:3;background:color-mix(in srgb,var(--side-ink) 12%,transparent);border-color:transparent;color:var(--side-ink);box-shadow:none}
+.clublogin-fx>.theme-toggle:hover{background:color-mix(in srgb,var(--side-ink) 20%,transparent);color:var(--side-ink)}
+/* Short screens: drop the blurb under the form title before anything gets cut off. */
+@media (max-height:720px){.clublogin-fx .clublogin-head p{display:none}}
+@media (max-width:860px){
+  .clublogin.clublogin-fx{grid-template-columns:1fr;grid-template-rows:clamp(68px,11vh,110px) minmax(0,1fr)}
+  .clublogin-art{grid-area:1/1/3/2;padding:16px 20px}
+  .clublogin-pitch{display:none}
+  .clublogin-swoosh{height:40%}
+  .clublogin-fx>.clublogin-wrap{grid-area:2/1/3/2;align-self:start;width:min(440px,100%);padding:0 16px 16px}
+  .clublogin-fx>.theme-toggle{top:12px;right:12px}
 }
-.clublogin-fx>.clublogin-wrap{position:relative;z-index:1}
-.clublogin-fx>.theme-toggle{z-index:2}
-.clublogin-ball{
-  position:fixed;left:0;top:0;width:340px;height:340px;border-radius:50%;pointer-events:none;z-index:0;
-  background:radial-gradient(circle,color-mix(in srgb,var(--accent) 55%,transparent) 0,color-mix(in srgb,var(--accent) 18%,transparent) 45%,transparent 70%);
-  filter:blur(18px);transform:translate3d(50vw,30vh,0) translate(-50%,-50%);will-change:transform
-}
-@media (prefers-reduced-motion:reduce){.clublogin-ball{opacity:.6}}
 .hub-empty a{color:var(--accent-ink);font-weight:700}
 
 /* Notifications bell in the sticky header, just left of the account menu. */

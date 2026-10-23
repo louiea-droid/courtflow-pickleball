@@ -20,6 +20,7 @@
 - New logo (script CW over a wave), with light and square versions.
 - Public landing page at courtwave.web.app ("Catch your wave."), with scroll effects and a "Get the app" section.
 - Home, Find session ("Find a game"), the club header and event page, Clubs (directory + My clubs tabs), Friends, Inbox, and the public booking page.
+- Sign-in / create account page (October 23): one screen with no scrolling, a deep green gradient with the logo's wave drawn big and swelling on its own, the form on a card, and a glowing lime line that follows the mouse and, when the mouse stops, glides on and dives behind the waves.
 
 **Still to do (you asked to wait):**
 - **Queue app (Dashboard).** Mockup already shown: one slim stats strip led by "Up next", court cards drawn like real courts, one small toolbar. You said "not yet".
