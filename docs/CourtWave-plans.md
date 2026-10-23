@@ -69,7 +69,7 @@ When the app exists, the landing page's "Download for Android" button switches o
 
 ## 5. Features saved for later
 
-- **Auto-fill button for Up Next (planned October 22, approved in outline, not built).**
+- **Auto-fill button for Up Next (planned October 22; BUILT October 23, tested with the `sq5` demo: seats refilled, nobody repeated, desktop and 390px).**
   - *The problem:* removing a player from an Up Next (✕) leaves the seat empty on purpose (Up Next is locked since commit `f384364`). Sending 4 players to an open court doesn't refill it either: `startNextMatch` skips players held in other Up Nexts, and the blanks only fill when that court's match ends (`seatDraft` in `recordWin`). So Up Next shows "Add a player to send" with empty seats.
   - *The plan:* an **Auto-fill** button on the right of the "Up Next" heading, styled like the Live Courts one (outline, ⚡ icon). One press fills every empty Up Next seat from the waiting players in queue order; the players already there stay put; two courts never take the same person. A toast says what happened ("Filled 3 Up Next seats" / "Nobody free in the queue to fill the empty seats"). Greyed out when no Up Next has an empty seat; hidden in Custom mode (no Up Next there).
   - *How:* a click handler in `views/Dashboard.jsx` that goes court by court, tops up each draft and removes the used players from the pool, then saves the drafts (`setDrafts`). `QueueApp.jsx` passes the existing `seatDraft` as one prop, so court level, locked pairs and Mixed Doubles work the same as at rotation. No database writes (Up Next drafts live on the device).

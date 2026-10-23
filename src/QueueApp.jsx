@@ -857,7 +857,7 @@ export default function QueueApp({
               onAddCourt={addCourt} onRemoveCourt={removeCourt} onSetCourtLevel={setCourtLevel} onRenameCourt={renameCourt}
               onStartNext={startNextMatch} onSwapQueueOrder={swapQueueOrder} onSkipQueued={skipQueuedPlayer}
               onEditPlayer={setEditingPlayer} onSendToCourt={sendPreviewToCourt} rules={rules}
-              drafts={upNextDrafts} setDrafts={setUpNextDrafts}
+              drafts={upNextDrafts} setDrafts={setUpNextDrafts} fillDraft={seatDraft}
               claims={claims} onScore={scoreCourt} onOpenUmpires={() => setShowUmpires(true)}
               claimRecording={(courtId, at) => claimRecording(base, courtId, at)}
               onStopScore={(courtId) => clearScore(base, courtId).catch(() => notify("Couldn't stop the score. Try again.", 4000))}

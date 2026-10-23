@@ -471,7 +471,7 @@ export default function Dashboard({
   session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer, addPlayerToCourt, notify,
   autoRotateOn, onToggleAutoRotate, onAutoFill, onAddCourt, onRemoveCourt, onSetCourtLevel, onRenameCourt,
   onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue, rules,
-  claims = [], onScore, onOpenUmpires, onStopScore, claimRecording, drafts, setDrafts,
+  claims = [], onScore, onOpenUmpires, onStopScore, claimRecording, drafts, setDrafts, fillDraft,
 }) {
   const scoreSettings = { style: rules.scoreStyle, to: rules.scoreTo, singles: session.format === "Singles" };
   const need = session.format === "Singles" ? 2 : 4;
@@ -523,6 +523,29 @@ export default function Dashboard({
     });
   }, [courts, rules.autoRecord]); // eslint-disable-line react-hooks/exhaustive-deps
   const held = new Set(courts.flatMap((c) => draftOf(c.id) || []).filter(Boolean));
+  // Up Next Auto-fill: tops up every locked Up Next that has empty seats from the waiting players, in queue order
+  // (the same top-up rotation uses, so court level, locks and Mixed Doubles apply). Court by court with a shrinking
+  // pool, so two courts never take the same person; the players already there stay put.
+  const openSeats = (d) => !!d && (d.length < need || d.some((id) => !id));
+  const canFillUpNext = courts.some((c) => openSeats(draftOf(c.id)));
+  const autoFillUpNext = () => {
+    let pool = queue.filter((p) => !held.has(p.id));
+    let filled = 0;
+    const next = {};
+    courts.forEach((c) => {
+      const d = draftOf(c.id);
+      if (!openSeats(d)) return;
+      const seated = fillDraft(c, d, pool, need);
+      if (!seated?.filled) return;
+      const pad = (team) => [...team, ...Array(Math.max(0, need / 2 - team.length)).fill(null)];
+      next[c.id] = [...pad(seated.teamA), ...pad(seated.teamB)];
+      filled += seated.filled;
+      const used = new Set([...seated.teamA, ...seated.teamB]);
+      pool = pool.filter((p) => !used.has(p.id));
+    });
+    if (filled) setDrafts((cur) => ({ ...cur, ...next }));
+    notify(filled ? `Filled ${filled} Up Next seat${filled === 1 ? "" : "s"}.` : "Nobody free in the queue to fill the empty seats.");
+  };
   const isEmptyCourt = (c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
   const picks = upNextByCourt({
     pool: queue.filter((p) => !held.has(p.id)),
@@ -637,6 +660,12 @@ export default function Dashboard({
         <>
           <div className="heading">
             <div><h2>Up Next</h2><p>Preview of who rotates onto each court next.</p></div>
+            <div className="heading-actions">
+              <button className="outline" onClick={autoFillUpNext} disabled={!canFillUpNext}
+                title={canFillUpNext ? "Fill the empty Up Next seats from the queue" : "No empty Up Next seats"}>
+                <Zap size={14} /> Auto-fill
+              </button>
+            </div>
           </div>
           <div className="courts">
             {upcomingPreviews.map((pv) => (
