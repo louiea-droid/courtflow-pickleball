@@ -270,6 +270,7 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .pill.toggle.off{background:var(--soft);color:var(--faint)}
 
 .courts{display:grid;grid-template-columns:repeat(2,1fr);gap:15px}
+.courts+.heading{margin-top:28px} /* Up Next under the live courts: the same breathing room Live Courts gets from the stat cards */
 .court{
   position:relative;background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:15px;box-shadow:var(--shadow);
   transition:box-shadow .22s ease,transform .22s ease
