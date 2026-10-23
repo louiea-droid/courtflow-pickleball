@@ -137,8 +137,11 @@ export function feeRows(event, players = []) {
   const attendees = event.attendees || [];
   const confirmed = new Set(splitAttendees({ attendees, maxPlayers: event.maxPlayers }).confirmed.map((a) => a.id));
   const booked = new Set(attendees.map((a) => a.id));
+  const inGame = new Set(players.map((p) => p.id));
+  // An attendee removed from the game (or never added) owes nothing; one who paid or was refunded stays so the money is accounted for.
+  const counts = (a) => inGame.has(a.id) || a.paid === "paid" || a.paid === "refunded";
   return [
-    ...attendees.map((a) => ({ id: a.id, name: a.name, paid: a.paid, method: a.method, waiting: !confirmed.has(a.id), attendee: true })),
+    ...attendees.filter(counts).map((a) => ({ id: a.id, name: a.name, paid: a.paid, method: a.method, waiting: !confirmed.has(a.id), attendee: true })),
     ...players.filter((p) => !booked.has(p.id))
       .map((p) => ({ id: p.id, name: p.name, paid: p.feePaid ? "paid" : "unpaid", method: p.feeMethod, waiting: false, attendee: false })),
   ];

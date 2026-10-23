@@ -110,8 +110,8 @@ function FeeInput({ fee, onSave }) {
   );
 }
 
-// Rows are the booked attendees (paid lives on the event) plus everyone added in the game who
-// isn't one (paid lives on the player), so nobody in the game is left out of the fees.
+// Rows are the booked attendees still in the game, or who already paid or were refunded (paid lives on
+// the event), plus everyone added in the game who isn't one (paid lives on the player).
 function OpenPlayFees({ event, players, fee, canSetFee, onSetFee, onSetAttendeesPaid, onSetPlayersPaid, onSetAttendeeMethod, onSetPlayerMethod }) {
   const rows = feeRows(event, players);
   const { total, collected, remaining, unpaid, paid } = feeTotals(rows, fee);
