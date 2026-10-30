@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, ArrowLeftRight, Zap, Play, Plus, Pencil, Hash, UserCheck } from "lucide-react";
+import { X, ArrowLeftRight, Zap, Play, Plus, Pencil, Hash, UserCheck, Tv, Megaphone, Mic } from "lucide-react";
 import LockMark from "../components/LockMark";
 import PanelHead from "../components/PanelHead";
 import PersonBadge from "../components/PersonBadge";
@@ -365,7 +365,15 @@ function PreviewTeam({ label, color, slots, players, groupIds, notify, queue, fi
   );
 }
 
-function CourtPreview({ label, level, group, draft, othersTaken, setDraft, need, mode, avoidRepeats, players, queue, notify, onSwapOrder, onSkip, onSendToCourt, canSend }) {
+// The two Up Next teams as the court card shows them: a draft's fixed seats, else the split the match will get.
+const previewTeams = (group, draft, need, mode, avoidRepeats) => {
+  if (draft) return [draft.slice(0, need / 2), draft.slice(need / 2)].map((t) => t.filter(Boolean));
+  if (group.length >= need) return splitTeams(group, mode, avoidRepeats);
+  const half = Math.ceil(group.length / 2);
+  return [group.slice(0, half).map((p) => p.id), group.slice(half).map((p) => p.id)];
+};
+
+function CourtPreview({ label, level, group, draft, othersTaken, setDraft, need, mode, avoidRepeats, players, queue, notify, onSwapOrder, onSkip, onSendToCourt, canSend, onBoard, onToggleBoard, onCall }) {
   const [swapOpen, setSwapOpen] = useState(null);
   const teamsRef = useRef(null);
   const toggleSwap = (id) => setSwapOpen((cur) => (cur === id ? null : id));
@@ -373,7 +381,7 @@ function CourtPreview({ label, level, group, draft, othersTaken, setDraft, need,
   const byId = new Map(players.map((p) => [p.id, p]));
   // Mirror the same team split the match will actually get (splitTeams),
   // so a locked pair previewed here shows on one side, not straddled.
-  const [autoA, autoB] = ready ? splitTeams(group, mode, avoidRepeats) : [group.slice(0, Math.ceil(group.length / 2)).map((p) => p.id), group.slice(Math.ceil(group.length / 2)).map((p) => p.id)];
+  const [autoA, autoB] = previewTeams(group, null, need, mode, avoidRepeats);
   // Once the host edits this match it becomes a draft of fixed seats: removing a player leaves the seat empty,
   // nobody is inserted and nobody shifts, until the match is sent or the seat is filled.
   const slotIds = draft || (ready ? [...autoA, ...autoB] : null);
@@ -444,6 +452,18 @@ function CourtPreview({ label, level, group, draft, othersTaken, setDraft, need,
         <b>{label}</b>
         {level && level !== "Any Level" && <span className="badge-level-quiet">{level}</span>}
         <span className="badge-next">NEXT</span>
+        {onCall && present.length + (slots ? 0 : group.length) > 0 && (
+          <button type="button" className="board-next-toggle call" onClick={() => onCall(teamA.map((x) => x.p?.id).filter(Boolean), teamB.map((x) => x.p?.id).filter(Boolean))}
+            title="Call these players by voice">
+            <Megaphone size={13} /> Call
+          </button>
+        )}
+        {onToggleBoard && (
+          <button type="button" className={`board-next-toggle${onBoard ? " on" : ""}`} aria-pressed={onBoard} onClick={onToggleBoard}
+            title={onBoard ? "Shown as Next up on the Live Board. Tap to hide it." : "Show this match as Next up on the Live Board"}>
+            <Tv size={13} /> {onBoard ? "On Live Board" : "Show on Live Board"}
+          </button>
+        )}
       </div>
       <div className="teams" ref={teamsRef}>
         <PreviewTeam label="Team 1" color="team1" slots={teamA} {...shared} />
@@ -471,7 +491,7 @@ export default function Dashboard({
   session, players, courts, queue, matchLog, recordWin, removePlayer, swapPlayer, addPlayerToCourt, notify,
   autoRotateOn, onToggleAutoRotate, onAutoFill, onAddCourt, onRemoveCourt, onSetCourtLevel, onRenameCourt,
   onStartNext, onSwapQueueOrder, onSkipQueued, onEditPlayer, onSendToCourt, goQueue, rules,
-  claims = [], onScore, onOpenUmpires, onStopScore, claimRecording, drafts, setDrafts, fillDraft,
+  claims = [], onScore, onOpenUmpires, onStopScore, claimRecording, drafts, setDrafts, fillDraft, onBoardNext, onCall, onOpenVoice,
 }) {
   const scoreSettings = { style: rules.scoreStyle, to: rules.scoreTo, singles: session.format === "Singles" };
   const need = session.format === "Singles" ? 2 : 4;
@@ -585,6 +605,31 @@ export default function Dashboard({
     }
     return { key: c.id, label, level: c.level, group: isEmpty ? emptyUpNext : picks[c.id] || [] };
   });
+  // Live Board "Next up": the court the host picked keeps its saved teams in step with its Up Next here.
+  const boardTeams = (pv) => {
+    const [a, b] = previewTeams(pv.group.filter(Boolean), pv.draft, need, mode, rules.avoidRepeatPartners);
+    return { a, b };
+  };
+  // "Call players automatically" (Settings): a court whose match starts (a newer `start` with every seat filled) is
+  // called once. Matches already playing when the Dashboard opens aren't called, and an Undo (older start) isn't either.
+  const calledStart = useRef(null);
+  useEffect(() => {
+    const seen = calledStart.current || (calledStart.current = Object.fromEntries(courts.map((c) => [c.id, c.start || 0])));
+    courts.forEach((c) => {
+      const full = (c.teamA?.length || 0) + (c.teamB?.length || 0) >= need;
+      if (!full || !c.start || c.start <= (seen[c.id] ?? 0)) return;
+      seen[c.id] = c.start;
+      if (rules.voiceAuto && onCall) onCall(c.id, "start", c.teamA, c.teamB, `start-${c.start}`).catch(() => {});
+    });
+  }, [courts]); // eslint-disable-line react-hooks/exhaustive-deps
+  const boardCourt = courts.find((c) => c.nextUp);
+  const boardPreview = !manual && boardCourt && upcomingPreviews.find((pv) => pv.key === boardCourt.id);
+  const boardWant = boardPreview ? boardTeams(boardPreview) : null;
+  const boardKey = boardWant ? JSON.stringify([boardWant.a, boardWant.b]) : "";
+  useEffect(() => {
+    if (!boardWant || !onBoardNext) return;
+    if (JSON.stringify([boardCourt.nextUp.a || [], boardCourt.nextUp.b || []]) !== boardKey) onBoardNext(boardCourt.id, boardWant).catch(() => {});
+  }, [boardKey, boardCourt?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -630,6 +675,7 @@ export default function Dashboard({
         <div><h2>Live Courts</h2><p>{manual ? "Custom mode: record a winner to clear the court, then build the next match yourself." : "Record a winner to rotate the completed players."}</p></div>
         <div className="heading-actions">
           <button className="outline" data-tour="umpires" onClick={onOpenUmpires}><UserCheck size={14} /> Umpires</button>
+          {onOpenVoice && <button className="outline" onClick={onOpenVoice} title="Record calls in your own voice"><Mic size={14} /> Voice</button>}
           <button className="outline" onClick={onAddCourt} disabled={courts.length >= 8}>
             <Plus size={14} /> Add Court
           </button>
@@ -671,7 +717,11 @@ export default function Dashboard({
           <div className="courts">
             {upcomingPreviews.map((pv) => (
               <CourtPreview key={pv.key} label={pv.label} level={pv.level} group={pv.group} draft={pv.draft} othersTaken={new Set(upcomingPreviews.filter((o) => o !== pv).flatMap((o) => o.group.map((p) => p.id)))} setDraft={(d) => setDrafts((cur) => ({ ...cur, [pv.key]: d }))} need={need} mode={mode} avoidRepeats={rules.avoidRepeatPartners} players={players} queue={queue}
-                notify={notify} onSwapOrder={onSwapQueueOrder} onSkip={onSkipQueued} onSendToCourt={onSendToCourt} canSend={hasOpenCourt} />
+                notify={notify} onSwapOrder={onSwapQueueOrder} onSkip={onSkipQueued} onSendToCourt={onSendToCourt} canSend={hasOpenCourt}
+                onBoard={boardCourt?.id === pv.key}
+                onCall={onCall && ((a, b) => onCall(pv.key, "next", a, b).catch(() => notify("Couldn't send the call. Check your connection.")))}
+                onToggleBoard={onBoardNext && (() => onBoardNext(pv.key, boardCourt?.id === pv.key ? null : boardTeams(pv))
+                  .catch(() => notify("Couldn't update the Live Board. Check your connection.")))} />
             ))}
           </div>
         </>

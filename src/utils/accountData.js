@@ -7,9 +7,9 @@ import { wipeCollection } from "./wipe.js";
 export const EVENT_SUBCOLLECTIONS = ["requests", "players", "courts", "matchLog", "costs", "private", "umpires", "courtClaims", "viewers"];
 
 // Subcollections directly under a club (events have their own cascade; members are handled in order).
-export const CLUB_SUBCOLLECTIONS = ["roster", "joinRequests", "joinCodes", "private", "announcements"];
+export const CLUB_SUBCOLLECTIONS = ["roster", "joinRequests", "joinCodes", "private", "announcements", "voice", "boardViewers"];
 // Everything under a quick session, sessions/{uid} (Erase this session, and deleting the account that owns it).
-export const SESSION_SUBCOLLECTIONS = ["players", "courts", "history", "costs", "matchLog", "bookings", "bookingRequests", "private", "umpires", "courtClaims"];
+export const SESSION_SUBCOLLECTIONS = ["players", "courts", "history", "costs", "matchLog", "bookings", "bookingRequests", "private", "umpires", "courtClaims", "voice"];
 
 // Deletes one event and everything under it. The event doc goes first, so the rules refuse any
 // new join request at once (they check the event exists) and nothing can slip in while the

@@ -69,7 +69,7 @@ export const GUIDE_FEATURES = [
       "On the Dashboard, press Umpires above the courts. In a quick session, turn on Allow volunteer umpires first (it starts off).",
       "Show the QR code or send the link. A volunteer opens it on their phone, types their name, and needs no account.",
       "Each volunteer claims one free court and scores it from their phone. Two people can't hold the same court.",
-      "Tapping a team's half means that team won the rally. The screen calls the score (\"4 - 2 - 1\" in side-out), tracks the server, and has Undo.",
+      "After each rally, tap Point if the serving team won it or Error if they lost it (or tap the half of the team that won). The screen calls the score (\"4 - 2 - 1\" in side-out), tracks the server, and has Undo.",
       "A finished game saves itself after a 5 second countdown (Undo in that time keeps it open). You then tap Confirm: Team N wins on the court card, and the match log shows the score.",
     ],
     notes: [

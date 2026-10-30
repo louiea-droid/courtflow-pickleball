@@ -38,6 +38,9 @@ import Guide from "./views/Guide";
 import Tour, { TourOffer } from "./components/Tour";
 import { tourSeenKey, tourSteps } from "./data/tour";
 import Settings from "./views/Settings";
+import { announceCall } from "./utils/voice";
+import { useVoiceClips, voiceBaseOf } from "./hooks/useVoiceClips";
+import VoiceModal from "./components/VoiceModal";
 import { queueOrder } from "./utils/queueStatus";
 
 // The queue app on one session. `base` is the Firestore path of the document that holds it
@@ -65,6 +68,9 @@ export default function QueueApp({
   const [showSession, setShowSession] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showUmpires, setShowUmpires] = useState(false);
+  const [showVoice, setShowVoice] = useState(false);
+  const voiceBase = voiceBaseOf(base);
+  const voiceClips = useVoiceClips(voiceBase);
   const [showEndSession, setShowEndSession] = useState(false);
   const [showErase, setShowErase] = useState(false);
   const [toast, setToast] = useState(null);
@@ -457,6 +463,29 @@ export default function QueueApp({
     await updateDoc(at("courts", courtId), { level });
     const c = courts.find((x) => x.id === courtId);
     notify(`Court ${c?.courtNumber ?? ""} set to ${level}.`);
+  }
+
+  // The Live Board's "Next up" box: one court carries `nextUp` ({ a, b }: its Up Next teams), or none (hidden).
+  async function setBoardNext(courtId, nextUp) {
+    const batch = writeBatch(db);
+    courts.forEach((c) => {
+      if (c.id === courtId && nextUp) batch.update(at("courts", c.id), { nextUp });
+      else if (c.nextUp) batch.update(at("courts", c.id), { nextUp: deleteField() });
+    });
+    await batch.commit();
+  }
+
+  // Voice call (Settings "Voice calls play on"): spoken here, or saved on the court as `call` for the Live Board to
+  // read out. Only player ids go on the court (a public club's courts are readable by anyone). `key` is what the
+  // board compares: a match start uses the court's start, so several open Dashboards calling it count once.
+  async function callCourt(courtId, kind, a, b, key = `${kind}-${Date.now()}`) {
+    const c = courts.find((x) => x.id === courtId);
+    if (!c) return;
+    if (rules.voiceWhere === "board") {
+      await updateDoc(at("courts", courtId), { call: { key, kind, a, b, at: Date.now() } });
+      return;
+    }
+    if (!announceCall(kind, c.name || `Court ${c.courtNumber}`, a, b, players, voiceClips)) notify("This browser can't speak. Try Chrome or Edge.");
   }
 
   async function renameCourt(courtId, name) {
@@ -874,11 +903,11 @@ export default function QueueApp({
             <Dashboard session={session} players={players} courts={courts} queue={queue} matchLog={matchLog} notify={notify}
               recordWin={recordWin} removePlayer={removePlayer} swapPlayer={swapPlayer} addPlayerToCourt={addPlayerToCourt}
               autoRotateOn={autoRotateOn} onToggleAutoRotate={toggleAutoRotate} onAutoFill={autoFillCourts}
-              onAddCourt={addCourt} onRemoveCourt={removeCourt} onSetCourtLevel={setCourtLevel} onRenameCourt={renameCourt}
+              onAddCourt={addCourt} onRemoveCourt={removeCourt} onSetCourtLevel={setCourtLevel} onRenameCourt={renameCourt} onBoardNext={setBoardNext} onCall={callCourt}
               onStartNext={startNextMatch} onSwapQueueOrder={swapQueueOrder} onSkipQueued={skipQueuedPlayer}
               onEditPlayer={setEditingPlayer} onSendToCourt={sendPreviewToCourt} rules={rules}
               drafts={upNextDrafts} setDrafts={setUpNextDrafts} fillDraft={seatDraft}
-              claims={claims} onScore={scoreCourt} onOpenUmpires={() => setShowUmpires(true)}
+              claims={claims} onScore={scoreCourt} onOpenUmpires={() => setShowUmpires(true)} onOpenVoice={() => setShowVoice(true)}
               claimRecording={(courtId, at) => claimRecording(base, courtId, at)}
               onStopScore={(courtId) => clearScore(base, courtId).catch(() => notify("Couldn't stop the score. Try again.", 4000))}
               goQueue={() => setTab("queue")} />
@@ -959,6 +988,10 @@ export default function QueueApp({
           <UmpireModal base={base} kind={kind} courts={courts} claims={claims} umpiresOn={session.umpireOn === true}
             settings={{ style: rules.scoreStyle, to: rules.scoreTo, autoRecord: !!rules.autoRecord }} close={() => setShowUmpires(false)} notify={notify}
             onToggle={(on) => updateDoc(at(), { umpireOn: on }).catch(() => notify("Couldn't change that. Try again.", 4000))} />
+        )}
+        {showVoice && (
+          <VoiceModal voiceBase={voiceBase} clips={voiceClips} courts={courts} players={players} isClub={isEventGame}
+            close={() => setShowVoice(false)} notify={notify} />
         )}
         {showErase && (
           <ConfirmDialog

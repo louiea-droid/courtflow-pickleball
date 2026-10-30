@@ -1,6 +1,6 @@
 // Self-check for the umpire score. Run: node src/utils/scoring.check.mjs
 import assert from "node:assert";
-import { adjust, call, confirmScore, finalText, firstServe, gamePoint, lastEvent, liveScore, newScore, rally, undo, winner } from "./scoring.js";
+import { adjust, call, confirmScore, finalText, firstServe, gamePoint, lastEvent, liveScore, newScore, rally, serveError, servePoint, undo, winner } from "./scoring.js";
 
 const play = (s, ...teams) => teams.reduce(rally, s);
 
@@ -96,5 +96,24 @@ assert.equal(confirmScore(newScore({ start: 1 }), 5).confirmed, undefined); // n
 assert.equal(confirmScore(fin, 5).confirmed, 5);
 assert.equal("confirmed" in undo(confirmScore(fin, 5)), false);
 assert.equal("confirmed" in adjust(confirmScore(fin, 5), 2, 1), false);
+
+// Point / Error (volunteer page): the serving team won or lost the rally, in every style.
+for (const opts of [{ style: "sideout" }, { style: "rally" }, { style: "sideout", singles: true }]) {
+  let g = newScore({ start: 1, ...opts });
+  for (const step of [servePoint, serveError, serveError, servePoint, serveError, servePoint]) {
+    assert.deepEqual(step(g), rally(g, step === servePoint ? g.serving : (g.serving === 1 ? 2 : 1)));
+    g = step(g);
+  }
+}
+// Side-out doubles from 0-0-2: Point scores for the server; Error is a side out, then server 2, then a side out.
+let q = servePoint(newScore({ start: 1 }));
+assert.deepEqual([q.t1, q.t2, q.serving, q.server], [1, 0, 1, 2]);
+q = serveError(q);
+assert.deepEqual([q.t1, q.t2, q.serving, q.server], [1, 0, 2, 1]);
+q = serveError(q);
+assert.deepEqual([q.serving, q.server], [2, 2]);
+// Rally: an Error gives the point and the serve to the other team.
+const re = serveError(newScore({ start: 1, style: "rally" }));
+assert.deepEqual([re.t1, re.t2, re.serving], [0, 1, 2]);
 
 console.log("scoring checks passed");

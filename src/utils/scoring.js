@@ -44,6 +44,11 @@ export function rally(s, team) {
   return s.server === 2 ? push(s, { serving: other(s.serving), server: 1 }) : push(s, { server: 2 });
 }
 
+// The volunteer page's two buttons, the way a referee calls it: watch the serving team. Point = they won the rally,
+// Error = they lost it (a fault). The same as tapping the serving team's half, or the other half.
+export const servePoint = (s) => rally(s, s.serving);
+export const serveError = (s) => rally(s, other(s.serving));
+
 export function adjust(s, team, delta) {
   const next = Math.max(0, s[key(team)] + delta);
   return next === s[key(team)] ? s : push(s, { [key(team)]: next });

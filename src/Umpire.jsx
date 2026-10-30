@@ -33,7 +33,7 @@ function HowItWorks({ open }) {
       <ol>
         <li><b>Type your name</b> and tap Start umpiring. No account needed; the host sees your name.</li>
         <li><b>Claim one free court.</b> Only you score it until you release it.</li>
-        <li><b>After each rally, tap the team that won it.</b> The screen calls the score and keeps track of the server.</li>
+        <li><b>After each rally, watch the serving team.</b> Tap <b>Point</b> if they won it, <b>Error</b> if they lost it (or tap the team that won). The screen calls the score and keeps track of the server.</li>
         <li><b>Wrong tap?</b> Undo takes it back. Fix the score sets a team's points by hand.</li>
         <li><b>When a team wins</b>, the game saves itself after 5 seconds (Undo before then keeps it going). The host records the result and the next match comes to your court.</li>
         <li><b>Done?</b> Tap Release court so someone else can take it.</li>

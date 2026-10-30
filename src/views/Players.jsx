@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutGrid, List, Pencil, Trash2, Link2 } from "lucide-react";
+import { LayoutGrid, List, Pencil, Trash2, Link2, Search, X } from "lucide-react";
 import PersonBadge from "../components/PersonBadge";
 import { winPct } from "../utils/format";
 import { hasGender, validLock } from "../utils/rotationModes";
@@ -9,6 +9,9 @@ const savedView = () => { try { return localStorage.getItem(VIEW_KEY) === "list"
 
 export default function Players({ players, mixed, onEdit, onDelete }) {
   const [view, setView] = useState(savedView);
+  const [search, setSearch] = useState("");
+  const q = search.trim().toLowerCase();
+  const shown = q ? players.filter((p) => p.name?.toLowerCase().includes(q)) : players;
   const chooseView = (next) => {
     setView(next);
     try { localStorage.setItem(VIEW_KEY, next); } catch { /* private window: the choice just isn't remembered */ }
@@ -37,17 +40,28 @@ export default function Players({ players, mixed, onEdit, onDelete }) {
   return (
     <>
       {players.length > 0 && (
-        <div className="view-toggle" role="group" aria-label="Show players as">
-          <button type="button" aria-pressed={view === "cards"} onClick={() => chooseView("cards")}><LayoutGrid size={14} /> Cards</button>
-          <button type="button" aria-pressed={view === "list"} onClick={() => chooseView("list")}><List size={14} /> List</button>
+        <div className="players-tools">
+          <div className="view-toggle" role="group" aria-label="Show players as">
+            <button type="button" aria-pressed={view === "cards"} onClick={() => chooseView("cards")}><LayoutGrid size={14} /> Cards</button>
+            <button type="button" aria-pressed={view === "list"} onClick={() => chooseView("list")}><List size={14} /> List</button>
+          </div>
+          <label className="checkin-search players-search">
+            <Search size={15} aria-hidden="true" />
+            <input type="search" aria-label="Search players" placeholder={`Search ${players.length} ${players.length === 1 ? "player" : "players"}`} value={search} onChange={(e) => setSearch(e.target.value)} />
+            {search && (
+              <button type="button" className="checkin-search-clear" aria-label="Clear player search" onClick={() => setSearch("")}><X size={14} /></button>
+            )}
+          </label>
         </div>
       )}
-      {players.length && view === "list" ? (
+      {players.length > 0 && !shown.length ? (
+        <div className="empty">No players match “{search.trim()}”.</div>
+      ) : players.length && view === "list" ? (
         <div className="panel players-list">
           <div className="player-row header" aria-hidden="true">
             <span>Player</span><span>Games</span><span>Wins</span><span>Losses</span><span>Win %</span><span>Status</span><span />
           </div>
-          {players.map((p) => (
+          {shown.map((p) => (
             <div className="player-row" key={p.id}>
               <PersonBadge name={p.name} skill={p.skill} warn={warnOf(p)} />
               <div className="pr-stats">
@@ -63,7 +77,7 @@ export default function Players({ players, mixed, onEdit, onDelete }) {
         </div>
       ) : players.length ? (
         <div className="playergrid">
-          {players.map((p, i) => (
+          {shown.map((p, i) => (
             <div className="playercard" key={p.id} style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}>
               <div className="playercard-head">
                 <PersonBadge name={p.name} skill={p.skill} size="lg" warn={warnOf(p)} />

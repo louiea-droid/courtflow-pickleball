@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { collection, doc, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, doc, limit, onSnapshot, orderBy, query, setDoc } from "firebase/firestore";
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { auth, db, firebaseConfigured } from "./firebase";
 import { docsOf } from "./hooks/useLiveDocs";
@@ -19,6 +19,9 @@ import { applyGlobalTheme } from "./utils/theme";
 import { DEFAULT_LIVE, normalizeMode } from "./data/constants";
 import { upNextByCourt } from "./utils/rotationModes";
 import { queueOrder } from "./utils/queueStatus";
+import { announceCall, canSpeak, speak } from "./utils/voice";
+import { useVoiceClips, voiceBaseOf } from "./hooks/useVoiceClips";
+import { Volume2, VolumeX } from "lucide-react";
 
 // serving: "Server 2" / "Serving" on the serving team; state: "winner" / "lost" once a game is decided.
 function LiveTeam({ label, color, ids, players, showSkill, serving = null, state = null }) {
@@ -139,6 +142,9 @@ function useGameBoard(target) {
       if (offs.length) return;
       try { await joinAsViewer(base, user.uid, target.key); } catch { dead(); return; }
       if (stopped) return;
+      // Point at this game so the rules let the screen hear the club's voice recordings (no recordings is fine).
+      setDoc(doc(db, base[0], base[1], "boardViewers", user.uid), { event: base[3] })
+        .then(() => !stopped && setState((s) => ({ ...s, voiceReady: true }))).catch(() => {});
       offs = [
         onSnapshot(doc(db, ...base, "private", "live"), (s) => {
           if (!s.exists()) { dead(); return; }
@@ -191,6 +197,24 @@ export default function LiveBoard() {
     return () => { document.removeEventListener("visibilitychange", request); lock?.release(); };
   }, []);
 
+  // Voice calls sent from the Dashboard (Settings "Voice calls play on: Live Board") arrive as `call` on a court.
+  // Browsers only allow speech after a tap on the page, hence the Turn on voice button. Each call is read once;
+  // one older than 2 minutes (the board just opened, or voice was off) is skipped.
+  const [voiceOn, setVoiceOn] = useState(false);
+  // The host's recordings (Dashboard → Voice). A game's board may read its club's once registered (game.voiceReady).
+  const voiceClips = useVoiceClips(voiceBaseOf(target?.base), voiceOn && (!game.active || game.voiceReady));
+  const heard = useRef(new Set()); // every call key read, so a court doc flickering back to an older call never repeats it
+  useEffect(() => {
+    courts.forEach((c) => {
+      const call = c.call;
+      const key = call?.key && `${c.id}:${call.key}`;
+      if (!key || heard.current.has(key)) return;
+      heard.current.add(key);
+      if (!voiceOn || Math.abs(Date.now() - (call.at || 0)) > 120000) return;
+      announceCall(call.kind, c.name || `Court ${c.courtNumber}`, call.a, call.b, players, voiceClips);
+    });
+  }, [courts]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     document.title = session.location ? `${session.location} — Live Board` : "CourtWave — Live Board";
   }, [session.location]);
@@ -230,6 +254,10 @@ export default function LiveBoard() {
   // "Next" is the queue app's own pick for each court (the host's Up Next), so the board agrees with the Dashboard.
   const picks = upNextByCourt({ pool: queue, courts, mode: normalizeMode(session.mode || session.rotation) || "Balanced",
     need: session.format === "Singles" ? 2 : 4, now: Date.now() });
+  // The header's "Next up": the court the host chose on the Dashboard (its Up Next teams, saved as `nextUp`).
+  const firstCourt = courts.find((c) => c.nextUp);
+  const nameList = (ids = []) => ids.map((id) => players.find((p) => p.id === id)?.name).filter(Boolean);
+  const nextUp = firstCourt ? [nameList(firstCourt.nextUp.a), nameList(firstCourt.nextUp.b)].filter((t) => t.length) : [];
   const nextCourt = Object.fromEntries(courts.flatMap((c) => (picks[c.id] || []).map((p) => [p.id, c.name || `Court ${c.courtNumber}`])));
 
   const queueRows = queue.map((p, i) => (
@@ -260,7 +288,29 @@ export default function LiveBoard() {
             <p>{courts.length} {courts.length === 1 ? "court" : "courts"} · {session.format}</p>
           </div>
         </div>
-        <PhClock />
+        {nextUp.length > 0 && (
+          <div className="liveboard-nextup" aria-label="Next to play">
+            <span className="nextup-tag"><small>Next up</small><b>{firstCourt.name || `Court ${firstCourt.courtNumber}`}</b></span>
+            <div className="nextup-teams">
+              {nextUp.map((team, i) => (
+                <span key={i} className="nextup-team-wrap">
+                  {i > 0 && <span className="nextup-vs">vs</span>}
+                  <span className={`nextup-team${i ? " nextup-b" : ""}`}>{team.join(" & ")}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="liveboard-header-end">
+          {canSpeak() && (
+            <button type="button" className={`liveboard-voice${voiceOn ? " on" : ""}`} aria-pressed={voiceOn}
+              onClick={() => { const next = !voiceOn; setVoiceOn(next); if (next) speak("Voice calls are on."); }}
+              title={voiceOn ? "Voice calls are on. Tap to mute." : "Tap so this screen can read out the host's calls"}>
+              {voiceOn ? <Volume2 size={16} /> : <VolumeX size={16} />} {voiceOn ? "Voice on" : "Turn on voice"}
+            </button>
+          )}
+          <PhClock />
+        </div>
       </header>
 
       {visibleCosts.length > 0 && (
@@ -303,7 +353,7 @@ export default function LiveBoard() {
             <div className="panel liveboard-box">
               {matchLog.length ? (
                 <div className="matchlog-list">
-                  {matchLog.slice(0, 5).map((m, i) => <MatchLogRow match={m} latest={i === 0} key={m.id} />)}
+                  {matchLog.slice(0, 6).map((m, i) => <MatchLogRow match={m} latest={i === 0} key={m.id} />)}
                 </div>
               ) : (
                 <div className="empty">No matches recorded yet.</div>

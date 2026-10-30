@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { CircleDot, CircleHelp, SlidersHorizontal, Undo2 } from "lucide-react";
-import { adjust, call, confirmScore, finalText, firstServe, gamePoint, lastEvent, liveScore, rally, undo, winner } from "../utils/scoring";
+import { adjust, call, confirmScore, finalText, firstServe, gamePoint, lastEvent, liveScore, rally, serveError, servePoint, undo, winner } from "../utils/scoring";
 
 // The score of one court, as the umpire sees it. Used by managers (a modal on the Dashboard) and by volunteers
 // (/umpire). Nothing is kept here: every tap computes the next score from the court and sends it up.
@@ -93,6 +93,14 @@ export default function ScoreKeeper({ court, players, settings, onScore, onConfi
               );
             })}
           </div>
+          {/* Volunteers only: judge the serving team's rally with two big buttons instead of picking a side. */}
+          {page && !won && (
+            <div className="scorekeeper-quick" role="group" aria-label={`Rally on Team ${s.serving}'s serve`}>
+              <p>Team {s.serving} serving{sideout && !s.singles ? `, server ${s.server}` : ""}. Did they win the rally?</p>
+              <button className="scorekeeper-point" onClick={() => onScore(servePoint(s))}>Point</button>
+              <button className="scorekeeper-error" onClick={() => onScore(serveError(s))}>Error</button>
+            </div>
+          )}
           <p className="scorekeeper-event" aria-live="polite">
             {won ? "" : point ? `Game point: Team ${point}` : event || (sideout ? `Team ${s.serving} serves first.` : `Rally scoring, to ${s.to}.`)}
           </p>

@@ -295,6 +295,13 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 .court.preview:hover{transform:none;box-shadow:none}
 .preview-send{width:100%;justify-content:center;margin-top:12px}
 .preview-empty-note{text-align:center;color:var(--muted);font-size:12px;margin-top:12px;font-style:italic}
+.board-next-toggle{
+  margin-left:auto;display:inline-flex;align-items:center;gap:5px;min-height:26px;padding:0 9px;border-radius:99px;
+  border:1px solid var(--line);background:transparent;color:var(--muted);font-size:11px;font-weight:700;box-shadow:none
+}
+.board-next-toggle:hover{color:var(--ink);background:var(--soft)}
+.board-next-toggle.call+.board-next-toggle{margin-left:0}
+.board-next-toggle.on{background:var(--lime);border-color:var(--lime);color:var(--on-lime)}
 .court-top .badge-next{font-size:9px;color:var(--info-ink);background:var(--info-soft);border-radius:99px;padding:4px 7px;font-weight:900;animation:none}
 .court-top .badge-open{font-size:9px;color:var(--accent-ink);background:var(--accent-soft);border-radius:99px;padding:4px 7px;font-weight:900;animation:none}
 .court-top .badge-level-quiet{font-size:9px;color:var(--ink-2);background:var(--soft);border-radius:99px;padding:4px 7px;font-weight:800;animation:none}
@@ -853,16 +860,71 @@ form.confirm-modal .modalactions{margin-top:4px}
 }
 .liveboard-header{
   flex-shrink:0;display:flex;justify-content:space-between;align-items:flex-start;
-  flex-wrap:wrap;gap:16px;margin-bottom:clamp(12px,1.8vh,26px)
+  flex-wrap:wrap;gap:12px;margin-bottom:clamp(8px,1.2vh,16px)
 }
-.liveboard-brand{display:flex;align-items:center;gap:clamp(12px,1.4vw,20px);min-width:0}
-.liveboard-logo{height:clamp(40px,5vh,68px);width:auto;flex-shrink:0}
-.liveboard .eyebrow{font-size:clamp(10px,.9vw,12px)}
+.liveboard-brand{display:flex;align-items:center;gap:clamp(10px,1vw,14px);min-width:0}
+.liveboard-logo{height:clamp(30px,3.6vh,44px);width:auto;flex-shrink:0}
+.liveboard .eyebrow{font-size:clamp(9px,.75vw,11px)}
 .liveboard-header h1{
-  font:700 clamp(26px,3.6vw,50px) "Space Grotesk";margin:4px 0;letter-spacing:-1px;
+  font:700 clamp(20px,2.2vw,32px) "Space Grotesk";margin:1px 0;letter-spacing:-.5px;line-height:1.1;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw
 }
-.liveboard-header p{margin:0;color:var(--muted);font-size:clamp(12px,1.1vw,16px)}
+/* Dashboard → Voice: record calls in your own voice. */
+.voice-modal{width:min(520px,100%);max-height:calc(100vh - 36px);max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain}
+.voice-intro{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+.voice-group{margin-top:16px}
+.voice-group>.eyebrow{display:flex;justify-content:space-between;margin-bottom:4px}
+.voice-group>.eyebrow span{color:var(--faint);letter-spacing:.04em}
+.voice-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft)}
+.voice-row:last-child{border-bottom:0}
+.voice-row-text{display:flex;flex-direction:column;min-width:0}
+.voice-row-text b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.voice-row-text small{color:var(--faint);font-size:11.5px}
+.voice-row.done .voice-row-text small{color:var(--accent);font-weight:700}
+.voice-row-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.voice-rec{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;box-shadow:none}
+.voice-rec.on{animation:voice-pulse 1s ease-in-out infinite}
+@keyframes voice-pulse{50%{opacity:.7}}
+@media(prefers-reduced-motion:reduce){.voice-rec.on{animation:none}}
+.voice-search{width:100%;margin:4px 0 6px}
+.say-as-link{
+  align-self:flex-start;display:inline-flex;align-items:center;gap:6px;margin:-4px 0 2px;padding:4px 0;
+  border:0;background:none;box-shadow:none;color:var(--accent);font-size:12.5px;font-weight:700;text-align:left
+}
+.say-as-link:hover{text-decoration:underline;background:none}
+.player-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.say-as{display:flex;gap:8px;align-items:stretch}
+.say-as input{flex:1;min-width:0}
+.say-as .outline{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap;box-shadow:none}
+.liveboard-header-end{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.liveboard-voice{
+  display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px;border-radius:12px;
+  border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:700;font-size:13px;box-shadow:none
+}
+.liveboard-voice.on{background:var(--lime);border-color:var(--lime);color:var(--on-lime)}
+.liveboard-nextup{
+  flex:0 1 auto;min-width:0;margin:0 auto;display:flex;align-items:center;gap:clamp(12px,1.4vw,20px);
+  padding:7px clamp(14px,1.6vw,24px) 7px 7px;border:1px solid var(--line);border-radius:16px;background:var(--panel)
+}
+.nextup-tag{
+  display:flex;flex-direction:column;justify-content:center;flex-shrink:0;
+  padding:7px 14px;border-radius:11px;background:var(--lime);color:var(--on-lime);line-height:1.1
+}
+.nextup-tag small{font-size:clamp(9px,.7vw,11px);font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.nextup-tag b{font:700 clamp(14px,1.2vw,18px) "Space Grotesk"}
+.nextup-teams{display:flex;flex-wrap:wrap;align-items:center;gap:4px 0;min-width:0}
+.nextup-team-wrap{display:inline-flex;align-items:center}
+.nextup-team{
+  font:700 clamp(16px,1.6vw,24px) "Space Grotesk";letter-spacing:-.3px;color:var(--ink);white-space:nowrap;
+  padding-left:10px;border-left:4px solid var(--team1)
+}
+.nextup-team.nextup-b{border-left-color:var(--team2)}
+@media(max-width:700px){.nextup-team{white-space:normal}.nextup-team-wrap{flex-wrap:wrap;gap:4px 0}}
+.nextup-vs{
+  margin:0 clamp(10px,1.2vw,18px);padding:3px 9px;border-radius:999px;background:var(--soft);
+  color:var(--muted);font-size:clamp(10px,.8vw,12px);font-weight:800;letter-spacing:.08em;text-transform:uppercase
+}
+.liveboard-header p{margin:0;color:var(--muted);font-size:clamp(11px,.9vw,14px)}
 .liveboard .ph-clock{font-size:clamp(13px,1.3vw,17px);padding:10px 16px;border-radius:12px;flex-shrink:0}
 .liveboard .ph-clock b{font-size:10px}
 
@@ -909,12 +971,12 @@ form.confirm-modal .modalactions{margin-top:4px}
 .liveboard .badge-level-quiet{font-size:clamp(8px,1vh,10.5px);padding:4px 9px}
 .liveboard .teams{gap:clamp(9px,1.3vw,15px)}
 .liveboard .team{border-radius:13px}
-.liveboard .team>div:first-child{padding:clamp(7px,1.1vh,11px) 13px;font-size:clamp(10.5px,1.2vh,12.5px);border-radius:12px 12px 0 0}
+.liveboard .team>div:first-child{padding:clamp(7px,1.1vh,11px) 13px;font-size:clamp(12px,1.4vh,14.5px);border-radius:12px 12px 0 0}
 .liveboard .team .chip:last-child{border-radius:0 0 12px 12px}
 .liveboard .chip{padding:clamp(9px,1.5vh,15px) clamp(10px,1.2vw,14px)}
-.liveboard .chip b{font-size:clamp(13px,1.6vh,16.5px)}
-.liveboard .chip small{font-size:clamp(10.5px,1.2vh,12.5px)}
-.liveboard .chip .star-display svg{width:clamp(11px,1.4vh,14px);height:clamp(11px,1.4vh,14px)}
+.liveboard .chip b{font-size:clamp(15px,1.9vh,19.5px)}
+.liveboard .chip small{font-size:clamp(12px,1.4vh,14.5px)}
+.liveboard .chip .star-display svg{width:clamp(13px,1.6vh,16px);height:clamp(13px,1.6vh,16px)}
 .liveboard .court-empty{padding:clamp(14px,2.8vh,36px) 10px}
 .liveboard .court-empty-icon{width:clamp(26px,3.6vh,38px);height:clamp(26px,3.6vh,38px)}
 .liveboard .court-empty p{font-size:clamp(11px,1.5vh,14px)}
@@ -959,6 +1021,10 @@ form.confirm-modal .modalactions{margin-top:4px}
    same row styling just sits in an ordinary panel that can grow with the page. */
 .matchlog-list{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;
   -webkit-mask-image:linear-gradient(#000 90%,transparent);mask-image:linear-gradient(#000 90%,transparent)}
+/* Live Board: two columns, newest first reading left to right. */
+.liveboard .matchlog-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;column-gap:12px}
+.liveboard .matchlog-row:nth-last-child(2):nth-child(odd){border-bottom:0}
+@media(max-width:700px){.liveboard .matchlog-list{grid-template-columns:minmax(0,1fr)}}
 .matchlog-row{
   display:grid;gap:4px;padding:clamp(9px,1.4vh,13px) 10px;border-bottom:1px solid var(--line-soft)
 }
@@ -988,6 +1054,10 @@ form.confirm-modal .modalactions{margin-top:4px}
 }
 .matchlog-line.win .matchlog-names{color:var(--ink);font-weight:700}
 .matchlog-line.loss .matchlog-names{color:var(--muted)}
+/* Live Board: read from across the room, so the results run a size larger than the Dashboard's. */
+.liveboard .matchlog-meta{font-size:clamp(12px,1.3vh,14px)}
+.liveboard .matchlog-won,.liveboard .matchlog-lost{font-size:clamp(11.5px,1.25vh,13.5px)}
+.liveboard .matchlog-names{font-size:clamp(14px,1.6vh,17px)}
 
 /* ---------- Responsive ---------- */
 @media(max-width:1050px){
@@ -1182,6 +1252,8 @@ form.confirm-modal .modalactions{margin-top:4px}
   .liveboard-header{flex-direction:column;align-items:stretch}
   .liveboard-header h1{max-width:100%}
   .liveboard-header .ph-clock{width:100%;justify-content:center}
+  .liveboard-header-end{width:100%}
+  .liveboard-header-end .ph-clock{flex:1;width:auto}
   .liveboard-body{display:block}
   .liveboard-col{overflow:visible}
   .liveboard-courts-col{margin-bottom:28px}
@@ -1546,6 +1618,13 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .scorekeeper-event{margin:0;text-align:center;font-weight:800;color:var(--ink)}
 .scorekeeper-tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .scorekeeper-tools button{min-height:44px}
+/* Volunteer page: Point / Error for the serving team's rally. */
+.scorekeeper-quick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.scorekeeper-quick p{grid-column:1/-1;margin:0;text-align:center;font-weight:700;color:var(--muted)}
+.scorekeeper-quick button{min-height:64px;border:0;border-radius:14px;font-size:20px;font-weight:900;color:var(--on-accent)}
+.scorekeeper-point{background:var(--accent)}
+.scorekeeper-error{background:var(--danger)}
+.scorekeeper-quick button:active{transform:scale(.97)}
 /* The board, then "Fix the score" and "How scoring works" below it; beside it when the score screen itself is wide. */
 .scorekeeper{container-type:inline-size}
 .scorekeeper-layout,.scorekeeper-main{display:flex;flex-direction:column;gap:12px}
@@ -1713,12 +1792,16 @@ a.hub-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-colo
 .ci-btn{min-width:96px;min-height:42px;border-radius:99px;font-weight:700;flex-shrink:0}
 .checkin-modal-list{padding:0 2px}
 /* Players: Cards / List switch and the list view. */
+.players-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px}
+.players-tools .view-toggle{margin:0}
+.players-search{width:min(100%,260px)}
+@media(max-width:560px){.players-search{width:100%}}
 .view-toggle{display:inline-flex;gap:2px;padding:3px;margin:0 0 14px;border:1px solid var(--line);border-radius:11px;background:var(--soft)}
 .view-toggle button{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 13px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-weight:700;font-size:12.5px;box-shadow:none}
 .view-toggle button:hover{color:var(--ink)}
 .view-toggle button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
 .players-list{padding:4px 16px}
-.player-row{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,64px) minmax(150px,auto) auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+.player-row{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,64px) 240px auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line-soft)}
 .player-row:last-child{border-bottom:0}
 .player-row.header{padding:10px 0 8px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .pr-stats{display:contents}

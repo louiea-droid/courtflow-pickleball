@@ -23,6 +23,7 @@ const HISTORY_OPTIONS = [5, 10, 15, 20].map((n) => ({ value: n, label: `Last ${n
 const SCORE_STYLE_OPTIONS = [{ value: "sideout", label: "Side-out (serving team scores)" }, { value: "rally", label: "Rally (every rally scores)" }];
 const SCORE_TO_OPTIONS = SCORE_TARGETS.map((n) => ({ value: n, label: `Play to ${n}` }));
 const ON_OFF = [{ value: "off", label: "Off" }, { value: "on", label: "On" }];
+const VOICE_WHERE_OPTIONS = [{ value: "device", label: "This device" }, { value: "board", label: "Live Board" }];
 const SHOW_HIDE = [{ value: "show", label: "Shown" }, { value: "hide", label: "Hidden" }];
 const CLOCK_OPTIONS = [{ value: "12", label: "12-hour" }, { value: "24", label: "24-hour" }];
 const TIME_ZONES = [
@@ -262,6 +263,16 @@ export default function Settings({
           <SettingsRow title="Record umpire results automatically" body="When on, a game the umpire finishes is recorded and its court rotates by itself once the 5 second countdown ends. When off, the host taps Confirm on the court card.">
             <div className="account-select">
               <Select value={rules.autoRecord ? "on" : "off"} onChange={(v) => onSetRules({ autoRecord: v === "on" })} options={ON_OFF} />
+            </div>
+          </SettingsRow>
+          <SettingsRow title="Voice calls play on" body="Where the Call button on an Up Next card reads the players out. This device: the phone or laptop running the Dashboard (connect a speaker to it). Live Board: the TV or screen showing the Live Board, after someone taps Turn on voice there once.">
+            <div className="account-select">
+              <Select value={rules.voiceWhere || "device"} onChange={(voiceWhere) => onSetRules({ voiceWhere })} options={VOICE_WHERE_OPTIONS} />
+            </div>
+          </SettingsRow>
+          <SettingsRow title="Call players automatically" body="When on, players are also called by voice as soon as their match starts on a court. When off, only the Call button calls them.">
+            <div className="account-select">
+              <Select value={rules.voiceAuto ? "on" : "off"} onChange={(v) => onSetRules({ voiceAuto: v === "on" })} options={ON_OFF} />
             </div>
           </SettingsRow>
         </div>

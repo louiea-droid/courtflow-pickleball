@@ -27,6 +27,8 @@ export const DEFAULT_RULES = {
   scoreStyle: "sideout", // umpire scoring: "sideout" (serving team scores, server 1/2) or "rally"
   scoreTo: 11, // play to 11, 15 or 21, win by 2
   autoRecord: false, // record an umpire's finished game by itself (else the host taps Confirm)
+  voiceWhere: "device", // voice calls play on "device" (the host's Dashboard) or "board" (the Live Board)
+  voiceAuto: false, // also call players by voice when their match starts (else only the Call button)
 };
 export const RULE_DEFAULTS_VERSION = 1;
 export const DEFAULT_COST = { rate: 0, roundTo: 0 }; // roundTo 0 = exact split

@@ -344,6 +344,17 @@ service cloud.firestore {
       let p = /databases/$(database)/documents/clubs/$(c)/events/$(e)/private/live;
       return request.auth != null && viewable(c, e) && exists(v) && exists(p) && get(v).data.key == get(p).data.key;
     }
+    // A Live Board screen of one of the club's games (boardViewers/{uid} names the game; eventViewer checks the rest).
+    function boardViewer(c) {
+      let b = /databases/$(database)/documents/clubs/$(c)/boardViewers/$(request.auth.uid);
+      return request.auth != null && exists(b) && eventViewer(c, get(b).data.event);
+    }
+    // A voice recording: an audio data URL (a few seconds, at most 100000 characters), what it says, when.
+    function validClip(d) {
+      return d.keys().hasOnly(['audio', 'label', 'at']) && d.keys().hasAll(['audio', 'label', 'at'])
+        && d.audio is string && d.audio.size() <= 100000 && d.audio.matches('data:audio/[a-z0-9.+-]+(;[^,]*)?;base64,.*')
+        && d.label is string && d.label.size() <= 80 && d.at is number;
+    }
     function sessionFree(s) {
       let r = get(/databases/$(database)/documents/sessions/$(s)/umpires/$(request.auth.uid)).data;
       return !('court' in r) || !exists(/databases/$(database)/documents/sessions/$(s)/courtClaims/$(r.court))
@@ -589,6 +600,23 @@ service cloud.firestore {
             && exists(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/courtClaims/$(courtId))
             && get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/courtClaims/$(courtId)).data.uid == request.auth.uid;
         }
+      }
+
+      // Voice recordings (Dashboard → Voice): phrases, court names and player names in the host's own voice, reused by
+      // every game of the club. Managers record; a game's Live Board screen reads them while it may read that game.
+      match /voice/{clipId} {
+        allow read: if isManager(clubId) || boardViewer(clubId);
+        allow create, update: if isManager(clubId) && validClip(request.resource.data);
+        allow delete: if isManager(clubId);
+      }
+      // A Live Board screen says which game it shows (its viewers/{uid} record there is what counts).
+      match /boardViewers/{uid} {
+        allow get: if request.auth != null && request.auth.uid == uid;
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['event']) && request.resource.data.event is string
+          && request.resource.data.event.size() > 0 && request.resource.data.event.size() < 200;
+        allow delete: if (request.auth != null && request.auth.uid == uid) || isOwner(clubId);
+        allow list: if isOwner(clubId); // deleting the club
       }
 
       match /announcements/{announcementId} {
