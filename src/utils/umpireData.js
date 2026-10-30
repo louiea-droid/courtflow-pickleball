@@ -66,3 +66,18 @@ export function claimRecording(base, courtId, confirmedAt) {
   });
 }
 
+// Two hosts tapping Win on the same match: the first marks the court (`resultFor` = the match's start) and records it,
+// the second is refused. A transaction needs the server, so offline (or when it can't finish in 4 s) the result goes
+// through as before. ponytail: offline, two hosts can still both record; a venue with one host never notices.
+export function claimResult(base, courtId, start) {
+  if (start == null || (typeof navigator !== "undefined" && navigator.onLine === false)) return Promise.resolve(true);
+  const ref = at(base, "courts", courtId);
+  const claim = runTransaction(db, async (tx) => {
+    const d = (await tx.get(ref)).data();
+    if (!d || d.start !== start || d.resultFor === start) return false;
+    tx.update(ref, { resultFor: start });
+    return true;
+  });
+  return Promise.race([claim.catch(() => true), new Promise((done) => setTimeout(() => done(true), 4000))]);
+}
+

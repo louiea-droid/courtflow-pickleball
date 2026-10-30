@@ -130,7 +130,7 @@ function OpenPlayFees({ event, players, fee, canSetFee, onSetFee, onSetAttendees
     const booked = list.filter((r) => r.attendee).map((r) => r.id);
     const walkIns = list.filter((r) => !r.attendee).map((r) => r.id);
     if (booked.length) onSetAttendeesPaid(booked, value);
-    if (walkIns.length) onSetPlayersPaid(walkIns, value === "paid");
+    if (walkIns.length) onSetPlayersPaid(walkIns, value === "paid", fee);
   };
   const setMethod = (row, value) => (row.attendee ? onSetAttendeeMethod(row.id, value) : onSetPlayerMethod(row.id, value));
   const owing = rows.filter(FILTER_TESTS.unpaid);

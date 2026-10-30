@@ -37,10 +37,11 @@ export default function ScoreKeeper({ court, players, settings, onScore, onConfi
   const won = winner(s);
   // A finished game is saved after a short countdown (a wrong last tap can still be undone). With "Record umpire results
   // automatically" off the host then confirms it (the court card, or the Confirm button here in the manager's pop-up);
-  // on, a manager's save records it at once and a volunteer's is recorded by the host's queue.
+  // on, the open Dashboard records it, the same way for a manager's save and a volunteer's: through its claim, so a game
+  // saved on two screens is still recorded once.
   const [left, setLeft] = useState(SAVE_AFTER_S);
   const save = useRef(null);
-  save.current = () => (autoRecord && onConfirm ? onConfirm(won === 1 ? "A" : "B") : onScore(confirmScore(s)));
+  save.current = () => onScore(confirmScore(s));
   const finishing = !empty && won && !s.confirmed ? `${court.id}:${s.start}:${s.t1}:${s.t2}` : null;
   useEffect(() => {
     if (!finishing) return undefined;

@@ -1,6 +1,6 @@
 // Self-check for booking seats, totals and player-facing status. Run: node src/utils/bookings.check.mjs
 import assert from "node:assert";
-import { addAttendee, bookingTotals, endHM, attendeeFromRequest, hasEnded, hasEndedIn, isListed, isOver, myStatus, splitAttendees, owingIds, filterAttendees } from "./bookings.js";
+import { addAttendee, bookingTotals, endHM, attendeeFromRequest, hasEnded, hasEndedIn, isListed, isOver, myStatus, splitAttendees, owingIds, filterAttendees, seatTaken } from "./bookings.js";
 
 const a = (id, joinedAt, paid = "unpaid", extra = {}) => ({ id, name: id, joinedAt, paid, ...extra });
 const b = { date: "2026-10-11", startTime: "18:00", durationMins: 120, maxPlayers: 2, fee: 150, attendees: [] };
@@ -80,5 +80,12 @@ assert.deepEqual(filterAttendees(ev.attendees, "paid", "").map((x) => x.id), ["p
 assert.deepEqual(filterAttendees(ev.attendees, "refunded", "").map((x) => x.id), ["r1"]);
 assert.deepEqual(filterAttendees(ev.attendees, "all", "  P1 ").map((x) => x.id), ["p1"]); // trimmed, any case
 assert.deepEqual(filterAttendees(ev.attendees, "all", "").length, 4);
+
+// Seat ids are public on the event: a new request reusing someone's seat id must not take their place.
+const onList = [{ id: "seatA", name: "Ann", paid: "paid" }];
+assert.equal(seatTaken(onList, { seatId: "seatA", status: "pending" }), true);
+assert.equal(seatTaken(onList, { seatId: "seatA", status: "approved" }), false); // approving the same request again is fine
+assert.equal(seatTaken(onList, { seatId: "seatB", status: "pending" }), false);
+assert.equal(seatTaken(undefined, { seatId: "seatB", status: "pending" }), false);
 
 console.log("bookings.check: ok");

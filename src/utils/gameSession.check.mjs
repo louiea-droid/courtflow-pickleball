@@ -145,4 +145,20 @@ const csv = feeCsv(rep);
 assert.ok(csv.startsWith("\uFEFF"));
 assert.ok(csv.includes('"Dee","GCash","Paid","150"'));
 assert.ok(csv.includes('"Remaining balance","","","150"'));
+// A waitlisted attendee the host brought into the game owes the fee like anyone playing.
+const wl = { ...event, maxPlayers: 1, attendees: [att("a", 1, "paid"), att("b", 2)] };
+assert.equal(feeRows(wl, [{ id: "a" }, { id: "b" }]).find((r) => r.id === "b").waiting, false);
+assert.deepEqual(feeTotals(feeRows(wl, [{ id: "a" }, { id: "b" }]), 150), { total: 300, collected: 150, remaining: 150, unpaid: 1, paid: 1 });
+assert.equal(feeRows(wl, [{ id: "a" }]).length, 1); // still waiting, not in the game: owes nothing, not listed
+// What someone paid is kept: raising the fee later doesn't change money already collected.
+const raised = { ...event, fee: 200, attendees: [{ ...att("a", 1, "paid"), amount: 150 }] };
+const paidWalkIn = [{ id: "a" }, { id: "w", name: "Walk", feePaid: true, feeAmount: 150 }, { id: "u", name: "Owes" }];
+assert.deepEqual(feeTotals(feeRows(raised, paidWalkIn), 200), { total: 500, collected: 300, remaining: 200, unpaid: 1, paid: 2 });
+assert.deepEqual(feeReport(raised, paidWalkIn, 1).rows.map((r) => r.amount), [150, 150, 200]);
+assert.deepEqual(feeTotals([{ paid: "paid" }], 150).collected, 150); // nothing saved (older data): the current fee
+
+// A name typed on the public booking form never runs as an Excel formula.
+const evil = feeCsv({ ...rep, rows: [{ name: "=HYPERLINK(\"x\")", method: "cash", status: "unpaid", amount: 150 }, { name: "@SUM(1)", method: "cash", status: "paid", amount: 150 }] });
+assert.ok(evil.includes(`"'=HYPERLINK(""x"")"`) && evil.includes(`"'@SUM(1)"`));
+assert.ok(evil.includes(`"Unpaid","150"`)); // numbers are left alone
 console.log("feeReport checks ok");

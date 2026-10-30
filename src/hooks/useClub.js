@@ -5,10 +5,10 @@ import { auth, db } from "../firebase";
 import { DEFAULT_RULES, RULE_DEFAULTS_VERSION, seedSession } from "../data/constants";
 import { authMessage } from "../utils/account";
 import { wipeCollection } from "../utils/wipe";
+import { SESSION_SUBCOLLECTIONS } from "../utils/accountData";
 import { matchCount } from "../utils/stats";
 
 const QUICK_NAME = "Quick session";
-const SUBCOLLECTIONS = ["players", "courts", "history", "costs", "matchLog", "bookings", "bookingRequests", "private", "umpires", "courtClaims"];
 
 function createFreshSession(batch, id) {
   batch.set(doc(db, "sessions", id), {
@@ -113,7 +113,7 @@ export function useClub() {
   async function eraseSession() {
     if (!club) return;
     const { id } = club;
-    for (const name of SUBCOLLECTIONS) await wipeCollection(db, collection(db, "sessions", id, name));
+    for (const name of SESSION_SUBCOLLECTIONS) await wipeCollection(db, collection(db, "sessions", id, name));
     const batch = writeBatch(db);
     createFreshSession(batch, id);
     await batch.commit();

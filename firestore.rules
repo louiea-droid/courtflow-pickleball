@@ -375,16 +375,23 @@ service cloud.firestore {
     }
     // Joining with the club's current invite code: the member link makes a member, the owner's manager link
     // makes a manager. The rules read the invite document even though the person cannot; resetting the code
-    // stops every old link at once.
+    // stops every old link at once. The code goes in the same batch to joinCodes/{uid}, never on the member
+    // record: every member can read the records, and a manager link's code read back off one makes managers.
+    function joinCodePath(clubId, uid) {
+      return /databases/$(database)/documents/clubs/$(clubId)/joinCodes/$(uid);
+    }
     function validInviteJoin(clubId, uid) {
       let d = request.resource.data;
       return request.auth.uid == uid
-        && d.keys().hasOnly(['role', 'name', 'joinedAt', 'inviteCode'])
-        && d.keys().hasAll(['role', 'name', 'joinedAt', 'inviteCode'])
+        && d.keys().hasOnly(['role', 'name', 'joinedAt'])
+        && d.keys().hasAll(['role', 'name', 'joinedAt'])
         && validName(d.name)
         && nearNow(d.joinedAt)
-        && ((d.role == 'member' && exists(invitePath(clubId)) && d.inviteCode == get(invitePath(clubId)).data.code)
-          || (d.role == 'manager' && exists(managerInvitePath(clubId)) && d.inviteCode == get(managerInvitePath(clubId)).data.code));
+        && existsAfter(joinCodePath(clubId, uid))
+        && ((d.role == 'member' && exists(invitePath(clubId))
+            && getAfter(joinCodePath(clubId, uid)).data.code == get(invitePath(clubId)).data.code)
+          || (d.role == 'manager' && exists(managerInvitePath(clubId))
+            && getAfter(joinCodePath(clubId, uid)).data.code == get(managerInvitePath(clubId)).data.code));
     }
     // A manager approving a pending request: a plain member record, nothing else.
     function validApproval(clubId, uid) {
@@ -471,6 +478,15 @@ service cloud.firestore {
           || (isManager(clubId) && request.auth.uid != uid && resource.data.role == 'member')
           || (request.auth.uid == uid && resource.data.role != 'owner')
           || (request.auth.uid == uid && !exists(clubPath(clubId))));
+      }
+
+      // The code a person joined with (validInviteJoin reads it with getAfter). Only they write it and no member
+      // reads it; the owner (who knows the codes anyway) reads and deletes them when deleting the club.
+      match /joinCodes/{uid} {
+        allow create, update: if isRealUser() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['code'])
+          && request.resource.data.code is string && request.resource.data.code.size() <= 20;
+        allow read, delete: if isOwner(clubId);
       }
 
       match /events/{eventId} {

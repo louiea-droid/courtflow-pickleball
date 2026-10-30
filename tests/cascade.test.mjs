@@ -15,6 +15,7 @@ const count = async (path) => {
   return n;
 };
 const real = (uid) => env.authenticatedContext(uid, { email: `${uid}@example.com`, firebase: { sign_in_provider: "password" } }).firestore();
+const SESSION_SUBS = ["players", "courts", "history", "costs", "matchLog", "private", "umpires", "courtClaims"];
 const EVENT_SUBS = ["requests", "players", "courts", "matchLog", "costs", "private", "umpires", "courtClaims", "viewers"];
 
 // A club with two events (every subcollection), a roster, a join request, an invite, an owner and a member.
@@ -25,6 +26,7 @@ const seedClub = async (db, id, ownerId) => {
   await setDoc(doc(db, `accounts/helper/memberships/${id}`), { clubName: id, role: "member", joinedAt: 1 });
   await setDoc(doc(db, `clubs/${id}/roster/r1`), { name: "Regular" });
   await setDoc(doc(db, `clubs/${id}/joinRequests/j1`), { name: "J" });
+  await setDoc(doc(db, `clubs/${id}/joinCodes/helper`), { code: "X" });
   await setDoc(doc(db, `clubs/${id}/private/invite`), { code: "X" });
   await setDoc(doc(db, `clubs/${id}/private/managerInvite`), { code: "Y" });
   await setDoc(doc(db, `clubs/${id}/announcements/a1`), { authorId: ownerId, authorName: ownerId, text: "Club update", createdAt: 1 });
@@ -53,6 +55,10 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, "accounts/u2"), { name: "Two" });
   await setDoc(doc(db, "accounts/u1/chatReads/club_c1"), { at: 1 });
   await setDoc(doc(db, "accounts/u1/chatReads/club_c2"), { at: 1 });
+  // The quick session (/club) of a signed-in account lives at sessions/{uid}, public to read.
+  await setDoc(doc(db, "sessions/u1"), { location: "Quick" });
+  for (const sub of SESSION_SUBS) await setDoc(doc(db, `sessions/u1/${sub}/x`), { n: 1 });
+  await setDoc(doc(db, "sessions/u2"), { location: "Other" });
 });
 
 // Deleting one event takes the doc and every subcollection, and leaves the other event alone.
@@ -66,7 +72,7 @@ for (const sub of EVENT_SUBS) {
 // Review Focus 2: deleting a club, run as its owner, leaves nothing.
 await deleteClubData(real("u3"), "c3", "u3");
 assert.equal(await count("accounts/helper/memberships"), 2, "helper's c3 card left behind"); // c1 and c2 remain
-for (const sub of ["events", "members", "roster", "joinRequests", "private", "announcements"]) {
+for (const sub of ["events", "members", "roster", "joinRequests", "joinCodes", "private", "announcements"]) {
   assert.equal(await count(`clubs/c3/${sub}`), 0, `c3/${sub} left behind`);
 }
 for (const e of ["e1", "e2"]) {
@@ -83,7 +89,7 @@ assert.equal(await count("chats/club_c2/messages"), 2, "c2's chat was touched");
 
 // Deleting an account removes the clubs it owns, its copies, and the pre-club data; clubs it only belongs to stay.
 await deleteAccountData(real("u1"), "u1");
-for (const sub of ["events", "members", "roster", "joinRequests", "private", "announcements"]) {
+for (const sub of ["events", "members", "roster", "joinRequests", "joinCodes", "private", "announcements"]) {
   assert.equal(await count(`clubs/c1/${sub}`), 0, `c1/${sub} left behind`);
 }
 for (const e of ["e1", "e2"]) {
@@ -91,6 +97,11 @@ for (const e of ["e1", "e2"]) {
 }
 assert.equal(await count("accounts/u1/memberships"), 0);
 assert.equal(await count("accounts/u1/chatReads"), 0, "u1's read positions left behind");
+for (const sub of SESSION_SUBS) assert.equal(await count(`sessions/u1/${sub}`), 0, `u1 quick session ${sub} left behind`);
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const left = await getDocs(collection(ctx.firestore(), "sessions"));
+  assert.equal(left.docs.map((d) => d.id).join(), "u2", "u1's quick session doc left behind (or u2's was touched)");
+});
 assert.equal(await count("chats/club_c1/messages"), 0, "c1's chat messages left behind");
 assert.equal(await count("chats/club_c2/messages"), 2, "c2's chat was touched");
 assert.equal(await count("accounts/u1/roster"), 0);

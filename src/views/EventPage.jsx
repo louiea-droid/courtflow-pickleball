@@ -8,7 +8,7 @@ import { FeeFilters, FeeProgress, MethodSwitch, StatusPill } from "../components
 import RowMenu from "../components/RowMenu";
 import { endHM, filterAttendees, owingIds, splitAttendees } from "../utils/bookings";
 import { formatDay, formatHM, formatTime, money } from "../utils/format";
-import { feeCsv, feeReport, feeTotals, gameSummary } from "../utils/gameSession";
+import { feeCsv, feeReport, feeRows, feeTotals, gameSummary } from "../utils/gameSession";
 import { downloadCsv } from "../utils/download";
 
 // One player: the same status pill and Cash / GCash switch as the game's Payment page; refund and remove live behind "⋯".
@@ -71,15 +71,20 @@ export default function EventPage({
   const full = confirmed.length >= event.maxPlayers;
   const summary = gameSummary(gamePlayers, event.format);
   const everyone = event.attendees || [];
-  const owing = owingIds(event);
-  // The same sums as the game's Payment page (feeTotals): a paid waitlist player counts as collected and as owing.
+  // Once a game has started, the same rows and sums as its Payment page (who is in the game, not who booked);
+  // before that, the booked list. Mark all as paid then covers the booked players in the game.
+  const gameRows = gameLoaded && event.status !== "scheduled" ? feeRows(event, gamePlayers) : null;
+  const owing = gameRows
+    ? gameRows.filter((r) => r.attendee && !r.waiting && r.paid !== "paid" && r.paid !== "refunded").map((r) => r.id)
+    : owingIds(event);
   const confirmedIds = new Set(confirmed.map((a) => a.id));
-  const sums = feeTotals(everyone.map((a) => ({ paid: a.paid, waiting: !confirmedIds.has(a.id) })), event.fee || 0);
+  const sums = feeTotals(gameRows || everyone.map((a) => ({ paid: a.paid, amount: a.amount, waiting: !confirmedIds.has(a.id) })), event.fee || 0);
   const countOf = (key) => filterAttendees(everyone, key).length;
   const shownConfirmed = filterAttendees(confirmed, filter, search);
   const shownWaitlist = filterAttendees(waitlist, filter, search);
-  // Saved when the game ended; a game ended before this existed (or offline) falls back to the live data.
-  const fees = event.status === "ended" ? feeRecord || (gameLoaded ? feeReport(event, gamePlayers, 0) : null) : null;
+  // The live data, so a payment marked after the game ended shows; the report saved at End game is the backup
+  // for when the game data can't be read.
+  const fees = event.status === "ended" ? (gameLoaded ? feeReport(event, gamePlayers, 0) : feeRecord || null) : null;
   const gameLine = event.status === "live" ? (
     <p className="booking-money">
       <b>Game in progress</b>{gameLoaded ? ` · ${summary.checkedIn} checked in of ${summary.players}` : ""}

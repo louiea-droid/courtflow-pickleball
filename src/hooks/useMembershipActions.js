@@ -17,12 +17,14 @@ export function useMembershipActions({ uid, name, clubId, club }) {
   // Withdraw a pending request, or dismiss a declined one.
   const cancelRequest = () => deleteDoc(requestRef(uid));
 
-  // The invite code travels on the new member record; the rules compare it to the club's current code
-  // (the member link for role "member", the owner's manager link for role "manager").
+  // The invite code goes in joinCodes/{uid} in the same batch (never on the member record, which every member can
+  // read); the rules compare it to the club's current code (the member link for role "member", the owner's manager
+  // link for role "manager").
   const joinWithInvite = async (code, role = "member") => {
     const now = Date.now();
     const batch = writeBatch(db);
-    batch.set(memberRef(uid), memberRecord(name, now, code, role));
+    batch.set(doc(db, "clubs", clubId, "joinCodes", uid), { code });
+    batch.set(memberRef(uid), memberRecord(name, now, role));
     batch.set(cardRef(uid), membershipCopy(club, role, now));
     batch.delete(requestRef(uid)); // an earlier request of theirs is answered by joining
     await batch.commit();

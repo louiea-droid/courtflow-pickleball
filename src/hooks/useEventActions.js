@@ -1,6 +1,6 @@
 import { addDoc, collection, doc, getDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
-import { addAttendee, attendeeFromRequest, splitAttendees } from "../utils/bookings";
+import { addAttendee, attendeeFromRequest, seatTaken, splitAttendees } from "../utils/bookings";
 import { deleteEventData } from "../utils/accountData";
 import { sessionMeta } from "../utils/sessions";
 
@@ -65,8 +65,9 @@ export function useEventActions({ clubId, club, events, hostName, timeZone, noti
     const attendees = e.attendees.map((a) => {
       if (!chosen.has(a.id)) return a;
       const next = { ...a, paid };
-      if (paid === "paid") next.paidAt = Date.now();
-      else delete next.paidAt;
+      // What they paid is kept (feeTotals reads it), so a later fee change doesn't rewrite money already collected.
+      if (paid === "paid") Object.assign(next, { paidAt: Date.now(), amount: e.fee || 0 });
+      else { delete next.paidAt; delete next.amount; }
       return next;
     });
     const bookingRef = doc(db, "clubs", clubId, "events", eventId, "costs", `booking-${eventId}`);
@@ -83,7 +84,17 @@ export function useEventActions({ clubId, club, events, hostName, timeZone, noti
     const before = splitAttendees(e).confirmed.map((a) => a.id);
     const next = e.attendees.filter((a) => a.id !== attendeeId);
     const promoted = splitAttendees({ ...e, attendees: next }).confirmed.find((a) => !before.includes(a.id));
-    await setAttendees(eventId, next);
+    // Still in the game: they stay on the Payment page as a game-only player, so their payment moves to the player doc.
+    const gone = e.attendees.find((a) => a.id === attendeeId);
+    const playerRef = doc(db, "clubs", clubId, "events", eventId, "players", attendeeId);
+    const inGame = e.status !== "scheduled" && gone && (await getDoc(playerRef).catch(() => null))?.exists();
+    const batch = writeBatch(db);
+    batch.update(eventRef(eventId), { attendees: next });
+    if (inGame) {
+      const paid = gone.paid === "paid";
+      batch.update(playerRef, { feePaid: paid, feeMethod: gone.method || "cash", ...(paid ? { feeAmount: gone.amount ?? e.fee ?? 0 } : {}) });
+    }
+    await batch.commit();
     notify(promoted ? `${promoted.name} moved up from the waitlist.` : "Removed from the list.");
   };
 
@@ -92,6 +103,7 @@ export function useEventActions({ clubId, club, events, hostName, timeZone, noti
   const approve = async (eventId, request) => {
     const e = find(eventId);
     if (!e) return notify("That open play no longer exists.");
+    if (seatTaken(e.attendees, request)) return notify(`${request.name}'s request uses a spot that's already taken. Decline it.`);
     const attendee = attendeeFromRequest(request);
     const next = addAttendee((e.attendees || []).filter((a) => a.id !== attendee.id), attendee);
     const batch = writeBatch(db);

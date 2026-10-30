@@ -4,6 +4,7 @@ import { db, firebaseConfigured } from "./firebase";
 import { applyDisplayPrefs, splitCost, winPct } from "./utils/format";
 import { applyTheme, getGlobalTheme } from "./utils/theme";
 import { matchCount } from "./utils/stats";
+import { csvCell, downloadCsv } from "./utils/download";
 import { isValidSkillLevel, matchesCourtLevel } from "./utils/courtLevels";
 import { checkInFields } from "./utils/gameSession";
 import {
@@ -15,7 +16,7 @@ import { useSessionData } from "./hooks/useSessionData";
 import { useCosts } from "./hooks/useCosts";
 import { useMatchLog } from "./hooks/useMatchLog";
 import { useDocs } from "./hooks/useLiveDocs";
-import { claimRecording, clearScore, writeScore } from "./utils/umpireData";
+import { claimRecording, claimResult, clearScore, writeScore } from "./utils/umpireData";
 import { packCourts } from "./utils/courtPack";
 
 import Sidebar from "./components/Sidebar";
@@ -568,6 +569,11 @@ export default function QueueApp({
   // scoreText: the umpire's final score ("11-7"), written on the match log entry.
   async function recordWin(courtId, side, nextIds = null, scoreText = null) {
     const c = courts.find((x) => x.id === courtId);
+    if (!c) return false;
+    if (!(await claimResult(base, c.id, c.start))) {
+      notify("That result was already recorded.");
+      return false;
+    }
     const winners = side === "A" ? c.teamA : c.teamB;
     const losers = side === "A" ? c.teamB : c.teamA;
     const batch = writeBatch(db);
@@ -614,6 +620,7 @@ export default function QueueApp({
     undo.update(courtRef, {
       teamA: c.teamA || [], teamB: c.teamB || [], start: was(c.start),
       winStreak: was(c.winStreak), stayingIds: was(c.stayingIds), score: was(c.score),
+      resultFor: was(c.resultFor), // so the match can be recorded again after an Undo
     });
     // Winners-stay: count consecutive wins by the exact same team, and keep
     // them on until they hit the club's cap. Challengers come straight off
@@ -716,10 +723,11 @@ export default function QueueApp({
     notify("New session started. Add players to get going.");
   }
 
-  // Open play fees for a player who isn't a booked attendee (added in the game): paid lives on the player.
-  async function setPlayersFeePaid(playerIds, paid) {
+  // Open play fees for a player who isn't a booked attendee (added in the game): paid lives on the player, with what
+  // they paid (feeAmount), so a later fee change doesn't rewrite it.
+  async function setPlayersFeePaid(playerIds, paid, amount = 0) {
     const batch = writeBatch(db);
-    playerIds.forEach((id) => batch.update(at("players", id), { feePaid: paid }));
+    playerIds.forEach((id) => batch.update(at("players", id), { feePaid: paid, feeAmount: paid ? amount : deleteField() }));
     await batch.commit();
   }
 
@@ -786,12 +794,7 @@ export default function QueueApp({
       ["Player", "Skill", "Games", "Wins", "Losses", "Win %"],
       ...players.map((p) => [p.name, p.skill, p.games, p.wins, p.losses, winPct(p)]),
     ];
-    const csv = rows.map((r) => r.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(",")).join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    a.download = "courtwave-stats.csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadCsv("courtwave-stats.csv", rows.map((r) => r.map(csvCell).join(",")).join("\n"));
   }
 
   async function handleErase() {

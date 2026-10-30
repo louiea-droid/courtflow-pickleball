@@ -28,4 +28,7 @@ assert.deepEqual(plain.claimDeletes, ["court-2"]);
 assert.deepEqual(packCourts([court(3), court(1), court(2)], "court-2", []).sets.map((s) => s.data.courtNumber), [1, 2]);
 // A game already recorded by one Dashboard keeps that mark when its court is renumbered (so it never records twice).
 assert.equal(packCourts([court(1), court(2, { recordedConfirm: 77 })], "court-1", []).sets[0].data.recordedConfirm, 77);
+// A renamed court keeps its name, and a winning team its streak (so the win-streak cap still applies).
+const kept = packCourts([court(1), court(2, { name: "Center", winStreak: 2, stayingIds: ["a2"] })], "court-1", []).sets[0].data;
+assert.deepEqual([kept.name, kept.winStreak, kept.stayingIds, "id" in kept], ["Center", 2, ["a2"], false]);
 console.log("courtPack checks passed");

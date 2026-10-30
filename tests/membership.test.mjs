@@ -85,8 +85,10 @@ await assertSucceeds(deleteDoc(jr(mgr, "pub", "req")));
 // ---- Joining with the invite link: the member record carries the code, plus the person's own card
 await seed();
 const memberDoc = (extra = {}) => ({ role: "member", name: "Rae", joinedAt: now(), inviteCode: "GOODCODE", ...extra });
-const join = (db, club, uid, data, copy = copyDoc(club)) => {
+// The code travels in joinCodes/{uid} in the same batch, never on the record (every member reads the records).
+const join = (db, club, uid, { inviteCode, ...data }, copy = copyDoc(club)) => {
   const b = writeBatch(db);
+  if (inviteCode !== undefined) b.set(doc(db, `clubs/${club}/joinCodes/${uid}`), { code: inviteCode });
   b.set(doc(db, `clubs/${club}/members/${uid}`), data);
   b.set(doc(db, `accounts/${uid}/memberships/${club}`), copy);
   return b.commit();
@@ -108,6 +110,20 @@ await assertFails(join(other, "noinv", "other", memberDoc())); // a club that ne
 await assertSucceeds(join(req, "pub", "req", memberDoc()));
 await assertSucceeds(join(req2, "priv", "req2", memberDoc())); // private clubs are joined this way
 await assertSucceeds(getDoc(doc(req, "clubs/pub/members/mem"))); // now a member: can read the list
+// The old shape (the code on the member record, readable by every member) is refused, even with the code doc too.
+await assertFails((() => {
+  const b = writeBatch(other);
+  b.set(doc(other, "clubs/pub/joinCodes/other"), { code: "GOODCODE" });
+  b.set(doc(other, "clubs/pub/members/other"), { ...noCode, inviteCode: "GOODCODE" });
+  b.set(doc(other, "accounts/other/memberships/pub"), copyDoc("pub"));
+  return b.commit();
+})());
+// Nobody but the owner reads a join code: not the members, not even the person (they already know it).
+await assertFails(getDoc(doc(mem, "clubs/pub/joinCodes/req")));
+await assertFails(getDocs(collection(mgr, "clubs/pub/joinCodes")));
+await assertFails(setDoc(doc(mem, "clubs/pub/joinCodes/req"), { code: "X" })); // someone else's
+await assertFails(setDoc(doc(other, "clubs/pub/joinCodes/other"), { code: "X", extra: 1 }));
+await assertSucceeds(getDocs(collection(own, "clubs/pub/joinCodes"))); // the owner lists them to delete the club
 await assertFails(getDoc(doc(req, "clubs/pub/private/invite"))); // but the invite document stays managers-only
 await assertFails(getDoc(doc(other, "clubs/pub/private/invite")));
 await assertFails(getDoc(doc(mem, "clubs/pub/private/invite")));

@@ -101,6 +101,11 @@ export const attendeeFromRequest = (request) => ({
   id: request.seatId, name: request.name, method: request.method, paid: "unpaid", joinedAt: request.createdAt,
 });
 
+// Seat ids are public on the event, so a new request could copy someone's and, once approved, replace them.
+// Only the request already approved for that seat may approve again.
+export const seatTaken = (attendees = [], request) =>
+  request.status !== "approved" && attendees.some((a) => a.id === request.seatId);
+
 // Over = the host ended the game, or its scheduled time has passed in its own zone. A game that is
 // live stays on the host list until the host ends it, however long it runs.
 export const isOver = (event, fallbackZone) =>

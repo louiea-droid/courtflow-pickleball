@@ -2,6 +2,7 @@
 // so everything below is covered by gameSession.check.mjs.
 import { normalizeMode, seedSession } from "../data/constants.js";
 import { splitAttendees } from "./bookings.js";
+import { csvCell } from "./download.js";
 import { isValidSkillLevel } from "./courtLevels.js";
 import { matchCount } from "./stats.js";
 
@@ -132,7 +133,9 @@ export function gameSummary(players, format) {
 }
 
 // Who owes the open play fee: the booked attendees (paid lives on the event) plus everyone added in
-// the game who isn't one (paid lives on the player). `waiting` = on the waitlist, so nothing is due.
+// the game who isn't one (paid lives on the player). `waiting` = on the waitlist and not playing, so nothing is due;
+// a waitlisted attendee the host brought into the game owes like anyone. `amount` = what a paid row paid (saved when it
+// was marked paid), so a later fee change doesn't rewrite money already collected.
 export function feeRows(event, players = []) {
   const attendees = event.attendees || [];
   const confirmed = new Set(splitAttendees({ attendees, maxPlayers: event.maxPlayers }).confirmed.map((a) => a.id));
@@ -141,18 +144,28 @@ export function feeRows(event, players = []) {
   // An attendee removed from the game (or never added) owes nothing; one who paid or was refunded stays so the money is accounted for.
   const counts = (a) => inGame.has(a.id) || a.paid === "paid" || a.paid === "refunded";
   return [
-    ...attendees.filter(counts).map((a) => ({ id: a.id, name: a.name, paid: a.paid, method: a.method, waiting: !confirmed.has(a.id), attendee: true })),
+    ...attendees.filter(counts).map((a) => ({
+      id: a.id, name: a.name, paid: a.paid, method: a.method, amount: a.amount,
+      waiting: !confirmed.has(a.id) && !inGame.has(a.id), attendee: true,
+    })),
     ...players.filter((p) => !booked.has(p.id))
-      .map((p) => ({ id: p.id, name: p.name, paid: p.feePaid ? "paid" : "unpaid", method: p.feeMethod, waiting: false, attendee: false })),
+      .map((p) => ({
+        id: p.id, name: p.name, paid: p.feePaid ? "paid" : "unpaid", method: p.feeMethod, amount: p.feeAmount,
+        waiting: false, attendee: false,
+      })),
   ];
 }
+
+// What a row paid, or owes at today's fee (older data saved no amount: the current fee).
+export const rowAmount = (r, fee) => (r.paid === "paid" ? r.amount ?? fee : fee);
 
 // What the fees panel adds up: total = everyone who owes (paid + unpaid), waitlist and refunds excluded.
 export function feeTotals(rows, fee) {
   const open = (r) => r.paid !== "paid" && r.paid !== "refunded";
   const unpaid = rows.filter((r) => !r.waiting && open(r)).length;
-  const paid = rows.filter((r) => r.paid === "paid").length;
-  return { total: (unpaid + paid) * fee, collected: paid * fee, remaining: unpaid * fee, unpaid, paid };
+  const paidRows = rows.filter((r) => r.paid === "paid");
+  const collected = paidRows.reduce((n, r) => n + rowAmount(r, fee), 0);
+  return { total: collected + unpaid * fee, collected, remaining: unpaid * fee, unpaid, paid: paidRows.length };
 }
 
 // The record saved when a game ends (a managers-only doc under the event's costs, so it never reaches the
@@ -164,8 +177,8 @@ export function feeReport(event, players, now) {
   const status = (r) => (r.paid === "paid" ? "paid" : r.paid === "refunded" ? "refunded" : r.waiting ? "waitlist" : "unpaid");
   const order = { paid: 0, unpaid: 1, waitlist: 2, refunded: 3 };
   const lines = rows
-    .map((r) => ({ name: r.name, method: r.method === "online" ? "online" : "cash", status: status(r) }))
-    .map((l) => ({ ...l, amount: l.status === "paid" || l.status === "unpaid" ? fee : 0 }))
+    .map((r) => ({ name: r.name, method: r.method === "online" ? "online" : "cash", status: status(r), amount: rowAmount(r, fee) }))
+    .map((l) => ({ ...l, amount: l.status === "paid" || l.status === "unpaid" ? l.amount : 0 }))
     .sort((a, b) => order[a.status] - order[b.status]);
   const { total, collected, remaining } = feeTotals(rows, fee);
   return {
@@ -176,7 +189,6 @@ export function feeReport(event, players, now) {
 
 // Excel opens a .csv directly; the leading BOM keeps the peso sign readable.
 export function feeCsv(report) {
-  const cell = (v) => `"${String(v ?? "").replaceAll('"', '""')}"`;
   const method = (m) => (m === "online" ? "GCash" : "Cash");
   const status = (s) => s[0].toUpperCase() + s.slice(1);
   const lines = [
@@ -185,5 +197,5 @@ export function feeCsv(report) {
     ...report.rows.map((r) => [r.name, method(r.method), status(r.status), r.amount]),
     [], ["Total", "", "", report.total], ["Collected", "", "", report.collected], ["Remaining balance", "", "", report.remaining],
   ];
-  return `\uFEFF${lines.map((l) => l.map(cell).join(",")).join("\r\n")}`;
+  return `\uFEFF${lines.map((l) => l.map(csvCell).join(",")).join("\r\n")}`;
 }

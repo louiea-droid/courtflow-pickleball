@@ -63,10 +63,10 @@ assert.deepEqual(joinRequestDoc("Sam", "   ", 7), { name: "Sam", status: "pendin
 assert.equal(joinRequestDoc("x".repeat(80), "", 1).name.length, 60);
 assert.equal(joinRequestDoc("  ", "", 1).name, "Member");
 assert.deepEqual(memberRecord("Sam", 5), { role: "member", name: "Sam", joinedAt: 5 });
-assert.deepEqual(memberRecord("Sam", 5, "K7M2QXWA"), { role: "member", name: "Sam", joinedAt: 5, inviteCode: "K7M2QXWA" });
 assert.equal(memberRecord("", 5).name, "Member");
-// Part C: the owner names managers; a manager link makes a manager record.
-assert.deepEqual(memberRecord("Sam", 5, "K7M2QXWA", "manager"), { role: "manager", name: "Sam", joinedAt: 5, inviteCode: "K7M2QXWA" });
+// Part C: the owner names managers; a manager link makes a manager record. The invite code never goes on the record
+// (every member reads the records); it travels in joinCodes/{uid}.
+assert.deepEqual(memberRecord("Sam", 5, "manager"), { role: "manager", name: "Sam", joinedAt: 5 });
 assert.equal(inviteUrl("https://x.test", "abc", "K7M2QXWA", "manager"), "https://x.test/clubs/abc?manager=K7M2QXWA");
 assert.equal(canChangeRole("owner", "member"), true);
 assert.equal(canChangeRole("owner", "manager"), true);

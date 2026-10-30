@@ -7,7 +7,9 @@ import { wipeCollection } from "./wipe.js";
 export const EVENT_SUBCOLLECTIONS = ["requests", "players", "courts", "matchLog", "costs", "private", "umpires", "courtClaims", "viewers"];
 
 // Subcollections directly under a club (events have their own cascade; members are handled in order).
-export const CLUB_SUBCOLLECTIONS = ["roster", "joinRequests", "private", "announcements"];
+export const CLUB_SUBCOLLECTIONS = ["roster", "joinRequests", "joinCodes", "private", "announcements"];
+// Everything under a quick session, sessions/{uid} (Erase this session, and deleting the account that owns it).
+export const SESSION_SUBCOLLECTIONS = ["players", "courts", "history", "costs", "matchLog", "bookings", "bookingRequests", "private", "umpires", "courtClaims"];
 
 // Deletes one event and everything under it. The event doc goes first, so the rules refuse any
 // new join request at once (they check the event exists) and nothing can slip in while the
@@ -124,7 +126,10 @@ export async function deleteAccountData(db, uid) {
   await deleteFriendData(db, uid);
   await deleteDirectChats(db, uid);
   await deleteLegacyData(db, uid);
+  // A quick session opened while signed in is kept under the account's uid, and anyone can read it.
+  await Promise.all(SESSION_SUBCOLLECTIONS.map((name) => wipeCollection(db, collection(db, "sessions", uid, name))));
   const batch = writeBatch(db);
+  batch.delete(doc(db, "sessions", uid));
   batch.delete(doc(db, "accounts", uid));
   await batch.commit();
 }

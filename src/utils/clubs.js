@@ -78,9 +78,7 @@ export function joinRequestDoc(name, message, now) {
   const text = (message || "").trim();
   return { name: personName(name), ...(text ? { message: text } : {}), status: "pending", createdAt: now };
 }
-export const memberRecord = (name, now, inviteCode, role = "member") => ({
-  role, name: personName(name), joinedAt: now, ...(inviteCode ? { inviteCode } : {}),
-});
+export const memberRecord = (name, now, role = "member") => ({ role, name: personName(name), joinedAt: now });
 
 // Part C: who may change or remove whom (the rules enforce the same table). Only the owner changes roles;
 // the owner removes anyone else, a manager removes plain members.
