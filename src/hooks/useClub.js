@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, doc, getDoc, getDocs, updateDoc, writeBatch } from "firebase/firestore";
+import { collection, deleteField, doc, getDoc, getDocs, updateDoc, writeBatch } from "firebase/firestore";
 import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { auth, db } from "../firebase";
 import { DEFAULT_RULES, RULE_DEFAULTS_VERSION, seedSession } from "../data/constants";
@@ -99,10 +99,13 @@ export function useClub() {
     }
     roster.forEach((p) => {
       batch.update(doc(db, "sessions", id, "players", p.id), {
-        games: 0, wins: 0, losses: 0, partners: [], lastResult: null, checked: false,
+        games: 0, wins: 0, losses: 0, partners: [], opponents: [], lastResult: null, checked: false,
       });
     });
-    courtsSnap.forEach((d) => batch.update(d.ref, { teamA: [], teamB: [] }));
+    // A fresh start for every court too: no win streak, umpire score or recorded-result mark carries into the next session.
+    courtsSnap.forEach((d) => batch.update(d.ref, {
+      teamA: [], teamB: [], start: Date.now(), winStreak: 0, stayingIds: [], score: deleteField(), resultFor: deleteField(), recordedConfirm: deleteField(),
+    }));
     matchLogSnap.forEach((d) => batch.delete(d.ref));
     costsSnap.forEach((d) => batch.delete(d.ref));
     await batch.commit();

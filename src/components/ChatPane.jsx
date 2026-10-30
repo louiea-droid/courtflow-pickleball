@@ -51,12 +51,15 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
     if (problem) return setError(problem);
     setBusy(true);
     setError("");
+    const failed = () => setError("Couldn't send. Your message is still here; check your connection and try again.");
     try {
-      await actions.sendMessage(chat, text);
+      const { saved } = await actions.sendMessage(chat, text);
       stick.current = true; // your own message always scrolls into view
       setText("");
+      // Offline it waits in the device and goes out later; a refusal (removed from the club) puts the text back.
+      saved.catch(() => { setText((t) => t || text); failed(); });
     } catch {
-      setError("Couldn't send. Your message is still here; check your connection and try again.");
+      failed();
     }
     setBusy(false);
   };

@@ -1,6 +1,6 @@
 // Self-check for booking seats, totals and player-facing status. Run: node src/utils/bookings.check.mjs
 import assert from "node:assert";
-import { addAttendee, bookingTotals, endHM, attendeeFromRequest, hasEnded, hasEndedIn, isListed, isOver, myStatus, splitAttendees, owingIds, filterAttendees, seatTaken } from "./bookings.js";
+import { addAttendee, bookingTotals, endHM, attendeeFromRequest, hasEnded, hasEndedIn, isListed, nowIn, isOver, myStatus, splitAttendees, owingIds, filterAttendees, seatTaken } from "./bookings.js";
 
 const a = (id, joinedAt, paid = "unpaid", extra = {}) => ({ id, name: id, joinedAt, paid, ...extra });
 const b = { date: "2026-10-11", startTime: "18:00", durationMins: 120, maxPlayers: 2, fee: 150, attendees: [] };
@@ -87,5 +87,11 @@ assert.equal(seatTaken(onList, { seatId: "seatA", status: "pending" }), true);
 assert.equal(seatTaken(onList, { seatId: "seatA", status: "approved" }), false); // approving the same request again is fine
 assert.equal(seatTaken(onList, { seatId: "seatB", status: "pending" }), false);
 assert.equal(seatTaken(undefined, { seatId: "seatB", status: "pending" }), false);
+
+// A saved time zone Intl can't read falls back to Philippine time instead of crashing the Host and booking pages.
+const at = new Date("2026-10-10T00:30:00Z");
+assert.deepEqual(nowIn("Not/A_Zone", at), nowIn("Asia/Manila", at));
+assert.deepEqual(nowIn("Asia/Manila", at), { date: "2026-10-10", hm: "08:30" });
+assert.equal(hasEndedIn({ date: "2026-10-09", startTime: "09:00", timeZone: "bad zone" }), true);
 
 console.log("bookings.check: ok");

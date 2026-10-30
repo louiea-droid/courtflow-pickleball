@@ -2,6 +2,7 @@
 // `maxPlayers` are confirmed and the rest wait, so removing someone promotes the
 // next person automatically (nothing stored to keep in sync).
 // attendee: { id, name, playerId?, paid: "unpaid" | "paid" | "refunded", method: "cash" | "online", ref?, amount?, joinedAt }
+import { safeZone } from "./format.js";
 
 const pad = (n) => String(n).padStart(2, "0");
 
@@ -55,7 +56,7 @@ export function endHM(b) {
 // Today's date (YYYY-MM-DD) and time (HH:MM) on the club's wall clock.
 export function nowIn(timeZone, at = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone, year: "numeric", month: "2-digit", day: "2-digit",
+    timeZone: safeZone(timeZone), year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   }).formatToParts(at);
   const p = Object.fromEntries(parts.map((x) => [x.type, x.value]));

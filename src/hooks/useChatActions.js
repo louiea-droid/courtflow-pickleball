@@ -9,7 +9,8 @@ export function useChatActions({ uid, name }) {
   // The message and the chat's last line go together, so the list and the unread dot never disagree.
   // `chat` is the open conversation from the Inbox list. The name on the message is the conversation's own for a direct
   // message (already in hand), and your member record for a club chat (read from the local cache first, so sending
-  // costs no extra round trip and still works offline once the Members tab has been seen).
+  // costs no extra round trip and still works offline once the Members tab has been seen). Resolves once the message is
+  // saved on the device, with `saved`: the server's answer, which never comes while offline (the cache sends it later).
   const sendMessage = async (chat, text) => {
     const problem = validateMessage(text);
     if (problem) throw new Error(problem);
@@ -17,13 +18,14 @@ export function useChatActions({ uid, name }) {
     let senderName = chat.names?.[uid];
     if (chat.kind !== "dm") {
       const ref = doc(db, "clubs", clubIdOfChat(chat.id), "members", uid);
-      senderName = (await getDocFromCache(ref).catch(() => getDoc(ref))).data()?.name;
+      // Not cached and offline: the account name (the same as the member record's unless renamed; the rules refuse a mismatch).
+      senderName = (await getDocFromCache(ref).catch(() => getDoc(ref)).catch(() => null))?.data()?.name;
     }
     const batch = writeBatch(db);
     const messageRef = doc(collection(db, "chats", chat.id, "messages"));
     batch.set(messageRef, messageDoc(uid, senderName || name, text, now));
     batch.update(doc(db, "chats", chat.id), chatTail(uid, text, now, messageRef.id));
-    await batch.commit();
+    return { saved: batch.commit() };
   };
 
   // Deleting the newest message also rewrites the chat's last line, so the list doesn't keep showing it.

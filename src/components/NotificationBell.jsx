@@ -1,20 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell, MessageSquare, Play, UserPlus, Users } from "lucide-react";
 import { useEscape } from "../hooks/useEscape";
+import { auth } from "../firebase";
 import { capItems, markSeen, unseenCount } from "../utils/notifications";
 
 const SEEN_KEY = "courtflow.notifSeen";
 const ICONS = { turn: Play, friend: UserPlus, join: Users, chat: MessageSquare };
 
-// "Seen" lives on this device. Blocked or full storage just means everything counts as new.
+// "Seen" lives on this device, per account (two people sharing a phone each keep their own). Blocked or full storage
+// just means everything counts as new.
+const seenKey = () => `${SEEN_KEY}.${auth.currentUser?.uid || ""}`;
 const readSeen = () => {
   try {
-    const v = JSON.parse(localStorage.getItem(SEEN_KEY));
+    const v = JSON.parse(localStorage.getItem(seenKey()));
     return Array.isArray(v) ? v.filter((k) => typeof k === "string") : [];
   } catch { return []; }
 };
 const writeSeen = (seen) => {
-  try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch { /* not remembered */ }
+  try { localStorage.setItem(seenKey(), JSON.stringify(seen)); } catch { /* not remembered */ }
 };
 
 function Panel({ shown, more, moreTo, top, navigate, close, onEscape }) {

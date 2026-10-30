@@ -11,5 +11,6 @@ export function downloadCsv(filename, csv) {
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   a.download = filename;
   a.click();
-  URL.revokeObjectURL(a.href);
+  // Safari and Firefox start the download after this returns, so the file is freed a moment later, not at once.
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

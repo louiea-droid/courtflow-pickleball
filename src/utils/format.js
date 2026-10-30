@@ -30,12 +30,19 @@ export const elapsed = (start) => {
 // render; a club that never set them stays on Philippine time, 12-hour.
 // ponytail: module-level state, fine for one club per tab; move to context
 // if a page ever shows two clubs at once.
+// A saved time zone Intl can't read (typed by hand, or dropped by an older browser) would throw on every screen
+// that shows a time, so it falls back to Philippine time.
+export function safeZone(zone, fallback = "Asia/Manila") {
+  try { new Intl.DateTimeFormat("en-US", { timeZone: zone }); return typeof zone === "string" ? zone : fallback; } catch { return fallback; }
+}
+
 let prefsKey = "";
 let timeFmt, clockFmt, dateFmt;
 let zoneLabel = "PHT";
 let is12 = true;
 
-export function applyDisplayPrefs({ timeZone = "Asia/Manila", hour12 = true } = {}) {
+export function applyDisplayPrefs({ timeZone: zone, hour12 = true } = {}) {
+  const timeZone = safeZone(zone);
   const key = `${timeZone}|${hour12}`;
   if (key === prefsKey) return;
   prefsKey = key;

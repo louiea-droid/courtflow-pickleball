@@ -509,6 +509,7 @@ export default function Dashboard({
   // Dashboard to claim the court records it (a transaction, so two hosts never record it twice); an Undo of that result
   // keeps the claim, so it doesn't repeat. Off: the court card shows a Confirm button instead.
   const recording = useRef(new Set());
+  const [unclaimed, setUnclaimed] = useState([]); // saved games whose claim failed (offline): confirmed by hand instead
   useEffect(() => {
     if (!rules.autoRecord || !claimRecording) return;
     courts.forEach((c) => {
@@ -518,7 +519,7 @@ export default function Dashboard({
       recording.current.add(sc.confirmed);
       claimRecording(c.id, sc.confirmed)
         .then((mine) => mine && winWithEdit(c.id, won === 1 ? "A" : "B", finalText(sc)))
-        .catch(() => {}) // offline or refused: the card keeps its Confirm button
+        .catch(() => setUnclaimed((u) => [...u.slice(-20), sc.confirmed])) // offline: the card shows its Confirm button
         .finally(() => recording.current.delete(sc.confirmed));
     });
   }, [courts, rules.autoRecord]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -652,7 +653,7 @@ export default function Dashboard({
             win={winWithEdit} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={startWithEdit} onSetLevel={onSetCourtLevel}
             onRemoveCourt={onRemoveCourt} canRemove={courts.length > 1} onRenameCourt={onRenameCourt}
             alertAfterMin={rules.gameAlertMinutes} manual={manual}
-            claims={claims} scoreSettings={scoreSettings} onScore={onScore} onStopScore={onStopScore} autoRecord={!!rules.autoRecord} />
+            claims={claims} scoreSettings={scoreSettings} onScore={onScore} onStopScore={onStopScore} autoRecord={!!rules.autoRecord && !unclaimed.includes(c.score?.confirmed)} />
         ))}
       </div>
 

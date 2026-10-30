@@ -72,7 +72,8 @@ export function useAccount() {
     if (status !== "in" || creating.current || deleting.current || syncing.current || !needsDirectorySync(account)) return;
     syncing.current = true;
     syncDirectory(db, user.uid, account)
-      .then(() => { syncFailures.current = 0; })
+      // Re-check once it lands: a name changed while this ran was skipped above and would otherwise stay old.
+      .then(() => { syncFailures.current = 0; setSyncTick((t) => t + 1); })
       .catch(() => {
         syncFailures.current += 1;
         if (syncFailures.current <= 3) setTimeout(() => setSyncTick((t) => t + 1), 4000 * syncFailures.current);

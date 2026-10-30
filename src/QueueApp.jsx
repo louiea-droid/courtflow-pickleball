@@ -258,6 +258,7 @@ export default function QueueApp({
 
   async function removePlayer(courtId, id) {
     const c = courts.find((x) => x.id === courtId);
+    if (!c) return; // the court was just removed (another device): nothing to do
     const p = players.find((x) => x.id === id);
     const onCourt = [...(c.teamA || []), ...(c.teamB || [])];
     // A locked pair leaves together: removing one would strand the other, who can't be added back alone.
@@ -272,6 +273,7 @@ export default function QueueApp({
 
   async function addPlayerToCourt(courtId, team, id) {
     const c = courts.find((x) => x.id === courtId);
+    if (!c) return;
     const player = players.find((p) => p.id === id);
     const key = team === "A" ? "teamA" : "teamB";
     const destTeamIds = new Set(c[key] || []);
@@ -304,6 +306,7 @@ export default function QueueApp({
 
   async function swapPlayer(courtId, oldId, newId) {
     const c = courts.find((x) => x.id === courtId);
+    if (!c) return;
     const onCourtNow = new Set([...(c.teamA || []), ...(c.teamB || [])]);
     const nameOf = (id) => players.find((p) => p.id === id)?.name || "their locked partner";
     const oldPlayer = players.find((p) => p.id === oldId);
@@ -420,6 +423,7 @@ export default function QueueApp({
   async function startNextMatch(courtId, nextIds = null) {
     const need = session.format === "Singles" ? 2 : 4;
     const c = courts.find((x) => x.id === courtId);
+    if (!c) return false;
     if (nextIds?.length === need && nextIds.every(Boolean)) {
       await updateDoc(at("courts", courtId), { teamA: nextIds.slice(0, need / 2), teamB: nextIds.slice(need / 2), start: Date.now() });
       notify(`Court ${c?.courtNumber ?? ""} match started.`);

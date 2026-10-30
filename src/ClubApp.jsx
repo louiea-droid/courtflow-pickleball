@@ -16,7 +16,7 @@ import { useFriendships } from "./hooks/useFriends";
 import { useChatActions } from "./hooks/useChatActions";
 import { useAnnouncementActions, useAnnouncements } from "./hooks/useAnnouncements";
 import { friendBuckets } from "./utils/friends";
-import { applyDisplayPrefs } from "./utils/format";
+import { applyDisplayPrefs, safeZone } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import { isOver } from "./utils/bookings";
 import { uidBySeat } from "./utils/gameSession";
@@ -174,7 +174,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
   }, [ready, canManage, clubId, club?.rules?.avoidRepeatPartners]);
   const openEvent = events.find((e) => e.id === eventId);
   const latestPayInfo = [...events].filter((e) => !e.walkIn).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]?.payInfo;
-  const todayYmd = new Intl.DateTimeFormat("en-CA", { timeZone: display.timeZone }).format(new Date());
+  const todayYmd = new Intl.DateTimeFormat("en-CA", { timeZone: safeZone(display.timeZone) }).format(new Date());
   const publishAnnouncement = async (text) => {
     await announcementActions.publish(text);
     notify("Announcement posted.");
