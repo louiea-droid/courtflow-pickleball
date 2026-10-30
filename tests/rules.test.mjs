@@ -22,6 +22,8 @@ await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(db, `clubs/${id}/members/mem`), { role: "member", name: "Member", joinedAt: 1 });
     await setDoc(doc(db, `clubs/${id}/events/e1`), { title: "Saturday", date: "2026-10-10", attendees: [] });
     await setDoc(doc(db, `clubs/${id}/events/e1/players/p1`), { name: "P" });
+    await setDoc(doc(db, `clubs/${id}/events/walk`), { title: "Play now", walkIn: true, status: "live", attendees: [] });
+    await setDoc(doc(db, `clubs/${id}/events/done`), { title: "Last week", status: "ended", attendees: [] });
     await setDoc(doc(db, `clubs/${id}/events/e1/requests/r0`), { name: "Dee", contact: "0917", method: "cash", seatId: "s0", status: "pending", createdAt: Date.now() });
     await setDoc(doc(db, `clubs/${id}/roster/x`), { name: "Regular" });
     await setDoc(doc(db, `clubs/${id}/joinRequests/jr`), { name: "J", status: "pending" });
@@ -229,6 +231,8 @@ await assertFails(setDoc(doc(pubReq(anon), "r14"), { ...goodReq, createdAt: 0 })
 await assertFails(setDoc(doc(pubReq(anon), "r15"), { ...goodReq, createdAt: Date.now() + 86400000 }));
 await assertFails(setDoc(doc(anon, "clubs/pub/events/nope/requests/r10"), goodReq)); // event must exist
 await assertFails(setDoc(doc(anon, "clubs/nope/events/e1/requests/r10"), goodReq)); // club must exist
+await assertFails(setDoc(doc(anon, "clubs/pub/events/walk/requests/r16"), goodReq)); // a walk-in takes no bookings
+await assertFails(setDoc(doc(anon, "clubs/pub/events/done/requests/r17"), goodReq)); // nor an ended game
 // Review Focus 1: a private club's booking is for its members.
 await assertFails(setDoc(doc(privReq(anon), "p1"), goodReq));
 await assertFails(setDoc(doc(privReq(stranger), "p2"), goodReq));

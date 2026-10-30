@@ -436,7 +436,21 @@ service cloud.firestore {
         && d.createdAt is number
         && d.createdAt > request.time.toMillis() - 600000
         && d.createdAt < request.time.toMillis() + 600000
-        && exists(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId));
+        && exists(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId))
+        && bookable(get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)).data);
+    }
+    // The club copy an event carries for Find session (name, place, id) must be its own club's, so a card can't wear
+    // another club's name. getAfter: a rename in the same batch is fine. Checked only when those fields are written.
+    function clubCopyOk(clubId, d) {
+      let c = getAfter(clubPath(clubId)).data;
+      return (!('clubName' in d) || d.clubName == c.name)
+        && (!('clubLocation' in d) || d.clubLocation == c.get('location', ''))
+        && (!('clubId' in d) || d.clubId == clubId);
+    }
+    // Only a game people can book takes requests: never a walk-in (Play now), never one the host ended.
+    // ponytail: no per-person limit (rules can't count); a flood needs App Check or a Cloud Function.
+    function bookable(e) {
+      return e.get('walkIn', false) != true && e.get('status', 'scheduled') != 'ended';
     }
 
     match /clubs/{clubId} {
@@ -498,13 +512,16 @@ service cloud.firestore {
             || request.resource.data.clubPublic == (
               getAfter(clubPath(clubId)).data.visibility == 'public'
               && (!('walkIn' in request.resource.data) || request.resource.data.walkIn != true)
-            ));
+            ))
+          && clubCopyOk(clubId, request.resource.data);
         allow update: if isManager(clubId)
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['clubPublic', 'walkIn'])
             || request.resource.data.clubPublic == (
               getAfter(clubPath(clubId)).data.visibility == 'public'
               && (!('walkIn' in request.resource.data) || request.resource.data.walkIn != true)
-            ));
+            ))
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['clubName', 'clubLocation', 'clubId'])
+            || clubCopyOk(clubId, request.resource.data));
         allow delete: if isManager(clubId);
 
         match /requests/{requestId} {

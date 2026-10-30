@@ -386,9 +386,10 @@ export default function QueueApp({
     notify(`Mode set to ${newMode}.`);
   }
 
-  // Players held in another court's locked Up Next, so a fresh pick or a top-up never takes them.
+  // Players held in another court's locked Up Next, so a fresh pick or a top-up never takes them. A draft saved for a
+  // court that no longer exists (removed, or fewer courts) holds nobody.
   const heldElsewhere = (courtId) => new Set(Object.entries(upNextDrafts)
-    .filter(([id]) => id !== courtId).flatMap(([, ids]) => ids || []).filter(Boolean));
+    .filter(([id]) => id !== courtId && courts.some((c) => c.id === id)).flatMap(([, ids]) => ids || []).filter(Boolean));
 
   // A court's locked Up Next as [teamA, teamB], seat for seat. Its empty seats (a locked player left the queue
   // and the host hasn't filled the seat) are topped up from `pool` (court level and locks apply), so the court
@@ -490,7 +491,7 @@ export default function QueueApp({
     if (courts.length <= 1) return notify("You need at least 1 court.");
     const removed = courts.find((c) => c.id === courtId);
     // Re-pack the survivors into contiguous court-1..court-N doc IDs (keeping their data, live score and umpire claim).
-    const { sets, deletes, claimSets, claimDeletes } = packCourts(courts, courtId, claims);
+    const { sets, deletes, claimSets, claimDeletes, newId } = packCourts(courts, courtId, claims);
     const batch = writeBatch(db);
     sets.forEach((s) => batch.set(at("courts", s.id), s.data));
     deletes.forEach((id) => batch.delete(at("courts", id)));
@@ -498,6 +499,8 @@ export default function QueueApp({
     claimSets.forEach((s) => batch.set(at("courtClaims", s.id), s.data));
     batch.update(at(), { courts: sets.length });
     await batch.commit();
+    // Each Up Next draft follows its court to the new id; the removed court's draft goes.
+    setUpNextDrafts((cur) => Object.fromEntries(Object.entries(cur).filter(([id]) => newId[id]).map(([id, d]) => [newId[id], d])));
     notify(`Court ${removed?.courtNumber ?? ""} removed.`);
   }
 
@@ -673,7 +676,17 @@ export default function QueueApp({
     // ponytail: restores the court as it was; anything done to that court in the
     // 10s window (a swap, a manual add) is overwritten. Fine for a mis-tap fix.
     const undoResult = async () => {
-      await undo.commit();
+      // A player from that match already seated on another court (Auto-fill, Start Next Match, another host) can't
+      // go back too: refuse rather than put one person on two courts.
+      const back = [...(c.teamA || []), ...(c.teamB || [])];
+      try {
+        const now = await getDocs(col("courts"));
+        const busy = now.docs.find((d) => d.id !== courtId && [...(d.data().teamA || []), ...(d.data().teamB || [])].some((id) => back.includes(id)));
+        if (busy) return notify(`Can't undo: a player from that match is already on Court ${busy.data().courtNumber}.`);
+        await undo.commit(); // all or nothing, so a player deleted in the meantime leaves everything as it is
+      } catch {
+        return notify("Couldn't undo that result. Check your connection and try again.");
+      }
       // The Up Next that went on court is waiting again, so it is locked back in as it was.
       if (usedEdit) setUpNextDrafts((cur) => ({ ...cur, [courtId]: nextIds }));
       notify(`Result on Court ${c.courtNumber} undone.`);

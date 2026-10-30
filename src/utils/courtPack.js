@@ -17,5 +17,6 @@ export function packCourts(courts, removedId, claims = []) {
     deletes: courts.map((c) => c.id).filter((id) => !sets.some((s) => s.id === id)),
     claimSets,
     claimDeletes: claims.filter((cl) => !kept.has(cl.id)).map((cl) => cl.id),
+    newId: Object.fromEntries(newId), // old court id -> its id after the re-pack (an Up Next draft follows its court)
   };
 }

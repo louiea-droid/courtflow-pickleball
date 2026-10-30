@@ -37,8 +37,9 @@ export default function AccountApp() {
   const activeGames = useActiveGames(uid, clubs);
   const { friendships, ready: friendsReady } = useFriendships(uid);
   const inbox = useInbox(uid, clubs);
-  // One Find session query shared by Home and the Find session page; off on every other screen.
-  const sessions = useSessions(["hub", "sessions", "clubs", "clubs-find"].includes(route)); // club cards show each club's next session
+  // One Find session query shared by Home and the Find session page; off on every other screen, and for signed-out
+  // visitors (the landing and sign-in pages are route "hub" too).
+  const sessions = useSessions(acct.status === "in" && ["hub", "sessions", "clubs", "clubs-find"].includes(route)); // club cards show each club's next session
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [showDelete, setShowDelete] = useState(false);

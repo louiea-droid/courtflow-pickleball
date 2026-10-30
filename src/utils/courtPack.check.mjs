@@ -31,4 +31,6 @@ assert.equal(packCourts([court(1), court(2, { recordedConfirm: 77 })], "court-1"
 // A renamed court keeps its name, and a winning team its streak (so the win-streak cap still applies).
 const kept = packCourts([court(1), court(2, { name: "Center", winStreak: 2, stayingIds: ["a2"] })], "court-1", []).sets[0].data;
 assert.deepEqual([kept.name, kept.winStreak, kept.stayingIds, "id" in kept], ["Center", 2, ["a2"], false]);
+// Each survivor's new id, so the host's Up Next draft moves with its court (the removed court has none).
+assert.deepEqual(out.newId, { "court-2": "court-1", "court-3": "court-2" });
 console.log("courtPack checks passed");

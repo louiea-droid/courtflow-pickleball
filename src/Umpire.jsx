@@ -7,7 +7,7 @@ import { authMessage } from "./utils/account";
 import { docsOf } from "./hooks/useLiveDocs";
 import ScoreKeeper from "./components/ScoreKeeper";
 import { umpireTarget } from "./utils/umpire";
-import { claimCourt, deleteOwnRecord, joinAsUmpire, readOwnRecord, readSettings, releaseCourt, writeScore } from "./utils/umpireData";
+import { claimCourt, courtStart, deleteOwnRecord, joinAsUmpire, readOwnRecord, readSettings, releaseCourt, writeScore } from "./utils/umpireData";
 
 // /umpire?club=C&event=E&code=K (a game) or ?session=S&code=K (a quick session): a volunteer with no account keeps the
 // score of one court. They register with the link's code, claim a free court, and may change only that court's score.
@@ -136,7 +136,13 @@ export default function Umpire() {
         </div>
         {notice && <p className="umpire-note" role="alert">{notice}</p>}
         <ScoreKeeper page court={court} players={players} settings={{ style: settings.style, to: settings.to, singles, autoRecord: !!settings.autoRecord }}
-          onScore={(score) => writeScore(target.base, court.id, score).catch(fail("Couldn't save the score. Check your connection."))} />
+          onScore={(score) => writeScore(target.base, court.id, score).catch(async (err) => {
+            // The rules refuse a score for an earlier match: the host recorded it just before this tap landed.
+            const recorded = err?.code === "permission-denied"
+              && (await courtStart(target.base, court.id).catch(() => score.start)) !== score.start;
+            if (recorded) return setNotice("That match was already recorded. Score the next one when it starts.");
+            fail("Couldn't save the score. Check your connection.")(err);
+          })} />
       </Page>
     );
   }

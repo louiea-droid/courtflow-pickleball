@@ -22,7 +22,9 @@ export function useActiveGames(uid, clubs) {
     const liveGames = new Map();
     const eventStops = new Map();
     const clubEvents = new Map();
-    const stopAll = [];
+    const clubStops = new Map();
+    const timers = [];
+    let stopped = false;
     const publish = () => {
       const next = [];
       watchedClubs.forEach(([clubId, clubName, role]) => {
@@ -52,8 +54,10 @@ export function useActiveGames(uid, clubs) {
       liveGames.delete(key);
     };
 
-    watchedClubs.forEach(([clubId, clubName]) => {
-      const stopClub = onSnapshot(
+    // A refused listener is dead for good. Right after joining a private club by invite the card shows before the
+    // server has the member record, so a refusal is retried 3 times, 3 s apart (as useInbox does).
+    const watchClub = (clubId, tries) => {
+      clubStops.set(clubId, onSnapshot(
         query(collection(db, "clubs", clubId, "events"), where("status", "==", "live")),
         (snapshot) => {
           const events = docsOf(snapshot);
@@ -96,13 +100,16 @@ export function useActiveGames(uid, clubs) {
           (clubEvents.get(clubId) || []).forEach((id) => removeEvent(clubId, id));
           clubEvents.set(clubId, []);
           publish();
+          if (!stopped && tries < 3) timers.push(setTimeout(() => watchClub(clubId, tries + 1), 3000));
         },
-      );
-      stopAll.push(stopClub);
-    });
+      ));
+    };
+    watchedClubs.forEach(([clubId]) => watchClub(clubId, 0));
 
     return () => {
-      stopAll.forEach((stop) => stop());
+      stopped = true;
+      timers.forEach(clearTimeout);
+      clubStops.forEach((stop) => stop());
       eventStops.forEach((stops) => stops.forEach((stop) => stop()));
     };
   }, [uid, clubsKey]);

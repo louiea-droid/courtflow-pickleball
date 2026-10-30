@@ -50,6 +50,12 @@ await assertFails(setDoc(doc(stranger, "clubs/pub/events/e9"), { clubPublic: tru
 await assertFails(updateDoc(doc(mem, "clubs/pub/events/e1"), { clubPublic: false })); // a plain member can't change the copy
 // A club's owner (a manager) can keep the copy true.
 await assertSucceeds(updateDoc(doc(own, "clubs/pub/events/e2"), { clubPublic: true, clubId: "pub", clubName: "pub", clubLocation: "" }));
+// The copy can't wear another club's name, place or id on Find session.
+await assertFails(updateDoc(doc(own, "clubs/pub/events/e2"), { clubName: "Famous Club" }));
+await assertFails(updateDoc(doc(own, "clubs/pub/events/e2"), { clubLocation: "Somewhere else" }));
+await assertFails(updateDoc(doc(own, "clubs/pub/events/e2"), { clubId: "priv" }));
+await assertFails(setDoc(doc(own, "clubs/pub/events/e8"), { clubPublic: true, clubId: "pub", clubName: "Famous Club", clubLocation: "", title: "x", date: "2026-10-10" }));
+await assertSucceeds(updateDoc(doc(own, "clubs/pub/events/e2"), { title: "Renamed game" })); // other edits never touch the check
 
 // ---- An `events` collection anywhere but under a club must not be writable: the collection-group rule would list it.
 await assertFails(setDoc(doc(quick, "sessions/q1/events/x"), { clubPublic: true, date: "2026-10-10", startTime: "09:00" }));

@@ -66,6 +66,10 @@ export function claimRecording(base, courtId, confirmedAt) {
   });
 }
 
+// The match now on a court (its `start`), so a volunteer's refused late tap can tell "that match was already
+// recorded" from "this link is no longer active".
+export const courtStart = async (base, courtId) => (await getDoc(at(base, "courts", courtId))).data()?.start;
+
 // Two hosts tapping Win on the same match: the first marks the court (`resultFor` = the match's start) and records it,
 // the second is refused. A transaction needs the server, so offline (or when it can't finish in 4 s) the result goes
 // through as before. ponytail: offline, two hosts can still both record; a venue with one host never notices.
