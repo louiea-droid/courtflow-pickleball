@@ -37,8 +37,11 @@ import AccountSidebar from "./components/AccountSidebar";
 import JoinPanel from "./components/JoinPanel";
 import Toast from "./components/Toast";
 
-// The queue app only loads when a game opens.
-const Game = lazy(() => import("./Game"));
+// The queue app only loads when a game opens. Opened straight on a game link (a host's usual way back in), it starts
+// downloading now, alongside the sign-in and club reads, instead of after them.
+const loadGame = () => import("./Game");
+const Game = lazy(loadGame);
+if (/\/event\/[^/]+\/game\/?$/.test(window.location.pathname)) loadGame();
 
 // Shown in place of a screen the person's role doesn't allow (Review Focus 3): no controls at all.
 function Restricted({ text, base, navigate }) {

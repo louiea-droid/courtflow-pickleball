@@ -8,7 +8,7 @@ import { doc, getDoc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db, firebaseConfigured } from "../firebase";
 import {
   accountStatus, authMessage, defaultClubName, hasPasswordProvider, isAccountUser, isLegacyEmail, LEGACY_MESSAGE,
-  resetMessage, shouldEnsureAccount,
+  resetMessage, setSignedInHint, shouldEnsureAccount,
 } from "../utils/account";
 import { deleteAccountData } from "../utils/accountData";
 import { needsDirectorySync } from "../utils/friends";
@@ -41,7 +41,10 @@ export function useAccount() {
 
   useEffect(() => {
     if (!firebaseConfigured) { setUser(null); return; }
-    return onAuthStateChanged(auth, (u) => setUser(isAccountUser(u) ? u : null));
+    return onAuthStateChanged(auth, (u) => {
+      setUser(isAccountUser(u) ? u : null);
+      setSignedInHint(isAccountUser(u)); // main.jsx: a signed-out visit to "/" shows the landing page without waiting for this
+    });
   }, []);
 
   useEffect(() => {

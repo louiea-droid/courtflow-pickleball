@@ -72,3 +72,6 @@ node_modules/
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
 .superpowers/
+
+# Local speed-test build (scripts/measure-load.mjs)
+dist-emu/

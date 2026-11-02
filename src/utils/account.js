@@ -55,3 +55,11 @@ export function authMessage(err) {
 
 // Reset says the same thing whether or not the email has an account.
 export const resetMessage = (err) => (err?.code === "auth/user-not-found" ? "" : authMessage(err));
+
+// "Signed in on this device", kept beside Firebase's own (asynchronous) session so main.jsx can decide at once
+// whether "/" is the landing page or the app. Only a hint: the app still checks the real session.
+const SIGNED_IN_KEY = "courtflow.signedIn";
+export const signedInHint = () => { try { return localStorage.getItem(SIGNED_IN_KEY) === "1"; } catch { return false; } };
+export const setSignedInHint = (on) => {
+  try { if (on) localStorage.setItem(SIGNED_IN_KEY, "1"); else localStorage.removeItem(SIGNED_IN_KEY); } catch { /* private mode */ }
+};

@@ -10,16 +10,19 @@ import { matchCount } from "../utils/stats";
 
 const QUICK_NAME = "Quick session";
 
+// Returns the session doc it writes, so a new visitor's first load needn't read it straight back.
 function createFreshSession(batch, id) {
-  batch.set(doc(db, "sessions", id), {
+  const session = {
     ...seedSession, location: QUICK_NAME, createdAt: Date.now(),
     rules: { ...DEFAULT_RULES }, ruleDefaultsVersion: RULE_DEFAULTS_VERSION,
-  });
+  };
+  batch.set(doc(db, "sessions", id), session);
   for (let i = 1; i <= seedSession.courts; i++) {
     batch.set(doc(db, "sessions", id, "courts", `court-${i}`), {
       courtNumber: i, start: Date.now(), teamA: [], teamB: [],
     });
   }
+  return session;
 }
 
 // The classic queue app, no login. The session is stored at sessions/{uid}, where
@@ -48,14 +51,13 @@ export function useClub() {
       }
       try {
         const ref = doc(db, "sessions", user.uid);
-        let snap = await getDoc(ref);
+        const snap = await getDoc(ref);
+        let data = snap.data();
         if (!snap.exists()) {
           const batch = writeBatch(db);
-          createFreshSession(batch, user.uid);
+          data = createFreshSession(batch, user.uid);
           await batch.commit();
-          snap = await getDoc(ref);
         }
-        const data = snap.data();
         if (data?.ruleDefaultsVersion !== RULE_DEFAULTS_VERSION) {
           await updateDoc(ref, {
             rules: { ...DEFAULT_RULES, ...data?.rules, avoidRepeatPartners: true },
@@ -64,7 +66,7 @@ export function useClub() {
         }
         if (call !== latest) return; // a newer auth change already resolved
         setError("");
-        setClub({ id: user.uid, name: snap.data()?.location || QUICK_NAME });
+        setClub({ id: user.uid, name: data?.location || QUICK_NAME });
       } catch {
         if (call === latest) setError("Couldn't start your session. Check your connection and reload the page.");
       }
