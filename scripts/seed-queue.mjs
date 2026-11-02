@@ -58,6 +58,13 @@ SCENARIOS["sq5@demo.test"] = {
   courts: [],
 };
 
+SCENARIOS["sq6@demo.test"] = {
+  title: "16 players, 3 empty courts, Balanced. Auto-fill, then record wins out of order: the first court to finish takes the next match.",
+  session: { mode: "Balanced", courts: 3 },
+  players: ROSTER.slice(0, 16),
+  courts: [],
+};
+
 const out = [];
 for (const [email, sc] of Object.entries(SCENARIOS)) {
   const r = await (await fetch(AUTH, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: "password1", returnSecureToken: true }) })).json();

@@ -17,7 +17,7 @@ import { call, winner } from "./utils/scoring";
 import { applyDisplayPrefs, money } from "./utils/format";
 import { applyGlobalTheme } from "./utils/theme";
 import { DEFAULT_LIVE, normalizeMode } from "./data/constants";
-import { upNextByCourt } from "./utils/rotationModes";
+import { nextMatchOf, upNextPlan } from "./utils/rotationModes";
 import { queueOrder } from "./utils/queueStatus";
 import { announceCall, canSpeak, speak } from "./utils/voice";
 import { useVoiceClips, voiceBaseOf } from "./hooks/useVoiceClips";
@@ -211,7 +211,7 @@ export default function LiveBoard() {
       if (!key || heard.current.has(key)) return;
       heard.current.add(key);
       if (!voiceOn || Math.abs(Date.now() - (call.at || 0)) > 120000) return;
-      announceCall(call.kind, c.name || `Court ${c.courtNumber}`, call.a, call.b, players, voiceClips);
+      announceCall(call.kind, call.label ?? (c.name || `Court ${c.courtNumber}`), call.a, call.b, players, voiceClips);
     });
   }, [courts]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -251,14 +251,16 @@ export default function LiveBoard() {
 
   const queue = queueOrder(players, courts);
   const visibleCosts = costs.filter((c) => c.visibleOnLive);
-  // "Next" is the queue app's own pick for each court (the host's Up Next), so the board agrees with the Dashboard.
-  const picks = upNextByCourt({ pool: queue, courts, mode: normalizeMode(session.mode || session.rotation) || "Balanced",
+  // "Next" is the queue app's own pick (the host's Up Next), so the board agrees with the Dashboard: a court when it
+  // is known (an open court, or a court set to a level), else the place in the shared line.
+  const plan = upNextPlan({ pool: queue, courts, mode: normalizeMode(session.mode || session.rotation) || "Balanced",
     need: session.format === "Singles" ? 2 : 4, now: Date.now() });
   // The header's "Next up": the court the host chose on the Dashboard (its Up Next teams, saved as `nextUp`).
   const firstCourt = courts.find((c) => c.nextUp);
   const nameList = (ids = []) => ids.map((id) => players.find((p) => p.id === id)?.name).filter(Boolean);
   const nextUp = firstCourt ? [nameList(firstCourt.nextUp.a), nameList(firstCourt.nextUp.b)].filter((t) => t.length) : [];
-  const nextCourt = Object.fromEntries(courts.flatMap((c) => (picks[c.id] || []).map((p) => [p.id, c.name || `Court ${c.courtNumber}`])));
+  const nextCourt = Object.fromEntries(Object.entries(nextMatchOf(plan, courts)).map(([id, n]) => [id,
+    n.court ? n.court.name || `Court ${n.court.courtNumber}` : `Match ${n.match}`]));
 
   const queueRows = queue.map((p, i) => (
     <div className="queue-row" key={p.id}>
@@ -290,7 +292,7 @@ export default function LiveBoard() {
         </div>
         {nextUp.length > 0 && (
           <div className="liveboard-nextup" aria-label="Next to play">
-            <span className="nextup-tag"><small>Next up</small><b>{firstCourt.name || `Court ${firstCourt.courtNumber}`}</b></span>
+            <span className="nextup-tag"><small>Next up</small><b>{firstCourt.nextUp.label || firstCourt.name || `Court ${firstCourt.courtNumber}`}</b></span>
             <div className="nextup-teams">
               {nextUp.map((team, i) => (
                 <span key={i} className="nextup-team-wrap">

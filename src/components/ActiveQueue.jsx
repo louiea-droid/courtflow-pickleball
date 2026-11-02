@@ -122,13 +122,15 @@ export function useActiveGames(uid, clubs) {
 export default function ActiveQueue({ games, navigate }) {
   return games.map(({ club, event, status, queuePath }) => {
     const playing = status.state === "playing";
-    const big = playing ? `On court ${status.court}` : status.upNext ? "You're up next" : status.nextOn ? "Next on court" : `#${status.position} in line`;
+    const big = playing ? `On court ${status.court}` : status.upNext ? "You're up next" : status.nextOn ? "Next on court"
+      : status.nextMatch ? `In match ${status.nextMatch}` : `#${status.position} in line`;
     const sub = playing ? "Playing now. Good luck!"
       : status.upNext ? (status.nextOn ? `On court ${status.nextOn} when it frees up` : "Get ready")
         : status.nextOn ? `About ${status.waitMins} min`
+          : status.nextMatch ? `On the first court to free up · about ${status.waitMins} min`
           : `${plural(status.ahead, "player")} ahead · about ${status.waitMins} min`;
     const court = playing ? status.court : status.nextOn;
-    const ahead = !playing && !status.upNext && !status.nextOn ? Math.min(status.ahead, 4) : 0;
+    const ahead = !playing && !status.upNext && !status.nextOn && !status.nextMatch ? Math.min(status.ahead, 4) : 0;
     return (
       <article className="queue-card" key={`${club.id}/${event.id}`}>
         <div className="queue-card-main">

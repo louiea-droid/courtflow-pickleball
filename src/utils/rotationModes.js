@@ -394,18 +394,97 @@ export function selectForCourt({ pool, court, mode, need, now = null, shuffle = 
   return result;
 }
 
-// Who goes on each court next, by court id: the Dashboard's Up Next preview, also used by the Live Board, the
-// members' queue page and the Home card so they all agree. Open courts pick first, then the busy ones, each from
-// what the earlier courts left, so nobody is counted twice. A court without a full group gets [].
-export function upNextByCourt({ pool, courts, mode, need, now = null }) {
-  const isOpen = (c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
-  const out = {};
+// A court with no level set shares the Up Next line; a court set to a level keeps its own Up Next.
+export const sharedCourt = (c) => !c?.level || c.level === "Any Level";
+const courtIsOpen = (c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
+
+// Who plays next: the Dashboard's Up Next, also used by the Live Board, the members' queue page and the Home card so
+// they all agree. The Any Level courts share one line of matches (`line`): whichever court opens first takes the
+// first, so a long game never holds its next players back while later ones play elsewhere. The open ones take
+// theirs now, in court order (`openFor[i]` takes `line[i]`). A court set to a level keeps its own match (`own`, by
+// court id). Picks go open level courts, then the line, then busy level courts, each from what the earlier left,
+// so nobody is counted twice. `lineSize`: how many line matches to pick (default one per Any Level court). A match
+// without a full group is [].
+export function upNextPlan({ pool, courts, mode, need, now = null, lineSize = courts.filter(sharedCourt).length }) {
   let rest = pool;
-  for (const c of [...courts.filter(isOpen), ...courts.filter((c) => !isOpen(c))]) {
-    const { taken, remaining } = selectForCourt({ pool: rest, court: c, mode, need, now });
-    out[c.id] = taken;
+  const take = (court) => {
+    const { taken, remaining } = selectForCourt({ pool: rest, court, mode, need, now });
     rest = remaining;
-  }
+    return taken;
+  };
+  const levelled = courts.filter((c) => !sharedCourt(c));
+  const own = {};
+  levelled.filter(courtIsOpen).forEach((c) => { own[c.id] = take(c); });
+  const line = Array.from({ length: lineSize }, () => take(null));
+  levelled.filter((c) => !courtIsOpen(c)).forEach((c) => { own[c.id] = take(c); });
+  return { line, own, openFor: courts.filter((c) => sharedCourt(c) && courtIsOpen(c)).map((c) => c.id) };
+}
+
+// Which Up Next match a court takes when it starts its next one: a court set to a level its own (its id), an open
+// Any Level court the line match beside it (open ones in court order), a busy one the first match no open court
+// is holding. "line-<i>" is the line's i-th match.
+export function upNextKeyFor(courts, courtId) {
+  const c = courts.find((x) => x.id === courtId);
+  if (!sharedCourt(c)) return courtId;
+  const open = courts.filter((x) => sharedCourt(x) && courtIsOpen(x)).map((x) => x.id);
+  const i = open.indexOf(courtId);
+  return `line-${i >= 0 ? i : open.length}`;
+}
+
+// The Up Next matches locked on the host's device (seat for seat, a seat can be null): { line: [ids], own: { courtId:
+// ids } }. A line match that goes on court leaves the line, so the ones behind it move up; Undo puts it back.
+export const EMPTY_DRAFTS = { line: [], own: {} };
+export const asDrafts = (d) => (Array.isArray(d?.line) && d.own && typeof d.own === "object" ? d : EMPTY_DRAFTS);
+const lineIdx = (key) => (String(key).startsWith("line-") ? Number(String(key).slice(5)) : -1);
+export const draftAt = (d, key) => (lineIdx(key) >= 0 ? d.line[lineIdx(key)] : d.own[key]) || null;
+export function withDraft(d, key, ids) {
+  const i = lineIdx(key);
+  if (i < 0) return { ...d, own: { ...d.own, [key]: ids } };
+  const line = [...d.line];
+  while (line.length < i) line.push(null);
+  line[i] = ids;
+  return { ...d, line };
+}
+// A court's own update shows before its write is confirmed, so the Dashboard may already have locked a new match in
+// the used one's place by the time these run: a line match is found by who is in it (`ids`), never by its place.
+const sameMatch = (a, b) => {
+  const [x, y] = [(a || []).filter(Boolean), (b || []).filter(Boolean)];
+  return x.length > 0 && x.length === y.length && x.every((id) => y.includes(id));
+};
+export function withoutDraft(d, key, ids = null) {
+  const i = lineIdx(key);
+  if (i < 0) { const { [key]: _, ...own } = d.own; return { ...d, own }; }
+  const at = ids ? d.line.findIndex((m) => sameMatch(m, ids)) : i;
+  return at < 0 ? d : { ...d, line: d.line.filter((_, j) => j !== at) };
+}
+// Undo: the match goes back in its place, and any match locked meanwhile with its players in it goes.
+export function withDraftBack(d, key, ids) {
+  const i = lineIdx(key);
+  if (i < 0) return withDraft(d, key, ids);
+  const line = d.line.filter((m) => !m?.some((id) => id && ids.includes(id)));
+  line.splice(Math.min(i, line.length), 0, ids);
+  return { ...d, line };
+}
+// Each Up Next match's seats as they count now, by key (in `keys` order): a player sits in one match only, the first
+// that has them, and with `waiting` only while still waiting (else the seat is empty). A match with nobody is null.
+export function draftSeats(d, keys, waiting = null) {
+  const seen = new Set();
+  return Object.fromEntries(keys.map((k) => {
+    const seats = draftAt(d, k)?.map((id) => (id && !seen.has(id) && (!waiting || waiting.has(id)) ? id : null));
+    seats?.forEach((id) => id && seen.add(id));
+    return [k, seats?.some(Boolean) ? seats : null];
+  }));
+}
+
+// Each picked player's next match, by player id: { court } when the court is known (an open court, or a court set
+// to a level), else { match } (1 = the next match of the shared line).
+export function nextMatchOf(plan, courts) {
+  const out = {};
+  const courtOf = (id) => courts.find((c) => c.id === id);
+  Object.entries(plan.own).forEach(([id, group]) => group.forEach((p) => { out[p.id] = { court: courtOf(id) }; }));
+  plan.line.forEach((group, i) => group.forEach((p) => {
+    out[p.id] = plan.openFor[i] ? { court: courtOf(plan.openFor[i]) } : { match: i + 1 - plan.openFor.length };
+  }));
   return out;
 }
 

@@ -54,11 +54,16 @@ assert.equal(queueStatus({ players: [me], courts: [], uid: "u", format: "Doubles
 // Older player docs may lack games or checkedAt: they count as 0, so the order is still stable
 const legacy = [{ id: "z", checked: true }, { id: "y", checked: true, games: 1 }, { id: "x", checked: true, games: 0, checkedAt: 5 }];
 assert.deepEqual(queueOrder(legacy, []).map((p) => p.id), ["z", "y", "x"]);
-// with a mode the next match is the queue app's own pick (upNextByCourt)
+// with a mode the next match is the queue app's own pick (upNextPlan)
 const playing4 = [court(1, ["x1", "x2"], ["x3", "x4"])];
 const line = (meAt) => Array.from({ length: 6 }, (_, i) => i === meAt ? P("me", { uid: "u", checkedAt: i }) : P(`w${i}`, { checkedAt: i }));
 let m = queueStatus({ players: line(2), courts: playing4, uid: "u", format: "Doubles", mode: "Balanced", gameMinutes: 15 });
-assert.deepEqual([m.nextOn, m.upNext, m.waitMins], [1, false, 10]); // picked for court 1's next match
+assert.deepEqual([m.nextOn, m.nextMatch, m.upNext, m.waitMins], [null, 1, false, 10]); // in the next match: the first court to free up
+{ // a court set to a level keeps its own match, so the court is known
+  const lvl = [{ ...court(1, ["x1", "x2"], ["x3", "x4"]), level: "Intermediate" }];
+  const mm = queueStatus({ players: line(2).map((p) => ({ ...p, skill: 3 })), courts: lvl, uid: "u", format: "Doubles", mode: "Balanced", gameMinutes: 15 });
+  assert.deepEqual([mm.nextOn, mm.nextMatch, mm.waitMins], [1, undefined, 10]);
+}
 m = queueStatus({ players: line(5), courts: playing4, uid: "u", format: "Doubles", mode: "Balanced", gameMinutes: 15 });
 assert.deepEqual([m.position, m.nextOn, m.waitMins], [6, null, 25]); // not picked: one round after the picks
 m = queueStatus({ players: line(1), courts: [court(1)], uid: "u", format: "Doubles", mode: "Balanced" });

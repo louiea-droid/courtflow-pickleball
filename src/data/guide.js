@@ -49,7 +49,7 @@ export const GUIDE_FEATURES = [
       "Each court shows both teams and a timer. The timer turns red once a game runs past the game length alert in Settings.",
       "When a game ends, tap Team 1 Wins or Team 2 Wins. The players rotate by your mode, and with Auto-rotation on the next match comes on by itself.",
       "Tapped the wrong team? Undo on the message puts everything back for about 10 seconds.",
-      "Up Next shows who goes on each court next. You can change it before the court frees up.",
+      "Up Next shows the next matches in order. Whichever court finishes first takes the next one (a court set to a level keeps its own). You can change a match before it goes on.",
       "Auto-fill seats every empty court at once. Add Court and the ✕ on a court change how many you run, and a court's level badge keeps it to one skill level.",
     ],
     notes: [

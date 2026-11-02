@@ -7,13 +7,14 @@ const team = (names) => names.join(" and ");
 // The name read out for a player: their "How to say it" spelling (`sayAs`, Edit Player) when set, else the name.
 export const spokenName = (p) => (p?.sayAs || "").trim() || p?.name || "";
 
-// kind "next": the Up Next card's Call button. kind "start": a match just started on the court.
+// kind "next": the Up Next card's Call button (court "" for a match that goes on the first court to free up).
+// kind "start": a match just started on the court.
 export function callText(kind, court, teamA = [], teamB = []) {
   const players = teamB.length ? `${team(teamA)}, versus ${team(teamB)}` : team(teamA);
   if (!players) return "";
   return kind === "start"
     ? `${court}: ${players}. Please go to ${court}.`
-    : `${court}, next up: ${players}. Please get ready.`;
+    : court ? `${court}, next up: ${players}. Please get ready.` : `Next up: ${players}. Please get ready.`;
 }
 
 // ---- Recordings. A recording's id says what it is: one of the fixed phrases, a court name or a player name
@@ -41,7 +42,7 @@ export function callParts(kind, court, teamA = [], teamB = []) {
   const match = [...people(teamA), ...(teamB.length ? [{ id: "p_versus", text: ", versus" }, ...people(teamB)] : [])];
   return kind === "start"
     ? [where, ...match, { id: "p_go-to", text: ". Please go to" }, where]
-    : [where, { id: "p_next-up", text: "next up" }, ...match, { id: "p_get-ready", text: ". Please get ready." }];
+    : [...(court ? [where] : []), { id: "p_next-up", text: "next up" }, ...match, { id: "p_get-ready", text: ". Please get ready." }];
 }
 
 // Consecutive pieces without a recording are said in one breath by the built-in voice (their texts carry the pauses).

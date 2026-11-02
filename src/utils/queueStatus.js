@@ -1,7 +1,7 @@
 // Where a person stands in a live game, for the Home card. Pure: no Firestore (the hook reads the data).
 // The line is the queue app's order (longest wait first, then fewest games); the next match on each court is the
 // app's own pick (see queueStatus). Later rounds can still shift, so the wait is an estimate and the screens say "about".
-import { upNextByCourt } from "./rotationModes.js";
+import { nextMatchOf, upNextPlan } from "./rotationModes.js";
 
 export const DEFAULT_GAME_MINUTES = 15;
 
@@ -17,9 +17,10 @@ export function queueOrder(players, courts) {
 }
 
 // null when the person isn't a checked-in player of this game; { state: "playing", court }; or
-// { state: "waiting", position, ahead, waitMins, upNext, nextOn }. With a `mode`, the next match on each court is
-// the queue app's own pick (upNextByCourt: shuffle, levels, locks, Mixed Doubles), so `nextOn` is the court
-// number the person is already picked for; without one (or in Custom) it falls back to plain queue order.
+// { state: "waiting", position, ahead, waitMins, upNext, nextOn, nextMatch }. With a `mode`, the next matches are
+// the queue app's own pick (upNextPlan: shuffle, levels, locks, Mixed Doubles): `nextOn` is the court number the
+// person is already picked for when it is known (an open court, or a court set to a level), `nextMatch` their place
+// in the shared line otherwise (1: the next court to finish). Without a mode (or in Custom) plain queue order.
 export function queueStatus({ players, courts, uid, format, mode, gameMinutes = DEFAULT_GAME_MINUTES, now = null }) {
   const mine = uid ? players.find((p) => p.uid === uid && p.checked) : null;
   if (!mine) return null;
@@ -33,14 +34,18 @@ export function queueStatus({ players, courts, uid, format, mode, gameMinutes = 
   const mins = (rounds) => Math.round(((rounds - 0.5) * gameMinutes) / 5) * 5;
   const free = courts.filter((c) => onCourt(c).length === 0);
   if (mode && mode !== "Custom" && courts.length) {
-    const picks = upNextByCourt({ pool: queue, courts, mode, need: perCourt, now });
-    const mineOn = courts.find((c) => picks[c.id]?.some((p) => p.id === mine.id));
+    const plan = upNextPlan({ pool: queue, courts, mode, need: perCourt, now });
+    const next = nextMatchOf(plan, courts)[mine.id];
+    const mineOn = next?.court;
     if (mineOn && free.includes(mineOn)) return { ...base, waitMins: 0, upNext: true, nextOn: mineOn.courtNumber };
     if (mineOn) return { ...base, waitMins: mins(1), upNext: false, nextOn: mineOn.courtNumber };
+    // One line match per Any Level court, so every one of them goes on within the first round.
+    if (next) return { ...base, waitMins: mins(1), upNext: false, nextOn: null, nextMatch: next.match };
     // Not picked yet: the people still waiting after this round's picks go in queue order.
-    const picked = new Set(Object.values(picks).flat().map((p) => p.id));
+    const picked = new Set([...plan.line, ...Object.values(plan.own)].flat().map((p) => p.id));
     const rest = queue.filter((p) => !picked.has(p.id));
-    const busyPicked = courts.some((c) => !free.includes(c) && picks[c.id]?.length);
+    const busyPicked = plan.line.slice(plan.openFor.length).some((g) => g.length)
+      || courts.some((c) => !free.includes(c) && plan.own[c.id]?.length);
     const rounds = (busyPicked ? 1 : 0) + Math.ceil((rest.findIndex((p) => p.id === mine.id) + 1) / (courts.length * perCourt));
     return { ...base, waitMins: mins(rounds), upNext: false, nextOn: null };
   }

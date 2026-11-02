@@ -14,7 +14,7 @@ import { call, finalText, liveScore, winner } from "../utils/scoring";
 import { rankPlayers, waitMinutes, winPct } from "../utils/format";
 import { matchesCourtLevel } from "../utils/courtLevels";
 import { CircleAlert } from "lucide-react";
-import { hasGender, ignoredLocks, splitTeams, upNextByCourt } from "../utils/rotationModes";
+import { draftSeats, hasGender, ignoredLocks, sharedCourt, splitTeams, upNextKeyFor, upNextPlan, withDraft } from "../utils/rotationModes";
 import { normalizeMode } from "../data/constants";
 
 // Closes an open swap menu when clicking/tapping outside the given
@@ -473,7 +473,7 @@ function CourtPreview({ label, level, group, draft, othersTaken, setDraft, need,
         <button
           className="primary preview-send"
           disabled={!canSend || !filled}
-          onClick={() => { onSendToCourt(teamA.map((x) => x.p.id), teamB.map((x) => x.p.id)); setDraft(null); }}
+          onClick={() => onSendToCourt(teamA.map((x) => x.p.id), teamB.map((x) => x.p.id))}
         >
           <Play size={14} /> {filled ? "Send to Court" : "Add a player to send"}
         </button>
@@ -500,31 +500,24 @@ export default function Dashboard({
   const mixed = mode === "Mixed Doubles";
   const noGender = mixed ? players.filter((p) => p.checked && !hasGender(p)) : [];
   const skippedLocks = ignoredLocks(players, mode);
-  const hasOpenCourt = courts.some((c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0);
   const topPlayers = rankPlayers(players).slice(0, 3);
-  // Up Next matches the host has edited (fixed seats, see CourtPreview), by court id. A seat whose player is no
-  // longer waiting (played, checked out) is emptied rather than refilled. Held by QueueApp so a tab switch keeps them.
+  // Up Next matches (fixed seats, see CourtPreview), held by QueueApp so a tab switch keeps them. The Any Level courts
+  // share one line of matches ("line-0", "line-1", ...): whichever court opens first takes the first, so a long game
+  // never holds its next players back. A court set to a level keeps its own (key: its id). A seat whose player is no
+  // longer waiting (played, checked out) is emptied rather than refilled; a match with nobody left in it is no match.
   const waiting = new Set(queue.map((p) => p.id));
-  // A draft with nobody left in it (all played or checked out, or saved from an older session) is no draft.
-  const draftOf = (key) => {
-    const seats = drafts[key]?.map((id) => (id && waiting.has(id) ? id : null));
-    return seats?.some(Boolean) ? seats : null;
-  };
-  const dropDraft = (courtId) => setDrafts(({ [courtId]: _, ...rest }) => rest);
+  const isEmptyCourt = (c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
+  const shared = courts.filter(sharedCourt);
+  const levelled = courts.filter((c) => !sharedCourt(c));
+  const openShared = shared.filter(isEmptyCourt);
+  const lineKeys = shared.map((_, i) => `line-${i}`);
+  const slotKeys = [...lineKeys, ...levelled.map((c) => c.id)];
+  const seatsOf = draftSeats(drafts, slotKeys, waiting);
+  const draftOf = (key) => seatsOf[key] || null;
+  const setDraft = (key, ids) => setDrafts((d) => withDraft(d, key, ids));
+  // A line match has no court of its own: it goes on the open court beside it, or on whichever court frees up first.
+  const courtOfKey = (key) => (key.startsWith("line-") ? openShared[Number(key.slice(5))] || null : courts.find((c) => c.id === key) || null);
 
-  // Reserve consecutive, non-overlapping, level-matched slices of the queue:
-  // first for any open courts (shown inline via "Start Next Match"), then one
-  // per live court for the "Up Next" preview below — so no player, and no
-  // level-restricted seat, is double-counted across courts.
-  // Players held in an edited (draft) match are reserved first, so no other preview can pick them too.
-  // A result seats this court's edited Up Next (when every seat is filled) instead of a fresh pick; then the edit is done.
-  const winWithEdit = async (courtId, side, scoreText = null) => {
-    const edit = draftOf(courtId);
-    if (await recordWin(courtId, side, edit, scoreText)) dropDraft(courtId);
-  };
-  const startWithEdit = async (courtId) => {
-    if (await onStartNext(courtId, draftOf(courtId))) dropDraft(courtId);
-  };
   // "Record umpire results automatically" (Settings): a game the umpire's screen saved records itself. The first open
   // Dashboard to claim the court records it (a transaction, so two hosts never record it twice); an Undo of that result
   // keeps the claim, so it doesn't repeat. Off: the court card shows a Confirm button instead.
@@ -538,78 +531,77 @@ export default function Dashboard({
       if (!won || c.recordedConfirm === sc.confirmed || recording.current.has(sc.confirmed)) return;
       recording.current.add(sc.confirmed);
       claimRecording(c.id, sc.confirmed)
-        .then((mine) => mine && winWithEdit(c.id, won === 1 ? "A" : "B", finalText(sc)))
+        .then((mine) => mine && recordWin(c.id, won === 1 ? "A" : "B", finalText(sc)))
         .catch(() => setUnclaimed((u) => [...u.slice(-20), sc.confirmed])) // offline: the card shows its Confirm button
         .finally(() => recording.current.delete(sc.confirmed));
     });
   }, [courts, rules.autoRecord]); // eslint-disable-line react-hooks/exhaustive-deps
-  const held = new Set(courts.flatMap((c) => draftOf(c.id) || []).filter(Boolean));
+  const held = new Set(slotKeys.flatMap((k) => draftOf(k) || []).filter(Boolean));
   // Up Next Auto-fill: tops up every locked Up Next that has empty seats from the waiting players, in queue order
-  // (the same top-up rotation uses, so court level, locks and Mixed Doubles apply). Court by court with a shrinking
-  // pool, so two courts never take the same person; the players already there stay put.
+  // (the same top-up rotation uses, so court level, locks and Mixed Doubles apply). Match by match with a shrinking
+  // pool, so two matches never take the same person; the players already there stay put.
   const openSeats = (d) => !!d && (d.length < need || d.some((id) => !id));
-  const canFillUpNext = courts.some((c) => openSeats(draftOf(c.id)));
+  const canFillUpNext = slotKeys.some((k) => openSeats(draftOf(k)));
   const autoFillUpNext = () => {
     let pool = queue.filter((p) => !held.has(p.id));
     let filled = 0;
-    const next = {};
-    courts.forEach((c) => {
-      const d = draftOf(c.id);
+    let next = drafts;
+    slotKeys.forEach((key) => {
+      const d = draftOf(key);
       if (!openSeats(d)) return;
-      const seated = fillDraft(c, d, pool, need);
+      const seated = fillDraft(key.startsWith("line-") ? null : courtOfKey(key), d, pool, need);
       if (!seated?.filled) return;
       const pad = (team) => [...team, ...Array(Math.max(0, need / 2 - team.length)).fill(null)];
-      next[c.id] = [...pad(seated.teamA), ...pad(seated.teamB)];
+      next = withDraft(next, key, [...pad(seated.teamA), ...pad(seated.teamB)]);
       filled += seated.filled;
       const used = new Set([...seated.teamA, ...seated.teamB]);
       pool = pool.filter((p) => !used.has(p.id));
     });
-    if (filled) setDrafts((cur) => ({ ...cur, ...next }));
+    if (filled) setDrafts(next);
     notify(filled ? `Filled ${filled} Up Next seat${filled === 1 ? "" : "s"}.` : "Nobody free in the queue to fill the empty seats.");
   };
-  const isEmptyCourt = (c) => (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
-  const picks = upNextByCourt({
+  // Fresh picks for the matches nobody has locked yet (upNextPlan, the same pick every other screen shows).
+  const freeLine = lineKeys.filter((k) => !draftOf(k));
+  const plan = upNextPlan({
     pool: queue.filter((p) => !held.has(p.id)),
-    courts: courts.filter((c) => !draftOf(c.id)), // a court with a locked Up Next keeps its own seats
-    mode, need, now: Date.now(),
+    courts: courts.filter((c) => sharedCourt(c) || !draftOf(c.id)), // a level court with a locked Up Next keeps its own seats
+    mode, need, now: Date.now(), lineSize: freeLine.length,
   });
-  // Up Next doesn't change by itself: as soon as a court's pick is a full match it is locked in as a draft, the
-  // same as a host edit. From then on only the host changes it (swap, add, remove); a locked player who leaves
-  // the queue leaves an empty seat for the host to fill. Custom mode has no Up Next, so nothing is locked there.
+  const picks = { ...Object.fromEntries(freeLine.map((k, i) => [k, plan.line[i]])), ...plan.own };
+  // Up Next doesn't change by itself: as soon as a match's pick is full it is locked in, the same as a host edit.
+  // From then on only the host changes it (swap, add, remove); a locked player who leaves the queue leaves an empty
+  // seat for the host to fill. Custom mode has no Up Next, so nothing is locked there.
   useEffect(() => {
     if (manual) return;
-    const lock = {};
-    courts.forEach((c) => {
-      const group = picks[c.id];
-      if (draftOf(c.id) || !group || group.length < need) return;
+    let lock = null;
+    slotKeys.forEach((key) => {
+      const group = picks[key];
+      if (draftOf(key) || !group || group.length < need) return;
       const [a, b] = splitTeams(group, mode, rules.avoidRepeatPartners);
-      lock[c.id] = [...a, ...b];
+      lock = withDraft(lock || drafts, key, [...a, ...b]);
     });
-    if (Object.keys(lock).length) setDrafts((cur) => ({ ...cur, ...lock }));
+    if (lock) setDrafts(lock);
   });
-  const draftPlayers = (courtId) => (draftOf(courtId) || []).filter(Boolean).map((id) => players.find((p) => p.id === id)).filter(Boolean);
-  const courtViews = courts.map((c) => ({
-    court: c, upNext: !isEmptyCourt(c) ? [] : draftOf(c.id) ? draftPlayers(c.id) : picks[c.id] || [],
-  }));
-  // One "Up Next" preview per court, always — so adding/removing a court
-  // immediately adds/removes its preview box too. An open court just mirrors
-  // the same "ready now" group already shown inline on its own card; a live
-  // court previews who rotates in once its current match ends.
-  const upcomingPreviews = courtViews.map(({ court: c, upNext: emptyUpNext }) => {
-    const isEmpty = (c.teamA?.length || 0) + (c.teamB?.length || 0) === 0;
-    const label = c.name || `Court ${c.courtNumber}`;
-    const draft = draftOf(c.id);
-    if (draft) {
-      const mine = draft.filter(Boolean);
-      return { key: c.id, label, level: c.level, draft, group: mine.map((id) => players.find((p) => p.id === id)) };
-    }
-    return { key: c.id, label, level: c.level, group: isEmpty ? emptyUpNext : picks[c.id] || [] };
+  const groupOf = (key) => (draftOf(key)
+    ? draftOf(key).filter(Boolean).map((id) => players.find((p) => p.id === id)).filter(Boolean)
+    : picks[key] || []);
+  const courtViews = courts.map((c) => ({ court: c, upNext: isEmptyCourt(c) ? groupOf(upNextKeyFor(courts, c.id)) : [] }));
+  const courtLabel = (c) => c.name || `Court ${c.courtNumber}`;
+  // One Up Next card per court, always, so adding or removing a court adds or removes one. A line match beside an
+  // open court is labeled with that court (its card mirrors the court's "Start Next Match"); the others Match 1, 2, ... in line order.
+  const upcomingPreviews = slotKeys.map((key) => {
+    const c = courtOfKey(key);
+    const k = key.startsWith("line-") ? Number(key.slice(5)) - openShared.length : -1;
+    const label = c ? courtLabel(c) : `Match ${k + 1}`;
+    return { key, label, level: c?.level, draft: draftOf(key), group: groupOf(key), sendTo: c && isEmptyCourt(c) ? c.id : null, callCourt: c?.id || null };
   });
-  // Live Board "Next up": the court the host picked keeps its saved teams in step with its Up Next here.
+  // Live Board "Next up": the match the host picked (`slot`) keeps its saved teams and label in step with its Up Next
+  // here. A line match lives on the first court's doc, since it has no court of its own.
   const boardTeams = (pv) => {
     const [a, b] = previewTeams(pv.group.filter(Boolean), pv.draft, need, mode, rules.avoidRepeatPartners);
-    return { a, b };
+    return { a, b, slot: pv.key, label: pv.label };
   };
+  const boardDoc = (pv) => (pv.key.startsWith("line-") ? courts[0]?.id : pv.key);
   // "Call players automatically" (Settings): a court whose match starts (a newer `start` with every seat filled) is
   // called once. Matches already playing when the Dashboard opens aren't called, and an Undo (older start) isn't either.
   const calledStart = useRef(null);
@@ -623,12 +615,14 @@ export default function Dashboard({
     });
   }, [courts]); // eslint-disable-line react-hooks/exhaustive-deps
   const boardCourt = courts.find((c) => c.nextUp);
-  const boardPreview = !manual && boardCourt && upcomingPreviews.find((pv) => pv.key === boardCourt.id);
+  const boardSlot = boardCourt && (boardCourt.nextUp.slot || boardCourt.id);
+  const boardPreview = !manual && boardCourt && upcomingPreviews.find((pv) => pv.key === boardSlot);
   const boardWant = boardPreview ? boardTeams(boardPreview) : null;
-  const boardKey = boardWant ? JSON.stringify([boardWant.a, boardWant.b]) : "";
+  const boardKey = boardWant ? JSON.stringify([boardWant.a, boardWant.b, boardWant.label]) : "";
   useEffect(() => {
     if (!boardWant || !onBoardNext) return;
-    if (JSON.stringify([boardCourt.nextUp.a || [], boardCourt.nextUp.b || []]) !== boardKey) onBoardNext(boardCourt.id, boardWant).catch(() => {});
+    const have = boardCourt.nextUp;
+    if (JSON.stringify([have.a || [], have.b || [], have.label]) !== boardKey) onBoardNext(boardCourt.id, boardWant).catch(() => {});
   }, [boardKey, boardCourt?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -696,7 +690,7 @@ export default function Dashboard({
       <div className="courts">
         {courtViews.map(({ court: c, upNext }) => (
           <Court key={c.id} c={c} players={players} queue={queue} need={need} upNext={upNext}
-            win={winWithEdit} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={startWithEdit} onSetLevel={onSetCourtLevel}
+            win={recordWin} remove={removePlayer} swap={swapPlayer} addPlayer={addPlayerToCourt} onStartNext={onStartNext} onSetLevel={onSetCourtLevel}
             onRemoveCourt={onRemoveCourt} canRemove={courts.length > 1} onRenameCourt={onRenameCourt}
             alertAfterMin={rules.gameAlertMinutes} manual={manual}
             claims={claims} scoreSettings={scoreSettings} onScore={onScore} onStopScore={onStopScore} autoRecord={!!rules.autoRecord && !unclaimed.includes(c.score?.confirmed)} />
@@ -706,7 +700,7 @@ export default function Dashboard({
       {upcomingPreviews.length > 0 && !manual && (
         <>
           <div className="heading">
-            <div><h2>Up Next</h2><p>Preview of who rotates onto each court next.</p></div>
+            <div><h2>Up Next</h2><p>{levelled.length ? "Any Level courts share one line: the first court to finish takes the next match. A court set to a level keeps its own." : "The first court to finish takes the next match."}</p></div>
             <div className="heading-actions">
               <button className="outline" onClick={autoFillUpNext} disabled={!canFillUpNext}
                 title={canFillUpNext ? "Fill the empty Up Next seats from the queue" : "No empty Up Next seats"}>
@@ -716,11 +710,11 @@ export default function Dashboard({
           </div>
           <div className="courts">
             {upcomingPreviews.map((pv) => (
-              <CourtPreview key={pv.key} label={pv.label} level={pv.level} group={pv.group} draft={pv.draft} othersTaken={new Set(upcomingPreviews.filter((o) => o !== pv).flatMap((o) => o.group.map((p) => p.id)))} setDraft={(d) => setDrafts((cur) => ({ ...cur, [pv.key]: d }))} need={need} mode={mode} avoidRepeats={rules.avoidRepeatPartners} players={players} queue={queue}
-                notify={notify} onSwapOrder={onSwapQueueOrder} onSkip={onSkipQueued} onSendToCourt={onSendToCourt} canSend={hasOpenCourt}
-                onBoard={boardCourt?.id === pv.key}
-                onCall={onCall && ((a, b) => onCall(pv.key, "next", a, b).catch(() => notify("Couldn't send the call. Check your connection.")))}
-                onToggleBoard={onBoardNext && (() => onBoardNext(pv.key, boardCourt?.id === pv.key ? null : boardTeams(pv))
+              <CourtPreview key={pv.key} label={pv.label} level={pv.level} group={pv.group} draft={pv.draft} othersTaken={new Set(upcomingPreviews.filter((o) => o !== pv).flatMap((o) => o.group.map((p) => p.id)))} setDraft={(d) => setDraft(pv.key, d)} need={need} mode={mode} avoidRepeats={rules.avoidRepeatPartners} players={players} queue={queue}
+                notify={notify} onSwapOrder={onSwapQueueOrder} onSkip={onSkipQueued} onSendToCourt={(a, b) => onSendToCourt(pv.sendTo, a, b, pv.key)} canSend={!!pv.sendTo}
+                onBoard={boardSlot === pv.key}
+                onCall={onCall && ((a, b) => onCall(pv.callCourt, "next", a, b).catch(() => notify("Couldn't send the call. Check your connection.")))}
+                onToggleBoard={onBoardNext && (() => onBoardNext(boardDoc(pv), boardSlot === pv.key ? null : boardTeams(pv))
                   .catch(() => notify("Couldn't update the Live Board. Check your connection.")))} />
             ))}
           </div>

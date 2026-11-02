@@ -1,7 +1,7 @@
 // Self-check for Balanced team splitting. Run: node src/utils/rotationModes.check.mjs
 import assert from "node:assert";
 import {
-  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, ignoredLocks, seatJoiners, selectToJoin, trimHistory, shouldWinnersStay, STARVE_MS, splitTeams, upNextByCourt, validLock,
+  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, ignoredLocks, seatJoiners, selectToJoin, trimHistory, shouldWinnersStay, STARVE_MS, splitTeams, upNextPlan, nextMatchOf, upNextKeyFor, draftSeats, withDraft, withoutDraft, withDraftBack, validLock,
 } from "./rotationModes.js";
 import { normalizeMode } from "../data/constants.js";
 
@@ -306,16 +306,49 @@ const th = trimHistory(["1", "2", "3", "4"], ["a", "b", "c", "d", "e", "f", "g",
 assert.deepEqual(th, { partners: ["3", "4"], opponents: ["e", "f", "g", "h"] });
 assert.equal(trimHistory(Array(15).fill("x"), Array(40).fill("y")).partners.length, 10);
 
-// upNextByCourt: open courts pick first, then busy ones, and nobody is picked twice
+// upNextPlan: the Any Level courts share one line; the open court takes the front of it, nobody is picked twice
 {
-  const q = Array.from({ length: 9 }, (_, i) => p(`q${i}`, 3, { games: 0, checkedAt: i }));
+  const q = Array.from({ length: 13 }, (_, i) => p(`q${i}`, 3, { games: 0, checkedAt: i }));
   const busy = { id: "c1", courtNumber: 1, teamA: ["x1", "x2"], teamB: ["x3", "x4"] };
   const open = { id: "c2", courtNumber: 2, teamA: [], teamB: [] };
-  const up = upNextByCourt({ pool: q, courts: [busy, open], mode: "Balanced", need: 4 });
-  assert.equal(ids({ taken: up.c2 }), "q0,q1,q2,q3"); // the open court takes the front of the line
-  assert.equal(up.c1.length, 4);
-  assert.ok(!up.c1.some((x) => up.c2.includes(x)));
-  assert.deepEqual(upNextByCourt({ pool: q, courts: [busy, open], mode: "Custom", need: 4 }), { c1: [], c2: [] });
+  const busy2 = { id: "c3", courtNumber: 3, teamA: ["y1", "y2"], teamB: ["y3", "y4"] };
+  const up = upNextPlan({ pool: q, courts: [busy, open, busy2], mode: "Balanced", need: 4 });
+  assert.equal(up.line.length, 3);
+  assert.deepEqual(up.openFor, ["c2"]);
+  assert.equal(ids({ taken: up.line[0] }), "q0,q1,q2,q3"); // the front of the line goes on the open court
+  assert.equal(new Set(up.line.flat().map((x) => x.id)).size, 12);
+  const next = nextMatchOf(up, [busy, open, busy2]);
+  assert.equal(next.q0.court.id, "c2");
+  assert.deepEqual(next[up.line[1][0].id], { match: 1 }); // the next match: whichever busy court finishes first
+  assert.deepEqual(next[up.line[2][0].id], { match: 2 });
+  assert.deepEqual(upNextPlan({ pool: q, courts: [busy, open], mode: "Custom", need: 4 }), { line: [[], []], own: {}, openFor: ["c2"] });
+  // a court set to a level keeps its own match, out of the line
+  const lvl = { ...busy, level: "Beginner" };
+  const mixedQ = [...q, p("b1", 1), p("b2", 1), p("b3", 1), p("b4", 1)];
+  const up2 = upNextPlan({ pool: mixedQ, courts: [lvl, open], mode: "Balanced", need: 4 });
+  assert.equal(up2.line.length, 1);
+  assert.equal(ids({ taken: up2.own.c1 }), "b1,b2,b3,b4");
+  assert.equal(nextMatchOf(up2, [lvl, open]).b1.court.id, "c1");
+}
+
+// Up Next line drafts: which match a court takes, and the save / screen-update race
+{
+  const open = { id: "c1", teamA: [], teamB: [] };
+  const busy = { id: "c2", teamA: ["x"], teamB: ["y"] };
+  const lvl = { id: "c3", level: "Beginner", teamA: ["z"], teamB: [] };
+  assert.equal(upNextKeyFor([open, busy, lvl], "c1"), "line-0"); // an open court takes the match beside it
+  assert.equal(upNextKeyFor([open, busy, lvl], "c2"), "line-1"); // a busy one the first match no open court holds
+  assert.equal(upNextKeyFor([open, busy, lvl], "c3"), "c3"); // a level court its own
+  const J = ["j1", "j2", "j3", "j4"], M = ["m1", "m2", "m3", "m4"];
+  // the used match J was already replaced on screen by M before the save finished: removing J keeps M
+  assert.deepEqual(withoutDraft({ line: [M], own: {} }, "line-0", J).line, [M]);
+  assert.deepEqual(withoutDraft({ line: [J, M], own: {} }, "line-0", J).line, [M]);
+  // Undo while J was re-picked meanwhile: J goes back once, not twice
+  assert.deepEqual(withDraftBack({ line: [["j2", "j1", "j4", "j3"]], own: {} }, "line-0", J).line, [J]);
+  assert.deepEqual(withDraft({ line: [], own: {} }, "line-2", M).line, [null, null, M]);
+  // a player counts in the first match only; with `waiting`, only while waiting
+  const seats = draftSeats({ line: [J, ["j1", "m1", null, "m2"]], own: { c3: ["j2"] } }, ["line-0", "line-1", "c3"], new Set([...J, "m1"]));
+  assert.deepEqual(seats, { "line-0": J, "line-1": [null, "m1", null, null], c3: null });
 }
 
 // Skill Separated, a locked pair one star apart (2★ + 3★) plays together.

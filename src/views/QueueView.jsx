@@ -5,7 +5,7 @@ import { db, firebaseConfigured } from "../firebase";
 import PageTitle from "../components/PageTitle";
 import { useDocs } from "../hooks/useLiveDocs";
 import { queueOrder } from "../utils/queueStatus";
-import { upNextByCourt } from "../utils/rotationModes";
+import { nextMatchOf, upNextPlan } from "../utils/rotationModes";
 import { normalizeMode } from "../data/constants";
 
 // The read-only queue of a live game, for the club's members: who is waiting, in order, and who is on each
@@ -43,8 +43,12 @@ export default function QueueView({ clubId, base, eventId, uid, navigate }) {
   const queue = queueOrder(players, courts);
   const names = Object.fromEntries(players.map((p) => [p.id, p.name]));
   const mode = normalizeMode(state.event.mode) || "Balanced";
-  const picks = upNextByCourt({ pool: queue, courts, mode, need: state.event.format === "Singles" ? 2 : 4, now: Date.now() });
-  const nextCourt = Object.fromEntries(courts.flatMap((c) => (picks[c.id] || []).map((p) => [p.id, c.courtNumber])));
+  // The queue app's own pick: a court when it is known (an open court, or a court set to a level), else the place in
+  // the shared line (the first court to finish takes the next match).
+  const plan = upNextPlan({ pool: queue, courts, mode, need: state.event.format === "Singles" ? 2 : 4, now: Date.now() });
+  const nextCourt = Object.fromEntries(Object.entries(nextMatchOf(plan, courts)).map(([id, n]) => [id,
+    n.court ? `Court ${n.court.courtNumber}` : `Match ${n.match}`]));
+  const courtNext = plan.own; // a busy court set to a level: who goes on it next
   return (
     <>
       {back}
@@ -59,7 +63,7 @@ export default function QueueView({ clubId, base, eventId, uid, navigate }) {
               <li key={p.id} className={`queue-row${p.uid === uid ? " me" : ""}`}>
                 <span className="queue-pos">{i + 1}</span>
                 <span className="queue-name">{p.name}{p.uid === uid ? " (you)" : ""}</span>
-                {nextCourt[p.id] && <span className="queue-next">Next · Court {nextCourt[p.id]}</span>}
+                {nextCourt[p.id] && <span className="queue-next">Next · {nextCourt[p.id]}</span>}
                 <span className="queue-games">{p.games || 0} {p.games === 1 ? "game" : "games"}</span>
               </li>
             ))}
@@ -75,7 +79,7 @@ export default function QueueView({ clubId, base, eventId, uid, navigate }) {
               <div className="queue-court" key={c.id}>
                 <b>Court {c.courtNumber}</b>
                 <p>{on.length ? on.join(", ") : "Free"}</p>
-                {on.length > 0 && picks[c.id]?.length > 0 && <p className="queue-court-next">Next: {picks[c.id].map((p) => p.name).join(", ")}</p>}
+                {on.length > 0 && courtNext[c.id]?.length > 0 && <p className="queue-court-next">Next: {courtNext[c.id].map((p) => p.name).join(", ")}</p>}
               </div>
             );
           })}

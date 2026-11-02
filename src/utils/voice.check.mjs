@@ -8,6 +8,8 @@ assert.equal(spokenName(undefined), "");
 
 assert.equal(callText("next", "Court 1", ["Ana", "Ben"], ["Cy", "Di"]), "Court 1, next up: Ana and Ben, versus Cy and Di. Please get ready.");
 assert.equal(callText("start", "Center", ["Ana", "Ben"], ["Cy", "Di"]), "Center: Ana and Ben, versus Cy and Di. Please go to Center.");
+assert.equal(callText("next", "", ["Ana", "Ben"], ["Cy", "Di"]), "Next up: Ana and Ben, versus Cy and Di. Please get ready."); // a line match: no court yet
+assert.equal(callParts("next", "", [{ name: "Ana" }])[0].id, "p_next-up");
 assert.equal(callText("next", "Court 2", ["Ana"], ["Cy"]), "Court 2, next up: Ana, versus Cy. Please get ready.");
 assert.equal(callText("next", "Court 2", ["Ana", "Ben"], []), "Court 2, next up: Ana and Ben. Please get ready.");
 assert.equal(callText("next", "Court 2", [], []), "");

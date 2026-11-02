@@ -43,7 +43,7 @@ const STEPS = [
   {
     tab: "dashboard", target: ".court.preview",
     title: "Up Next",
-    body: "Up Next shows who goes on each court next, so players can get ready. Swap or remove someone before the court frees up.",
+    body: "Up Next shows the next matches in order, so players can get ready: the first court to finish takes the next one. Swap or remove someone before it goes on.",
   },
   {
     tab: "dashboard", target: '[data-tour="match-log"]',
