@@ -465,6 +465,14 @@ export function withDraftBack(d, key, ids) {
   line.splice(Math.min(i, line.length), 0, ids);
   return { ...d, line };
 }
+// A line match with nobody left waiting (it went on court, or they all left) leaves the line, so the ones behind it
+// move up. Run before locking new picks: the court's update shows before its write returns, and a new pick locked in
+// the used match's place would put a fresh group ahead of the match that was next (withoutDraft would find nothing).
+export function withoutUsedLine(d, waiting) {
+  const seats = draftSeats(d, d.line.map((_, i) => `line-${i}`), waiting);
+  const line = d.line.filter((_, i) => seats[`line-${i}`]);
+  return line.length === d.line.length ? d : { ...d, line };
+}
 // Each Up Next match's seats as they count now, by key (in `keys` order): a player sits in one match only, the first
 // that has them, and with `waiting` only while still waiting (else the seat is empty). A match with nobody is null.
 export function draftSeats(d, keys, waiting = null) {

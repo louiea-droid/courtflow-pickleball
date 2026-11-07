@@ -14,7 +14,7 @@ import { call, finalText, liveScore, winner } from "../utils/scoring";
 import { rankPlayers, waitMinutes, winPct } from "../utils/format";
 import { matchesCourtLevel } from "../utils/courtLevels";
 import { CircleAlert } from "lucide-react";
-import { draftSeats, hasGender, ignoredLocks, sharedCourt, splitTeams, upNextKeyFor, upNextPlan, withDraft } from "../utils/rotationModes";
+import { draftSeats, hasGender, ignoredLocks, sharedCourt, splitTeams, upNextKeyFor, upNextPlan, withDraft, withoutUsedLine } from "../utils/rotationModes";
 import { normalizeMode } from "../data/constants";
 
 // Closes an open swap menu when clicking/tapping outside the given
@@ -573,6 +573,9 @@ export default function Dashboard({
   // seat for the host to fill. Custom mode has no Up Next, so nothing is locked there.
   useEffect(() => {
     if (manual) return;
+    // A used line match leaves first (the ones behind move up); the next render locks the new pick at the end.
+    const moved = withoutUsedLine(drafts, waiting);
+    if (moved !== drafts) return setDrafts(moved);
     let lock = null;
     slotKeys.forEach((key) => {
       const group = picks[key];

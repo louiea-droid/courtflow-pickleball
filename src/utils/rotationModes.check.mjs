@@ -1,7 +1,7 @@
 // Self-check for Balanced team splitting. Run: node src/utils/rotationModes.check.mjs
 import assert from "node:assert";
 import {
-  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, ignoredLocks, seatJoiners, selectToJoin, trimHistory, shouldWinnersStay, STARVE_MS, splitTeams, upNextPlan, nextMatchOf, upNextKeyFor, draftSeats, withDraft, withoutDraft, withDraftBack, validLock,
+  hasGender, lockProblem, mixedLockProblems, mixedSideFor, mixedTeamAccepts, selectForCourt, ignoredLocks, seatJoiners, selectToJoin, trimHistory, shouldWinnersStay, STARVE_MS, splitTeams, upNextPlan, nextMatchOf, upNextKeyFor, draftSeats, withDraft, withoutDraft, withDraftBack, withoutUsedLine, validLock,
 } from "./rotationModes.js";
 import { normalizeMode } from "../data/constants.js";
 
@@ -349,6 +349,14 @@ assert.equal(trimHistory(Array(15).fill("x"), Array(40).fill("y")).partners.leng
   // a player counts in the first match only; with `waiting`, only while waiting
   const seats = draftSeats({ line: [J, ["j1", "m1", null, "m2"]], own: { c3: ["j2"] } }, ["line-0", "line-1", "c3"], new Set([...J, "m1"]));
   assert.deepEqual(seats, { "line-0": J, "line-1": [null, "m1", null, null], c3: null });
+  // J went on court: it leaves the line and M moves up to the front, before any new pick is locked
+  const sent = withoutUsedLine({ line: [J, M], own: { c3: J } }, new Set(M));
+  assert.deepEqual(sent, { line: [M], own: { c3: J } });
+  assert.deepEqual(withoutDraft(sent, "line-0", J).line, [M]); // the send's own removal then finds nothing
+  // a match with one player still waiting stays, with its seat; nothing to drop keeps the same object
+  const d = { line: [J, M], own: {} };
+  assert.equal(withoutUsedLine(d, new Set(["j3", ...M])), d);
+  assert.deepEqual(withoutUsedLine({ line: [null, M], own: {} }, new Set(M)).line, [M]);
 }
 
 // Skill Separated, a locked pair one star apart (2★ + 3★) plays together.
