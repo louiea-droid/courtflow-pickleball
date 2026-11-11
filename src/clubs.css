@@ -737,3 +737,11 @@ button.acct-brand:hover{background:var(--side-hover)}
     radial-gradient(farthest-side at 100% 50%,color-mix(in srgb,var(--ink) 24%,transparent),transparent) right center/12px 100% no-repeat scroll;
 }
 @media (max-width:560px){.club-page-nav-link{padding:0 10px;gap:6px}}
+
+/* Home: Your bookings (open play requests saved on the account; hooks/useMyBookings.js) */
+.home-bookings{margin-top:24px}
+.home-bookings .club-section{margin-top:0}
+.home-booking-st.ok{color:var(--accent-ink)}
+.home-booking-st.warn{color:var(--warn-ink)}
+.home-booking-st.info{color:var(--info-ink)}
+.home-booking-st.bad{color:var(--danger-ink)}

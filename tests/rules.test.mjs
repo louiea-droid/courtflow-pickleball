@@ -251,6 +251,15 @@ await assertFails(deleteDoc(doc(pubReq(anon), "r1")));
 await assertFails(setDoc(doc(pubReq(anon), "r1"), goodReq)); // overwrite = update
 await assertSucceeds(updateDoc(doc(pubReq(mgr), "r1"), { status: "approved" }));
 await assertSucceeds(deleteDoc(doc(pubReq(own), "r2")));
+// Linking a booking to the account after signing in: only the account id, only your own, only when it has none.
+await assertFails(updateDoc(doc(pubReq(stranger), "rc8"), { uid: "someone-else" }));
+await assertFails(updateDoc(doc(pubReq(stranger), "rc8"), { uid: "str", status: "approved" }));
+await assertFails(updateDoc(doc(pubReq(quick), "rc8"), { uid: "q1" })); // a quick session is not an account
+await assertFails(updateDoc(doc(pubReq(legacy), "rc8"), { uid: "c1" })); // nor an old club login
+await assertFails(updateDoc(doc(pubReq(anon), "rc8"), { uid: "str" }));
+await assertFails(updateDoc(doc(pubReq(stranger), "r17"), { uid: "str", name: "Changed" })); // already linked
+await assertSucceeds(updateDoc(doc(pubReq(stranger), "rc8"), { uid: "str" }));
+await assertFails(updateDoc(doc(pubReq(mem), "rc8"), { uid: "m1" })); // once linked, nobody relinks it
 await assertFails(updateDoc(doc(pubReq(mem), "r16"), { status: "approved" }));
 
 // ---- Roster, join requests and the invite document

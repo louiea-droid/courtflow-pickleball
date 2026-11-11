@@ -1,6 +1,6 @@
 // Self-check for page routing. Run: node src/utils/route.check.mjs
 import assert from "node:assert";
-import { chatIdOf, clubIdOf, eventIdOf, routeOf } from "./route.js";
+import { chatIdOf, clubIdOf, eventIdOf, nextOf, routeOf } from "./route.js";
 
 assert.equal(routeOf("/"), "hub");
 assert.equal(routeOf(""), "hub");
@@ -96,5 +96,13 @@ assert.equal(routeOf("/sessionsx"), "hub");
 assert.equal(routeOf("/help"), "help");
 assert.equal(routeOf("/help/"), "help");
 assert.equal(routeOf("/helpx"), "hub");
+
+// After sign-in: back to a page on this site only.
+assert.equal(nextOf("?next=%2Fopen-play%3Fclub%3Dabc%26event%3De1"), "/open-play?club=abc&event=e1");
+assert.equal(nextOf(""), null);
+assert.equal(nextOf("?next=https%3A%2F%2Fevil.com"), null);
+assert.equal(nextOf("?next=%2F%2Fevil.com"), null);
+assert.equal(nextOf("?next=%2F%5Cevil.com"), null);
+assert.equal(nextOf("?next=open-play"), null);
 
 console.log("route.check: ok");

@@ -123,6 +123,7 @@ export async function deleteAccountData(db, uid) {
   await Promise.all(owned.map((m) => deleteClubData(db, m.id, uid)));
   await wipeCollection(db, collection(db, "accounts", uid, "memberships"));
   await wipeCollection(db, collection(db, "accounts", uid, "chatReads"));
+  await wipeCollection(db, collection(db, "accounts", uid, "bookings")); // open play bookings saved on the account
   await deleteFriendData(db, uid);
   await deleteDirectChats(db, uid);
   await deleteLegacyData(db, uid);

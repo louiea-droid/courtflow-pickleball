@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, MessageSquare, Play, UserPlus, Users } from "lucide-react";
+import { Bell, CalendarCheck, MessageSquare, Play, UserPlus, Users } from "lucide-react";
 import { useEscape } from "../hooks/useEscape";
 import { auth } from "../firebase";
 import { capItems, markSeen, unseenCount } from "../utils/notifications";
 
 const SEEN_KEY = "courtflow.notifSeen";
-const ICONS = { turn: Play, friend: UserPlus, join: Users, chat: MessageSquare };
+const ICONS = { turn: Play, booking: CalendarCheck, friend: UserPlus, join: Users, chat: MessageSquare };
 
 // "Seen" lives on this device, per account (two people sharing a phone each keep their own). Blocked or full storage
 // just means everything counts as new.
@@ -22,7 +22,8 @@ const writeSeen = (seen) => {
 
 function Panel({ shown, more, moreTo, top, navigate, close, onEscape }) {
   useEscape(onEscape);
-  const go = (to) => (e) => { e.preventDefault(); close(); navigate(to); };
+  // A booking line opens the public booking page, a separate page (main.jsx): let the link load it.
+  const go = (to) => (e) => { if (to.startsWith("/open-play")) return; e.preventDefault(); close(); navigate(to); };
   return (
     <div className="acct-bell-panel" id="acct-bell-panel" role="region" aria-label="Notifications" style={{ "--bell-top": `${top}px` }}>
       {shown.length ? (

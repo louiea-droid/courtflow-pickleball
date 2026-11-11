@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { LogOut, Play } from "lucide-react";
 import { useAccount } from "./hooks/useAccount";
 import { useRoute } from "./hooks/useRoute";
+import { nextOf } from "./utils/route";
 import { useMyClubs } from "./hooks/useMyClubs";
 import { useFriendships } from "./hooks/useFriends";
 import { useInbox } from "./hooks/useChats";
@@ -13,6 +14,7 @@ import AccountLogin from "./components/AccountLogin";
 import Landing from "./landing/Landing";
 import AccountSidebar from "./components/AccountSidebar";
 import { useManagerJoinRequests } from "./hooks/useManagerJoinRequests";
+import { useMyBookings } from "./hooks/useMyBookings";
 import { buildNotifications } from "./utils/notifications";
 import { useActiveGames } from "./components/ActiveQueue";
 import DeleteAccountDialog from "./components/DeleteAccountDialog";
@@ -54,9 +56,10 @@ export default function AccountApp() {
   const clubActions = useClubActions({ uid, name, notify });
   const activeGame = activeGames.find((g) => g.status) || activeGames[0]; // a game you play in first, else one you host
   const managerRequests = useManagerJoinRequests(uid, clubs);
+  const bookings = useMyBookings(acct.status === "in" ? uid : null);
   const notifications = useMemo(
-    () => buildNotifications({ uid, friendships, chats: inbox.chats, reads: inbox.reads, joinRequests: managerRequests, activeGames }),
-    [uid, friendships, inbox.chats, inbox.reads, managerRequests, activeGames],
+    () => buildNotifications({ uid, friendships, chats: inbox.chats, reads: inbox.reads, joinRequests: managerRequests, activeGames, bookings }),
+    [uid, friendships, inbox.chats, inbox.reads, managerRequests, activeGames, bookings],
   );
   const gameShortcut = activeGame ? (
     <a
@@ -113,8 +116,15 @@ export default function AccountApp() {
       />
     );
   }
-  // Signed in from /signin or /signup: show Home under its own address.
-  if (["/signin", "/signup"].includes(window.location.pathname)) window.history.replaceState(null, "", "/");
+  // Signed in from /signin or /signup: go back where the link said (e.g. the booking page), else Home under its own address.
+  if (["/signin", "/signup"].includes(window.location.pathname)) {
+    const next = nextOf(window.location.search);
+    if (next) {
+      window.location.replace(next); // the booking page and Live Board are other apps in main.jsx: a full load
+      return <div className="loading"><span className="spinner" />Loading…</div>;
+    }
+    window.history.replaceState(null, "", "/");
+  }
 
   if (clubId && route.startsWith("club")) {
     return <ClubApp key={clubId} acct={acct} clubId={clubId} route={route} eventId={eventId} navigate={navigate} inbox={inbox} activeGame={activeGame} notifications={notifications} />;
@@ -146,7 +156,7 @@ export default function AccountApp() {
         ) : route === "clubs" || route === "clubs-find" ? (
           <FindClubs tab={route === "clubs" ? "mine" : "all"} myClubs={clubs} myReady={clubsReady} sessions={sessions.sessions} navigate={navigate} />
         ) : (
-          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} friendships={friendships} inbox={inbox} sessions={sessions} activeGames={activeGames.filter((g) => g.status)} navigate={navigate} />
+          <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} friendships={friendships} inbox={inbox} sessions={sessions} activeGames={activeGames.filter((g) => g.status)} bookings={bookings} navigate={navigate} />
         )}
       </main>
       {showDelete && (

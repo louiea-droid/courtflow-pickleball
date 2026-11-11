@@ -541,7 +541,12 @@ service cloud.firestore {
           allow get: if canSeeClub(clubId);
           allow list: if isManager(clubId);
           allow create: if validEventRequest(clubId, eventId) && (isPublicClub(clubId) || isMember(clubId));
-          allow update, delete: if isManager(clubId);
+          allow update, delete: if isManager(clubId)
+            // The person who booked links it to their account once signed in: only the account id, only their own,
+            // only when the request has none. Reaching the request at all takes its id, which only their browser holds.
+            || (isRealUser() && !('uid' in resource.data)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid'])
+              && request.resource.data.uid == request.auth.uid);
         }
 
         // Game data (players, courts, matchLog, costs): managers write it all. Club members also read the players

@@ -5,11 +5,20 @@ import { isUnread } from "./chat.js";
 
 export const MAX_ITEMS = 20;
 export const MAX_SEEN = 200;
-const GROUP = { turn: 0, friend: 1, join: 2, chat: 3 };
+const GROUP = { turn: 0, booking: 1, friend: 2, join: 3, chat: 4 };
 
 // Item = { key, kind, title, sub, to, at }. `key` names what makes it new (a new chat line has a new key).
-export function buildNotifications({ uid, friendships = [], chats = [], reads = {}, joinRequests = [], activeGames = [] }) {
+export function buildNotifications({ uid, friendships = [], chats = [], reads = {}, joinRequests = [], activeGames = [], bookings = [] }) {
   const items = [];
+
+  // Open play bookings (rows from utils/myBookings.js). Waiting and the waitlist are what the person asked for, so
+  // no line; being let in (also "moved up from the waitlist"), turned down and "starting soon" each get one.
+  bookings.forEach((b) => {
+    const line = b.soon ? ["soon", `Starting soon: ${b.title}`]
+      : b.status.key === "confirmed" ? ["in", `You're in: ${b.title}`]
+        : b.status.key === "declined" ? ["declined", `Not accepted: ${b.title}`] : null;
+    if (line) items.push({ key: `booking:${b.clubId}/${b.id}:${line[0]}`, kind: "booking", title: line[1], sub: b.clubName, to: b.to, at: 0 });
+  });
 
   activeGames.forEach((g) => {
     const s = g.status; // a game the person only hosts has no status, so no turn

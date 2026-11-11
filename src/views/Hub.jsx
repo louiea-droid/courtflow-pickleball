@@ -8,6 +8,9 @@ import { formatHM, money } from "../utils/format";
 import { friendBuckets } from "../utils/friends";
 import { dayHeading, fillRatio, spotsLabel, weekDays } from "../utils/sessions";
 
+// Status colors, the same tones the booking page uses.
+const BOOKING_TONE = { confirmed: "ok", waitlist: "warn", pending: "info", declined: "bad", gone: "bad" };
+
 const greeting = (hour) => (hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening");
 const UPCOMING = 5;
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -26,7 +29,7 @@ function Wave() {
 
 // The home screen: a welcome band with the way to start playing, the game you're in right now, what's
 // coming up this week, then friends, inbox and your clubs.
-export default function Hub({ uid, name, clubs, ready, friendships = [], inbox = { chats: [], unread: 0 }, sessions: sessionsState, activeGames = [], navigate }) {
+export default function Hub({ uid, name, clubs, ready, friendships = [], inbox = { chats: [], unread: 0 }, sessions: sessionsState, activeGames = [], bookings = [], navigate }) {
   const to = (path) => (e) => { e.preventDefault(); navigate(path); };
   const first = (name || "").trim().split(/\s+/)[0];
   const { friends, received } = friendBuckets(friendships, uid);
@@ -123,6 +126,27 @@ export default function Hub({ uid, name, clubs, ready, friendships = [], inbox =
           )}
         </section>
       </div>
+
+      {bookings.length > 0 && (
+        <section className="home-card home-bookings" aria-labelledby="home-bookings-title">
+          <h2 className="club-section" id="home-bookings-title">Your bookings</h2>
+          <div className="home-rows">
+            {bookings.map((b) => (
+              <a className="home-row" key={`${b.clubId}/${b.id}`} href={b.to}>
+                <span className="home-badge" style={{ background: badgeColor(b.clubId) }} aria-hidden="true">{clubInitial(b.clubName)}</span>
+                <span className="home-row-main">
+                  <b>{b.title}{b.live && <span className="pill live">Live</span>}</b>
+                  <small>{b.clubName} · {shortDay(b.date, today)}, {formatHM(b.startTime)} to {formatHM(endHM(b))}</small>
+                </span>
+                <span className="home-row-side">
+                  <b className={`home-booking-st ${BOOKING_TONE[b.status.key]}`}>{b.soon ? "Starting soon" : b.status.label}</b>
+                  {b.soon && <small>{b.status.label}</small>}
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="home-tiles">
         <a className="home-tile" href="/friends" onClick={to("/friends")}>

@@ -49,3 +49,10 @@ export function eventIdOf(pathname) {
   const m = pathname.replace(/\/+$/, "").match(/^\/clubs\/[^/]+\/event\/([^/]+?)(?:\/(?:game|queue))?$/);
   return m ? decode(m[1]) : null;
 }
+
+// "?next=/open-play?club=C" -> "/open-play?club=C": where to go after signing in. Only a path on this site
+// ("/..." but not "//host" or "/\host"), so a link can't send someone to another site.
+export function nextOf(search) {
+  const next = new URLSearchParams(search).get("next");
+  return next && /^\/(?![/\\])/.test(next) ? next : null;
+}

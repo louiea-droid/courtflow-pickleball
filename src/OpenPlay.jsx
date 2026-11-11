@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { collection, doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { Check, Clock, ImagePlus, MapPin, Wallet } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db, firebaseConfigured } from "./firebase";
@@ -14,6 +14,7 @@ import { liveChips } from "./utils/liveBoard";
 import { badgeColor, clubInitial } from "./utils/clubs";
 import { docsOf } from "./hooks/useLiveDocs";
 import { compressImage } from "./utils/receipt";
+import { bookingCopy } from "./utils/myBookings";
 
 // The player's own requests live on their device: the request id is the only key to
 // read it back (rules allow a single get, never a list).
@@ -26,20 +27,58 @@ function loadMine(clubId) {
 }
 const requestRef = (clubId, m) => doc(db, "clubs", clubId, "events", m.eventId, "requests", m.rid);
 
+// Each request as read: its data, or "gone" once deleted. `status` is what the page shows.
 function useMyRequests(clubId, mine) {
-  const [status, setStatus] = useState({});
+  const [reqs, setReqs] = useState({});
   const key = mine.map((m) => `${m.eventId}/${m.rid}`).join(",");
   useEffect(() => {
     if (!firebaseConfigured || !key) return;
     const unsubs = mine.map((m) => onSnapshot(
       requestRef(clubId, m),
-      (s) => setStatus((cur) => ({ ...cur, [m.rid]: s.exists() ? s.data().status : "gone" })),
+      (s) => setReqs((cur) => ({ ...cur, [m.rid]: s.exists() ? s.data() : "gone" })),
       () => {},
     ));
     return () => unsubs.forEach((u) => u());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubId, key]);
-  return status;
+  const status = useMemo(() => Object.fromEntries(Object.entries(reqs).map(([rid, r]) => [rid, r === "gone" ? "gone" : r.status])), [reqs]);
+  return { status, reqs };
+}
+
+// Signed in with an account: this club's bookings saved on it (made on any device) show here too, and every booking
+// this browser made is linked to the account: a copy on the account (Home and the bell read it) and the account id
+// on the request (so "Proceed to game" can link the player and Home shows their place in the queue).
+function useAccountBookings(clubId) {
+  const [uid, setUid] = useState(null);
+  const [saved, setSaved] = useState(null); // null until read
+  useEffect(() => (firebaseConfigured ? onAuthStateChanged(auth, (u) => setUid(isAccountUser(u) ? u.uid : null)) : undefined), []);
+  useEffect(() => {
+    setSaved(null);
+    if (!uid || !clubId) return;
+    return onSnapshot(query(collection(db, "accounts", uid, "bookings"), where("clubId", "==", clubId)),
+      (s) => setSaved(s.docs.map((d) => ({ rid: d.id, seatId: d.data().seatId, eventId: d.data().eventId }))), () => setSaved(null));
+  }, [uid, clubId]);
+  return { uid, saved };
+}
+
+function useLinkBookings({ uid, saved, clubId, clubName, mine, events, reqs }) {
+  const tried = useRef(new Set()); // one try per request and account: a refused write isn't sent again on every update
+  useEffect(() => {
+    if (!uid || !saved) return;
+    const known = new Set(saved.map((s) => s.rid));
+    mine.forEach((m) => {
+      const event = events.find((e) => e.id === m.eventId);
+      const req = reqs[m.rid];
+      if (!event || !req || req === "gone" || (req.uid && req.uid !== uid)) return; // someone else's, on a shared device
+      if (!known.has(m.rid)) {
+        setDoc(doc(db, "accounts", uid, "bookings", m.rid), bookingCopy({ clubId, clubName, event, seatId: m.seatId, at: req.createdAt || Date.now() })).catch(() => {});
+      }
+      if (!req.uid && !tried.current.has(`${uid}/${m.rid}`)) {
+        tried.current.add(`${uid}/${m.rid}`);
+        updateDoc(requestRef(clubId, m), { uid }).catch(() => {});
+      }
+    });
+  }, [uid, saved, clubId, clubName, mine, events, reqs]);
 }
 
 // The booking form: a name and how they pay. Paying online asks for a screenshot of the receipt, shrunk on the phone and
@@ -240,6 +279,39 @@ function MyBookings({ mine, events, status }) {
   );
 }
 
+// Under the games, never above them: a way into CourtWave for people who came from a QR code.
+// Sign-in links carry ?next= so they land back here (AccountApp). Signed in: just open the club.
+function CourtWavePromo({ clubId, clubName }) {
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => onAuthStateChanged(auth, (u) => setSignedIn(isAccountUser(u))), []);
+  const club = clubName || "this club";
+  const next = encodeURIComponent(window.location.pathname + window.location.search);
+  if (signedIn) {
+    return (
+      <aside className="op-promo is-in">
+        <p>Join {club} in CourtWave to see your place in the queue and chat with the club.</p>
+        <a className="op-promo-main" href={`/clubs/${encodeURIComponent(clubId)}`}>Open {club}</a>
+      </aside>
+    );
+  }
+  return (
+    <aside className="op-promo" aria-labelledby="op-promo-title">
+      <h2 id="op-promo-title">Play here often? Join {club} on CourtWave</h2>
+      <ul>
+        <li><Check size={15} aria-hidden="true" /> See your place in the queue while a game is on</li>
+        <li><Check size={15} aria-hidden="true" /> Chat with the club and the players you meet</li>
+        <li><Check size={15} aria-hidden="true" /> Find open play at other clubs too</li>
+      </ul>
+      <div className="op-promo-actions">
+        <a className="op-promo-main" href={`/signup?next=${next}`}>Create free account</a>
+        <a className="op-promo-explore" href="/">Explore CourtWave</a>
+      </div>
+      <p className="op-promo-login">Already have an account? <a href={`/signin?next=${next}`}>Log in</a></p>
+      <p className="op-promo-note">It's free for players. You come back to this page after signing in.</p>
+    </aside>
+  );
+}
+
 export default function OpenPlay() {
   const params = new URLSearchParams(window.location.search);
   const clubId = params.get("club");
@@ -260,8 +332,14 @@ export default function OpenPlay() {
     );
   }, [clubId]);
   const { events, ready } = useEvents(access === "open" ? clubId : null);
-  const [mine, setMine] = useState(() => (clubId ? loadMine(clubId) : []));
-  const status = useMyRequests(clubId, mine);
+  const [local, setMine] = useState(() => (clubId ? loadMine(clubId) : []));
+  const { uid, saved } = useAccountBookings(access === "open" ? clubId : null);
+  // This browser's bookings plus the ones saved on the account from another device.
+  const mine = useMemo(() => {
+    const have = new Set(local.map((m) => m.rid));
+    return [...local, ...(saved || []).filter((s) => !have.has(s.rid))];
+  }, [local, saved]);
+  const { status, reqs } = useMyRequests(clubId, mine);
   // A request holds the player's place only while it is waiting, confirmed or on the waitlist;
   // once declined, or removed by the host, they may ask again.
   const isActive = (m) => ["pending", "confirmed", "waitlist"].includes(
@@ -275,6 +353,7 @@ export default function OpenPlay() {
   }, []);
 
   const hostName = club?.name || events.find((e) => e.hostName)?.hostName || "";
+  useLinkBookings({ uid, saved, clubId, clubName: hostName, mine, events, reqs });
   useEffect(() => {
     document.title = hostName ? `${hostName} — Open play` : "Open play";
   }, [hostName]);
@@ -298,7 +377,7 @@ export default function OpenPlay() {
   if (access === "checking" || !ready) return <div className="loading"><span className="spinner" />Loading open play…</div>;
 
   const sent = (m) => {
-    const next = [...mine, m];
+    const next = [...local, m];
     setMine(next);
     try { localStorage.setItem(storeKey(clubId), JSON.stringify(next)); } catch { /* private mode: status just won't persist */ }
   };
@@ -306,7 +385,7 @@ export default function OpenPlay() {
   return (
     <div className="openplay">
       <header className="op-hero">
-        <img className="op-logo" src="/images/courtwave-light.png" alt="CourtWave" />
+        <a className="op-logo-link" href="/" aria-label="CourtWave home"><img className="op-logo" src="/images/courtwave-light.png" alt="CourtWave" /></a>
         <div className="op-hero-club">
           <span className="op-badge" style={{ background: badgeColor(clubId) }} aria-hidden="true">{clubInitial(hostName)}</span>
           <div>
@@ -331,6 +410,8 @@ export default function OpenPlay() {
           <div className="empty op-empty"><Wallet size={18} /> No open play scheduled right now. Check back soon.</div>
         )}
       </section>
+
+      <CourtWavePromo clubId={clubId} clubName={hostName} />
     </div>
   );
 }

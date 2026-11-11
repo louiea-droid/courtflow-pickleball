@@ -2081,3 +2081,26 @@ button.ci-btn:focus-visible{outline:2px solid var(--accent-bright);outline-offse
 .guide-shot img{display:block;width:100%;height:auto}
 .guide-shot figcaption{color:var(--muted);font-size:12.5px}
 @media (max-width:600px){.guide-modal{padding:16px}.guide-modal .modaltop h3{font-size:21px}}
+
+/* Booking page: the way into CourtWave under the games (CourtWavePromo in OpenPlay.jsx) */
+.op-logo-link{display:inline-block;margin-bottom:16px;border-radius:8px}
+.op-hero .op-logo-link .op-logo{margin-bottom:0}
+.op-logo-link:focus-visible{outline:2px solid var(--lime);outline-offset:4px}
+.op-promo{margin:28px 0 8px;padding:20px;border:1px solid var(--line);border-radius:20px;background:var(--panel);box-shadow:var(--shadow-sm)}
+.op-promo h2{margin:0 0 12px;font:italic 700 20px/1.2 "Space Grotesk";letter-spacing:-.01em}
+.op-promo ul{display:grid;gap:8px;margin:0 0 18px;padding:0;list-style:none}
+.op-promo li{display:flex;align-items:flex-start;gap:8px;color:var(--ink-2);font-size:14px;line-height:1.4}
+.op-promo li svg{flex-shrink:0;margin-top:2px;color:var(--accent-ink)}
+.op-promo-actions{display:flex;flex-wrap:wrap;gap:8px}
+.op-promo-main,.op-promo-explore{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 18px;border-radius:999px;font-weight:800;font-size:14px;text-decoration:none}
+.op-promo-main{background:var(--brand-deep);color:var(--lime)}
+.op-promo-main:hover{filter:brightness(1.15)}
+.op-promo-explore{color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line-strong)}
+.op-promo-explore:hover{background:var(--soft)}
+.op-promo-main:focus-visible,.op-promo-explore:focus-visible,.op-promo-login a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.op-promo-login{margin:14px 0 0;font-size:13.5px;color:var(--ink-2)}
+.op-promo-login a{color:var(--accent-ink);font-weight:800}
+.op-promo-note{margin:4px 0 0;font-size:12.5px;color:var(--muted)}
+.op-promo.is-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.op-promo.is-in p{margin:0;flex:1 1 220px;color:var(--ink-2);font-size:14px}
+@media (max-width:480px){.op-promo-actions>a{flex:1 1 100%}}
