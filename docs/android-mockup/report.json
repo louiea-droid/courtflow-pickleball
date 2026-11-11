@@ -1,0 +1,132 @@
+{
+  "report": [
+    {
+      "name": "01-landing",
+      "label": "Landing",
+      "url": "/",
+      "overflow": false,
+      "smallTargets": 2,
+      "smallSamples": [
+        "CourtWave (163x30)",
+        "Sign in (52x25)"
+      ]
+    },
+    {
+      "name": "02-signin",
+      "label": "Sign in",
+      "url": "/signin",
+      "overflow": false,
+      "smallTargets": 2,
+      "smallSamples": [
+        "CourtWave (372x36)",
+        "Forgot password? (113x32)"
+      ]
+    },
+    {
+      "name": "03-booking",
+      "label": "Booking page",
+      "url": "/open-play?club=pub",
+      "overflow": false,
+      "smallTargets": 1,
+      "smallSamples": [
+        "CourtWave home (43x30)"
+      ]
+    },
+    {
+      "name": "04-home",
+      "label": "Home",
+      "url": "/",
+      "overflow": false,
+      "smallTargets": 1,
+      "smallSamples": [
+        "See all (41x17)"
+      ]
+    },
+    {
+      "name": "05-home-scrolled",
+      "label": "Home, further down",
+      "url": "/",
+      "overflow": false,
+      "smallTargets": 1,
+      "smallSamples": [
+        "See all (41x17)"
+      ]
+    },
+    {
+      "name": "06-find",
+      "label": "Find a game",
+      "url": "/sessions",
+      "overflow": false,
+      "smallTargets": 5,
+      "smallSamples": [
+        "Previous week (32x44)",
+        "Any level (81x32)",
+        "Beginner (80x32)",
+        "Has spots (86x32)",
+        "My clubs (81x32)"
+      ]
+    },
+    {
+      "name": "07-queue",
+      "label": "Your place in the queue",
+      "url": "/clubs/pub/event/thursday/queue",
+      "overflow": false,
+      "smallTargets": 0,
+      "smallSamples": []
+    },
+    {
+      "name": "08-inbox",
+      "label": "Inbox",
+      "url": "/inbox",
+      "overflow": false,
+      "smallTargets": 0,
+      "smallSamples": []
+    },
+    {
+      "name": "09-drawer",
+      "label": "Menu drawer",
+      "url": "/",
+      "overflow": false,
+      "smallTargets": 0,
+      "smallSamples": []
+    },
+    {
+      "name": "10-dashboard",
+      "label": "Host: game dashboard",
+      "url": "/clubs/pub/event/thursday/game",
+      "overflow": false,
+      "smallTargets": 24,
+      "smallSamples": [
+        "Open menu (36x36)",
+        "Umpires (71x32)",
+        "Voice (71x32)",
+        "Add Court (71x32)",
+        "Auto-fill (71x32)",
+        "● Auto ON (68x30)",
+        "Start score (31x26)",
+        "BUTTON (17x17)"
+      ]
+    },
+    {
+      "name": "11-score",
+      "label": "Host: umpire scoring",
+      "url": "/clubs/pub/event/thursday/game",
+      "overflow": false,
+      "smallTargets": 1,
+      "smallSamples": [
+        "Close (36x52)"
+      ]
+    },
+    {
+      "name": "12-home-dark",
+      "label": "Home (dark)",
+      "url": "/",
+      "overflow": false,
+      "smallTargets": 1,
+      "smallSamples": [
+        "See all (41x17)"
+      ]
+    }
+  ],
+  "errs": []
+}

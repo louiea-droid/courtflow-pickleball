@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Android app mockup (2026-11-11). Open this file in a browser. Published copy: https://claude.ai/artifact/9R8R339LxmHEbC67uPFbb6 (private). Raw test numbers: report.json. How it was made: CLAUDE.md, "Downloadable app". -->
+<title>CourtWave Android Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:ital,wght@0,500;0,700;1,700&display=swap">
+<style>
+/* Layout: a gallery of Android phones on CourtWave's paper, grouped by who uses each screen, then the test notes. */
+:root{
+  --paper:#f4f6ee; --panel:#ffffff; --ink:#10261e; --muted:#55685e; --line:#d9e2d5;
+  --deep:#0f2a22; --green:#1f7a4a; --lime:#c6ef1f; --warn:#9a5b00; --bad:#b3261e; --ok:#1f7a4a;
+  --frame:#1b1f1d; --display:"Space Grotesk",system-ui,sans-serif; --body:"DM Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0b1712; --panel:#11231b; --ink:#e7efe9; --muted:#9db2a6; --line:#22392f; --warn:#e6a23c; --bad:#ff8a80; --ok:#7fd59c; --frame:#000; color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#0b1712; --panel:#11231b; --ink:#e7efe9; --muted:#9db2a6; --line:#22392f; --warn:#e6a23c; --bad:#ff8a80; --ok:#7fd59c; --frame:#000; color-scheme:dark}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.55 var(--body)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-style:italic;font-weight:700;font-size:clamp(32px,6vw,52px);line-height:1.02;letter-spacing:-.02em}
+h2{font-size:24px;letter-spacing:-.01em}
+.lede{max-width:62ch;color:var(--muted);margin:14px 0 0;font-size:16px}
+.intro{display:grid;gap:6px;margin-bottom:40px}
+section{margin-top:52px}
+.sec-head{display:grid;gap:4px;margin-bottom:22px;max-width:70ch}
+.sec-head p{margin:0;color:var(--muted)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:36px 24px}
+figure{margin:0;display:grid;justify-items:center;gap:14px}
+figcaption{max-width:250px;text-align:center}
+figcaption b{display:block;font-family:var(--display);font-size:15px}
+figcaption span{color:var(--muted);font-size:13.5px}
+.new{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--lime);color:#14301f;font:700 11px/1.6 var(--body);vertical-align:2px}
+
+/* The phone */
+.phone{width:min(232px,100%);aspect-ratio:232/500;padding:7px;border-radius:34px;background:var(--frame);box-shadow:0 18px 40px rgba(15,42,34,.18),inset 0 0 0 1.5px #3a403d;position:relative}
+.screen{height:100%;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;background:#f4f6ee;position:relative}
+.bar{height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 18px;font:600 10.5px var(--body);color:#fff;background:var(--deep)}
+.bar.light{background:#f8f9f4;color:#1b2a22}
+.bar.dim{background:#9aa197;color:#1b2a22}
+.bar.wall{background:transparent;color:#fff;position:absolute;inset:0 0 auto;z-index:2}
+.bar .icons{display:flex;gap:4px;align-items:center}
+.bar svg{width:12px;height:12px;fill:currentColor}
+.cam{position:absolute;top:13px;left:50%;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;background:#050605;z-index:3}
+.shot{flex:1;min-height:0;width:100%;object-fit:cover;object-position:top;display:block}
+.nav{height:16px;flex-shrink:0;display:grid;place-items:center;background:inherit}
+.nav i{width:70px;height:3.5px;border-radius:3px;background:rgba(20,30,25,.55)}
+.nav.dark i{background:rgba(255,255,255,.7)}
+.nav.deep{background:var(--deep)}
+.nav.light{background:#f4f6ee}
+
+/* Launcher (drawn) */
+.launcher{flex:1;display:flex;flex-direction:column;background:linear-gradient(165deg,#2c5f4a 0%,#173d30 45%,#0e231c 100%);padding:40px 14px 0;color:#fff}
+.clock{font:500 44px/1 var(--display);letter-spacing:-.02em}
+.date{font-size:11px;opacity:.85;margin-top:4px}
+.apps{margin-top:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:14px 6px;padding-bottom:12px}
+.app{display:grid;justify-items:center;gap:4px;font-size:8.5px;opacity:.95}
+.app i{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.16)}
+.app i svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:1.8}
+.app.cw i{background:#fff;box-shadow:0 0 0 2px var(--lime);overflow:hidden}
+.app.cw i img{width:30px}
+.app.cw{font-weight:700}
+.dock{display:flex;justify-content:space-around;margin:0 4px 6px;padding:8px 6px;border-radius:22px;background:rgba(255,255,255,.12)}
+.dock i{width:34px;height:34px;border-radius:11px;background:rgba(255,255,255,.18)}
+.search{margin:0 4px 10px;height:30px;border-radius:15px;background:rgba(255,255,255,.88)}
+
+/* Splash (drawn) */
+.splash{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--deep);position:relative;overflow:hidden}
+.splash img{width:110px}
+.splash p{margin:0;color:#bcd0c4;font:italic 700 15px var(--display)}
+.splash svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:120px}
+.dots{display:flex;gap:5px;margin-top:18px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--lime);opacity:.35}
+.dots i:first-child{opacity:1}
+
+/* App vs website */
+.diff{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.diff div{padding:16px 18px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+.diff b{display:block;font-family:var(--display);font-size:16px;margin-bottom:4px}
+.diff span{color:var(--muted);font-size:14px}
+
+/* Test results */
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:620px}
+th,td{text-align:left;padding:11px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:700 13px var(--body);color:var(--muted)}
+tr:last-child td{border-bottom:0}
+td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.ok{color:var(--ok);font-weight:700}.warn{color:var(--warn);font-weight:700}.bad{color:var(--bad);font-weight:700}
+.todo{display:grid;gap:10px;margin:0;padding:0;list-style:none;counter-reset:t}
+.todo li{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:14px 18px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.todo li::before{counter-increment:t;content:counter(t);font:700 15px var(--display);color:var(--green)}
+:root:not([data-theme="light"]) .todo li::before{color:var(--ok)}
+.todo b{font-family:var(--display)}
+.todo span{display:block;color:var(--muted);font-size:14px}
+.note{color:var(--muted);font-size:13.5px;margin-top:12px;max-width:75ch}
+code{font-size:.92em;background:var(--line);padding:1px 5px;border-radius:5px}
+@media (prefers-reduced-motion:no-preference){.dots i{animation:pulse 1.2s infinite}.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}}
+@keyframes pulse{50%{opacity:1}}
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>CourtWave on Android</h1>
+    <p class="lede">How CourtWave would look as a downloaded Android app. The app screens are real captures of the current build at Pixel 7 size (412 × 915), shown in a phone frame with Android's status bar and gesture bar. The home-screen icon and the opening screen are drawn mockups.</p>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <h2>Opening the app</h2>
+      <p>Tap the icon, see the brand for a moment while it loads, then sign in or land on Home.</p>
+    </div>
+    <div class="gallery">
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar wall"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <div class="launcher">
+            <div class="clock">7:42</div>
+            <div class="date">Thursday, Nov 12</div>
+            <div class="apps">
+              <div class="app"><i><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg></i>Phone</div>
+              <div class="app"><i><svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg></i>Messages</div>
+              <div class="app"><i><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8 7l2-3h4l2 3"/></svg></i>Camera</div>
+              <div class="app"><i><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></i>Calendar</div>
+              <div class="app"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg></i>Clock</div>
+              <div class="app"><i><svg viewBox="0 0 24 24"><path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/></svg></i>Maps</div>
+              <div class="app"><i><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 15l4-4 4 4 3-3 5 5"/></svg></i>Photos</div>
+              <div class="app cw"><i><img src="courtwave-icon.png" alt=""></i>CourtWave</div>
+            </div>
+            <div class="search"></div>
+            <div class="dock"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="nav dark" style="background:#0e231c"><i></i></div>
+        </div></div>
+        <figcaption><b>On the home screen</b><span>The CourtWave icon sits with the phone's other apps.</span></figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <div class="splash">
+            <img src="courtwave-light.png" alt="CourtWave">
+            <p>Catch your wave.</p>
+            <div class="dots"><i></i><i></i><i></i></div>
+            <svg viewBox="0 0 375 120" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M0 62 C80 34 150 86 230 52 S340 30 375 44 V120 H0Z" fill="#c6ef1f"/>
+              <path d="M0 76 C90 50 160 98 240 66 S350 50 375 58 V120 H0Z" fill="#1f7a4a"/>
+              <path d="M0 92 C100 70 170 112 250 86 S350 74 375 80 V120 H0Z" fill="#0f2a22"/>
+            </svg>
+          </div>
+          <div class="nav dark deep"><i></i></div>
+        </div></div>
+        <figcaption><b>Opening screen</b><span>Shown for about a second while the app starts. Deep green, so there's no white flash.</span></figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar light"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="01-landing.jpg" alt="Landing screen: Catch your wave, with Get started and Sign in">
+          <div class="nav light"><i></i></div>
+        </div></div>
+        <figcaption><b>First launch</b><span>Someone who isn't signed in sees the welcome screen.</span></figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="02-signin.jpg" alt="Sign-in screen on the deep green wave">
+          <div class="nav dark deep"><i></i></div>
+        </div></div>
+        <figcaption><b>Sign in</b><span>In the app, "Continue with Google" would open Android's own account picker.</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>For players</h2>
+      <p>Find a game, book it, and see your place in the queue on game night.</p>
+    </div>
+    <div class="gallery">
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="04-home.jpg" alt="Home with the welcome band and Your game card">
+          <div class="nav light"><i></i></div>
+        </div></div>
+        <figcaption><b>Home</b><span>Your game right now, with Find session one tap away.</span></figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="05-home-scrolled.jpg" alt="Home scrolled to Coming up and Your bookings">
+          <div class="nav light"><i></i></div>
+        </div></div>
+        <figcaption><b>Coming up and bookings <span class="new">New</span></b><span>Booked games show their live status: waiting, you're in, or waitlist.</span></figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="06-find.jpg" alt="Find a game with day strip and level filters">
+          <div class="nav light"><i></i></div>
+        </div></div>
+        <figcaption><b>Find a game</b><span>Open play from every public club, by day and level.</span></figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="03-booking.jpg" alt="Booking page for Pub Club">
+          <div class="nav light"><i></i></div>
+        </div></div>
+        <figcaption><b>Booking page</b><span>A club's QR link could open here in the app once Android app links are set up.</span></figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="07-queue.jpg" alt="Live queue with your place highlighted">
+          <div class="nav light"><i></i></div>
+        </div></div>
+        <figcaption><b>Your place in the queue</b><span>Updates live during the game. You're highlighted.</span></figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="08-inbox.jpg" alt="Inbox with club chat">
+          <div class="nav light"><i></i></div>
+        </div></div>
+        <figcaption><b>Inbox</b><span>Club chat and direct messages.</span></figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="09-drawer.jpg" alt="Side menu open">
+          <div class="nav dark deep"><i></i></div>
+        </div></div>
+        <figcaption><b>Menu</b><span>Slides in from the left. Android's back gesture would close it.</span></figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="12-home-dark.jpg" alt="Home in the dark theme">
+          <div class="nav dark deep"><i></i></div>
+        </div></div>
+        <figcaption><b>Dark theme</b><span>Follows the phone's dark mode, or the choice in Profile.</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>For hosts</h2>
+      <p>Running the game from the court: rotation, results and scoring.</p>
+    </div>
+    <div class="gallery">
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar light"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="10-dashboard.jpg" alt="Host dashboard with live courts">
+          <div class="nav light"><i></i></div>
+        </div></div>
+        <figcaption><b>Game dashboard</b><span>Live courts, who's waiting, record a winner. Its small buttons need work on a phone (see below).</span></figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone"><div class="screen">
+          <div class="bar dim"><span>7:42</span><span class="icons"><svg viewBox="0 0 12 12"><path d="M1 10h2V8H1zm3 0h2V6H4zm3 0h2V4H7zm3 0h2V2h-2z"/></svg><svg viewBox="0 0 12 12"><rect x="1" y="3" width="9" height="6" rx="1.2"/><rect x="10.4" y="5" width="1.2" height="2"/></svg></span></div>
+          <span class="cam"></span>
+          <img class="shot" src="11-score.jpg" alt="Score keeper for Court 1">
+          <div class="nav" style="background:#9aa197"><i></i></div>
+        </div></div>
+        <figcaption><b>Umpire scoring</b><span>Big team halves to tap. Later in the plan, this works over a phone hotspot with no internet.</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>What's different in the app</h2>
+      <p>The screens stay the same. These are the parts the app version changes or adds.</p>
+    </div>
+    <div class="diff">
+      <div><b>Full screen</b><span>No address bar or browser tabs. The status bar takes the color of the top of each screen.</span></div>
+      <div><b>Back gesture</b><span>Closes the open window or menu first, then goes back one screen.</span></div>
+      <div><b>Opens without internet</b><span>The app's files ship inside it, and it offers an update when a newer version is online.</span></div>
+      <div><b>Google sign-in</b><span>Uses Android's account picker, because the website's pop-up doesn't work inside an app.</span></div>
+      <div><b>Share links</b><span>QR codes and links always point to courtwave.web.app, so people without the app can still open them.</span></div>
+      <div><b>Screen stays awake</b><span>On the Live Board and while scoring, so the phone doesn't lock mid-game.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Test results at phone size</h2>
+      <p>Each screen was opened in Chromium as a Pixel 7 with touch turned on, against local test data. A tap target counts as small when a finger's 40 px area around its center misses it.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Screen</th><th>Sideways scrolling</th><th>Small tap targets</th><th>Examples</th></tr></thead>
+        <tbody>
+          <tr><td>Landing</td><td class="ok">None</td><td class="n">2</td><td>Top-bar Sign in link (52 × 25)</td></tr>
+          <tr><td>Sign in</td><td class="ok">None</td><td class="n">2</td><td>Forgot password? (113 × 32)</td></tr>
+          <tr><td>Booking page</td><td class="ok">None</td><td class="n">1</td><td>Logo link (43 × 30)</td></tr>
+          <tr><td>Home</td><td class="ok">None</td><td class="n">1</td><td>See all (41 × 17)</td></tr>
+          <tr><td>Find a game</td><td class="ok">None</td><td class="n warn">5</td><td>Level chips 32 px tall, previous-week arrow 32 px wide</td></tr>
+          <tr><td>Queue, Inbox, Menu</td><td class="ok">None</td><td class="n ok">0</td><td>None</td></tr>
+          <tr><td>Host dashboard</td><td class="ok">None</td><td class="n bad">24</td><td>Umpires / Voice / Add Court / Auto-fill 32 px tall, score button 31 × 26, swap and remove icons 17 × 17</td></tr>
+          <tr><td>Scoring</td><td class="ok">None</td><td class="n">1</td><td>Close (36 × 52)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">No screen scrolled sideways and none had script errors. Small targets on most screens are links in running text, which is normal. The host dashboard is the one to fix: hosts tap it all night, often standing up.</p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>To do before the app ships</h2>
+      <p>Found by the test run and a look through the code.</p>
+    </div>
+    <ol class="todo">
+      <li><div><b>Bigger buttons on the host dashboard</b><span>Make the toolbar buttons, the score button and the swap / remove icons at least 40 px to tap.</span></div></li>
+      <li><div><b>App manifest and icons</b><span>There's no manifest yet. Add it with 192 px, 512 px and maskable icons from the CW mark, and a deep green theme color for the status bar.</span></div></li>
+      <li><div><b>Room for the status bar and gesture bar</b><span>The page doesn't use <code>viewport-fit=cover</code> or safe-area padding anywhere. An edge-to-edge app needs both, or the top bar slides under the clock.</span></div></li>
+      <li><div><b>Share links</b><span>Five files build links from the current address (<code>location.origin</code>). Inside the app that address is <code>https://localhost</code>, so they must use courtwave.web.app.</span></div></li>
+      <li><div><b>Google sign-in</b><span>It uses a pop-up today (<code>signInWithPopup</code>). The app needs the native Google sign-in plugin.</span></div></li>
+      <li><div><b>Back gesture</b><span>Wire Android back to close the top dialog, the menu or the bell panel before leaving the screen.</span></div></li>
+    </ol>
+  </section>
+</div>
+
+</html>
