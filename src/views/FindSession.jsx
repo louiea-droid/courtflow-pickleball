@@ -28,13 +28,13 @@ export default function FindSession({ clubs, sessions: { sessions, ready, error 
 
   return (
     <div className="page-narrow">
-      <PageTitle title="Find a game" sub="Open play from public clubs, joined or not." />
+      <PageTitle title="Find a game" hidden />
       <div className="find-bar">
         <label className="find-search">
           <Search size={16} />
           <input
             type="search" value={text} onChange={(e) => setText(e.target.value)}
-            placeholder="Search by club, place or session" aria-label="Search sessions"
+            placeholder="Search games by club, place or session" aria-label="Search sessions"
           />
         </label>
         <div className="week-strip" role="group" aria-label="Day">

@@ -49,7 +49,7 @@ export default function Host({ events, requestsByEvent, fallbackZone, navigate, 
 
   return (
     <>
-      <PageTitle title="Open play" sub="Schedule a session, take bookings, and record who has paid." />
+      <PageTitle title="Open play" hidden />
       <div className="panel">
         <PanelHead title="Upcoming" sub="Open an event to manage players, payments and join requests." />
         {upcoming.map(row)}

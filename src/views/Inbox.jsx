@@ -23,7 +23,7 @@ export default function Inbox({ uid, name, clubs, clubsReady, inbox, chatId, nav
 
   return (
     <div>
-      <PageTitle title="Inbox" sub="Chats with your clubs, friends and club members." />
+      <PageTitle title="Inbox" hidden />
       <div className={`inbox${chatId ? " has-chat" : ""}`}>
         <nav className="inbox-list" aria-label="Conversations">
           {ready && chats.length > 3 && (

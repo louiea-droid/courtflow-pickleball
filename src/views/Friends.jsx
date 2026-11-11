@@ -64,7 +64,7 @@ export default function Friends({ uid, name, friendCode, friendships, ready, not
 
   return (
     <div className="friends-page">
-      <PageTitle title="Friends" sub="Find people by name or friend code and keep them close." />
+      <PageTitle title="Friends" hidden />
       <div className="friends-layout">
       <aside className="friend-code-card" aria-label="Your friend code">
         <small>Your friend code</small>

@@ -135,7 +135,7 @@ export default function AccountApp() {
   return (
     <div className="acct-shell">
       <AccountSidebar
-        active={{ "clubs-find": "find", clubs: "clubs", friends: "friends", inbox: "inbox", sessions: "sessions", help: "help", hub: "hub" }[route] || null}
+        active={{ "clubs-find": "find", clubs: "find", friends: "friends", inbox: "inbox", sessions: "sessions", help: "help", hub: "hub" }[route] || null}
         name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} clubs={clubs}
         friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
         headerAction={gameShortcut} notifications={notifications}
@@ -154,7 +154,7 @@ export default function AccountApp() {
         ) : route === "sessions" ? (
           <FindSession clubs={clubs} sessions={sessions} navigate={navigate} />
         ) : route === "clubs" || route === "clubs-find" ? (
-          <FindClubs tab={route === "clubs" ? "mine" : "all"} myClubs={clubs} myReady={clubsReady} sessions={sessions.sessions} navigate={navigate} />
+          <FindClubs myClubs={clubs} joinRequests={managerRequests} myReady={clubsReady} sessions={sessions.sessions} navigate={navigate} />
         ) : (
           <Hub uid={uid} name={name} clubs={clubs} ready={clubsReady} friendships={friendships} inbox={inbox} sessions={sessions} activeGames={activeGames.filter((g) => g.status)} bookings={bookings} navigate={navigate} />
         )}

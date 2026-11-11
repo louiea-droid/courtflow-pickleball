@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Building2, CalendarSearch, CircleHelp, House, Menu, MessageSquare, PanelLeft, UserPlus, Users, X } from "lucide-react";
+import { Building2, CalendarSearch, CircleHelp, House, Menu, MessageSquare, PanelLeft, UserPlus, X } from "lucide-react";
 import AccountMenu from "./AccountMenu";
 import NotificationBell from "./NotificationBell";
-import { clubPath } from "../utils/clubs";
+import { badgeColor, clubInitial, clubPath } from "../utils/clubs";
 
 // The one sidebar for every signed-in screen in the hub and club area (a drawer behind a menu button on
 // phones). Home, Play (find a club, friends with a count of requests waiting, the inbox with a count of unread chats), My clubs (a link to the page of all your clubs, with the clubs listed under it; the open club links to its overview: `club` = { id, name, current }). The account menu lives in the sticky header across the top (with the button that collapses the
@@ -27,11 +27,13 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
   }, [open]);
 
   const go = (to) => (e) => { e.preventDefault(); setOpen(false); navigate(to); };
-  const link = (to, label, Icon, current, extra, selected = false) => (
+  const link = (to, label, Icon, current, extra, selected = false, lead = null) => (
     <a key={to} className={`acct-link${selected ? " selected-club" : ""}`} href={to} title={label} aria-current={current ? "page" : undefined} onClick={go(to)}>
-      {Icon && <Icon size={17} />}<span>{label}</span>{extra}
+      {Icon && <Icon size={17} />}{lead}<span>{label}</span>{extra}
     </a>
   );
+  // A club's colored initial, as on Home; it is also the club's icon when the sidebar is collapsed.
+  const badge = (c) => <i className="acct-club-badge" style={{ background: badgeColor(c.id) }} aria-hidden="true">{clubInitial(c.clubName)}</i>;
   // Your clubs, with the open club listed even if they have not joined it (for example, a public club page).
   const list = club && !clubs.some((c) => c.id === club.id) ? [{ id: club.id, clubName: club.name }, ...clubs] : clubs;
 
@@ -54,12 +56,8 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
           <button className="acct-menu-btn acct-side-close" type="button" aria-label="Close menu" onClick={() => setOpen(false)}><X size={18} /></button>
         </div>
         <div className="acct-side-scroll">
-          <nav aria-label="Home">
-            {link("/", "Home", House, active === "hub")}
-          </nav>
-          <section className="acct-side-group" aria-label="Play">
-            <p className="acct-side-label">Play</p>
-            <nav aria-label="Play">
+          <nav className="acct-side-group" aria-label="Main">
+              {link("/", "Home", House, active === "hub")}
               {link("/sessions", "Find session", CalendarSearch, active === "sessions")}
               {link("/clubs/find", "Clubs", Building2, active === "find")}
               {link("/friends", "Friends", UserPlus, active === "friends", friendRequests > 0 ? (
@@ -68,24 +66,24 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
               {link("/inbox", "Inbox", MessageSquare, active === "inbox", inboxUnread > 0 ? (
                 <><span className="count-badge">{inboxUnread}</span><span className="sr-only"> unread chats</span></>
               ) : null)}
-            </nav>
-          </section>
+          </nav>
           {/* My clubs exists once the person has a club (joined, managing, or one they just opened) */}
           {list.length > 0 && (
           <nav className="acct-side-group" aria-label="My clubs">
-            {link("/clubs", "My clubs", Users, active === "clubs")}
-            {list.length > 0 && (
-              <div className="acct-side-sub">
-                {list.map((c) => (c.id === club?.id ? (
-                  <div className="acct-side-open" key={c.id}>
-                    {link(clubPath(c.id), c.clubName, null, c.id === club?.id && club.current, null, c.id === club?.id)}
-                  </div>
-                ) : link(clubPath(c.id), c.clubName, null, false)))}
-              </div>
-            )}
+            <div className="acct-side-head">
+              <span>Your clubs</span>
+              <a href="/clubs" aria-current={active === "clubs" ? "page" : undefined} onClick={go("/clubs")}>See all</a>
+            </div>
+            <div className="acct-side-sub">
+              {list.map((c) => link(clubPath(c.id), c.clubName, null, c.id === club?.id && club.current, null, c.id === club?.id, badge(c)))}
+            </div>
           </nav>
           )}
         </div>
+        <svg className="acct-side-wave" viewBox="0 0 248 52" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 22 C50 6 96 34 150 16 S226 4 248 12 V52 H0Z" fill="var(--lime)" />
+          <path d="M0 32 C56 16 104 44 160 26 S230 16 248 22 V52 H0Z" fill="var(--brand-green)" />
+        </svg>
         <div className="acct-side-foot">
           {link("/help", "Help", CircleHelp, active === "help")}
           <button className="acct-collapse" type="button" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} aria-pressed={collapsed} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((c) => !c)}>

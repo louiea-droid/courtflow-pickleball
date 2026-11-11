@@ -745,3 +745,144 @@ button.acct-brand:hover{background:var(--side-hover)}
 .home-booking-st.warn{color:var(--warn-ink)}
 .home-booking-st.info{color:var(--info-ink)}
 .home-booking-st.bad{color:var(--danger-ink)}
+
+/* ---------- Frame (2026-11-11, owner-approved): scroll area, colors, top bar, sidebar ---------- */
+/* Colors: the sidebar gets its own deep green, the page sits a step darker, so each area has an edge (dark mode). */
+.acct-shell{--page-max:1120px;--bg:light-dark(#f4f6ee,#07110d);--frame-line:light-dark(#0f2a2214,#ffffff12);background:var(--bg)}
+.acct-side{background:light-dark(linear-gradient(180deg,#123328 0%,#0f2a22 60%,#0c241c 100%),linear-gradient(180deg,#143629 0%,#10291f 55%,#0c2018 100%));border-right:1px solid light-dark(transparent,#ffffff14)}
+
+/* 1. The scroll area fills the width, so its scrollbar is at the window edge. Content stays centered at --page-max. */
+@media (min-width:861px){
+  .acct-main{max-width:none;padding-left:max(var(--page-gutter),calc((100vw - var(--side-w) - var(--page-max)) / 2));padding-right:max(var(--page-gutter),calc((100vw - var(--side-w) - var(--page-max)) / 2));scrollbar-width:thin;scrollbar-color:light-dark(#0f2a2233,#ffffff26) transparent}
+  /* Chrome and Safari: the custom bar below (no arrow buttons); Firefox keeps the thin standard one. */
+  @supports selector(::-webkit-scrollbar){.acct-main{scrollbar-width:auto;scrollbar-color:auto}}
+  .acct-main::-webkit-scrollbar{width:8px;background:transparent}
+  .acct-main::-webkit-scrollbar-thumb{background:light-dark(#0f2a2233,#ffffff26);border-radius:8px}
+  .acct-main::-webkit-scrollbar-button{display:none;height:0}
+
+  /* 3. Top bar: blends with the page (no rule under it), lines up with the content, light controls. */
+  .acct-topbar{padding-left:max(var(--page-gutter),calc((100vw - var(--side-w) - var(--page-max)) / 2));padding-right:max(var(--page-gutter),calc((100vw - var(--side-w) - var(--page-max)) / 2));background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:0;box-shadow:0 1px 0 var(--frame-line)}
+  .acct-bell-btn{width:40px;height:40px;border:0;border-radius:50%;background:transparent}
+  .acct-bell-btn:hover{background:var(--soft)}
+  .acct-topbar .account-menu-trigger{border:0;background:transparent;padding:4px 8px 4px 4px;border-radius:999px}
+  .acct-topbar .account-menu-trigger:hover{background:var(--soft)}
+  .acct-topbar .account-menu-trigger-copy small{display:none}
+  .acct-topbar .account-menu-trigger-copy b{font-size:13.5px}
+  /* The one thing up there that should stand out: you're in a game. */
+  .acct-header-game{min-height:38px;padding:0 16px 0 12px;border:0;border-radius:999px;background:var(--lime);color:var(--on-lime)}
+  .acct-header-game:hover{background:var(--lime);border-color:transparent;filter:brightness(1.06)}
+  .acct-header-game::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--brand-green);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand-green) 30%,transparent)}
+  .acct-header-game svg{display:none}
+}
+
+/* Sidebar: one list of places, then "Your clubs" with each club's badge; the current page is a soft lime pill
+   (lime icon); the brand wave sits at the bottom behind Help and Collapse. Collapsed, clubs stay as their badges. */
+.acct-side{overflow:hidden} /* sticky on a wide screen, fixed as the phone drawer: both hold the wave */
+.acct-side-top{padding-bottom:6px}
+.acct-side-scroll{gap:18px;position:relative;z-index:1}
+.acct-link{gap:12px;min-height:42px;margin:1px 0;border-radius:12px;color:var(--side-ink-2);font-weight:600}
+.acct-link svg{color:var(--side-muted);transition:color .15s ease}
+.acct-link:hover{background:#ffffff0d;color:#fff}
+.acct-link:hover svg{color:var(--side-ink)}
+.acct-link[aria-current="page"],.acct-link.selected-club{background:color-mix(in srgb,var(--lime) 14%,transparent);color:#fff;box-shadow:none;font-weight:700}
+.acct-link[aria-current="page"] svg{color:var(--lime)}
+.acct-side-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:0 12px 6px}
+.acct-side-head span{color:var(--side-muted);font-size:12px;font-weight:700;letter-spacing:.02em}
+.acct-side-head a{position:relative;color:var(--side-muted);font-size:12px;font-weight:700;text-decoration:none;border-radius:6px}
+.acct-side-head a::after{content:"";position:absolute;inset:-12px -8px}
+.acct-side-head a:hover,.acct-side-head a[aria-current="page"]{color:var(--lime)}
+.acct-side-group[aria-label="My clubs"]>.acct-side-sub{flex:0 1 auto;margin:0;padding:0;border:0}
+.acct-club-badge{display:grid;place-items:center;width:24px;height:24px;flex-shrink:0;border-radius:7px;color:#fff;font:700 12px/1 "Space Grotesk";font-style:normal}
+.acct-link.selected-club .acct-club-badge{box-shadow:0 0 0 2px var(--lime)}
+.acct-side-wave{position:absolute;left:0;right:0;bottom:0;width:100%;height:52px;opacity:.3;pointer-events:none}
+.acct-side-foot{position:relative;z-index:1;border-top:0;padding-top:0;padding-bottom:30px} /* the wave sits under Collapse */
+[data-acct-side="collapsed"] .acct-side-wave{display:none}
+[data-acct-side="collapsed"] .acct-side-foot{padding-bottom:0}
+[data-acct-side="collapsed"] .acct-side-sub{display:block}
+[data-acct-side="collapsed"] .acct-side-head{display:none}
+[data-acct-side="collapsed"] .acct-side-group[aria-label="My clubs"]{padding-top:10px;border-top:1px solid #ffffff12}
+
+/* ---------- Clubs page (2026-11-11 redesign, views/FindClubs.jsx) ---------- */
+/* No visible title. A sticky bar (search + Create a club), then three sections: a deep green host panel for clubs you
+   manage, short rows for clubs you're in, full cards for clubs to join. */
+.clubs-page{max-width:none}
+.clubs-bar{position:sticky;top:var(--header-h,56px);z-index:6;display:flex;align-items:center;gap:10px;margin:0 0 16px;padding:10px 0 12px;background:var(--bg)}
+.clubs-bar .find-search{flex:1 1 auto;margin:0;min-width:0}
+.clubs-create{flex-shrink:0}
+.clubs-count{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:8px;padding:0 6px;border-radius:999px;background:var(--soft);color:var(--ink-2);font-size:11.5px;font-weight:800}
+.clubs-page .club-section{display:flex;align-items:center;margin:0 0 10px}
+.clubs-group{margin-top:26px}
+.clubs-join-note{margin:-4px 0 12px;color:var(--muted);font-size:13px}
+
+/* Clubs you manage: the host's corner, dark in both themes so it never reads as just another list. */
+.host-panel{position:relative;overflow:hidden;padding:18px;border-radius:22px;background:linear-gradient(160deg,#143629 0%,var(--brand-deep) 60%,#0c221a 100%);color:#eef5ef}
+.host-panel::after{content:"";position:absolute;right:-40px;bottom:-60px;width:260px;height:160px;border-radius:50%;border:18px solid color-mix(in srgb,var(--lime) 14%,transparent);pointer-events:none}
+.host-panel .club-section{color:#fff}
+.host-panel .clubs-count{background:color-mix(in srgb,var(--lime) 20%,transparent);color:var(--lime)}
+.host-tiles{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px;margin:0;padding:0;list-style:none}
+.host-tile{display:grid;gap:10px;padding:14px;border-radius:16px;background:#ffffff0d;border:1px solid #ffffff14}
+.host-tile-head{display:flex;align-items:center;gap:12px;color:#fff;text-decoration:none;border-radius:12px}
+.host-tile-head:hover b{text-decoration:underline;text-underline-offset:3px}
+.host-tile-head svg{margin-left:auto;color:#ffffff80;flex-shrink:0}
+.host-tile-badge{display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border-radius:13px;color:#fff;font:700 18px "Space Grotesk";box-shadow:0 0 0 2px #ffffff26}
+.host-tile-name{display:grid;gap:1px;min-width:0}
+.host-tile-name b{font:italic 700 17px/1.2 "Space Grotesk";overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.host-tile-name small{color:var(--lime);font-size:12px;font-weight:800}
+.host-tile-next{margin:0;color:#bcd0c4;font-size:13px;font-weight:600}
+.host-live{color:var(--lime);font-weight:800}
+.host-tile-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.host-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 12px;border-radius:999px;color:#fff;box-shadow:inset 0 0 0 1.5px #ffffff2e;font-size:13px;font-weight:800;text-decoration:none}
+.host-btn:hover{background:#ffffff12}
+.host-btn.main{background:var(--lime);color:var(--on-lime);box-shadow:none}
+.host-btn.main:hover{filter:brightness(1.06);background:var(--lime)}
+.host-asks{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--lime);color:var(--on-lime);font-size:11.5px}
+.host-panel a:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+
+/* Clubs you're in: short rows, the whole row opens the club. */
+.club-minis{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:10px}
+.club-mini{display:flex;align-items:center;gap:12px;min-height:66px;padding:12px 14px;border:1px solid var(--card-line);border-radius:16px;background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s ease}
+.club-mini:hover{border-color:var(--accent-line)}
+.club-mini:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.club-mini-badge{display:grid;place-items:center;width:42px;height:42px;flex-shrink:0;border-radius:13px;color:#fff;font:700 17px "Space Grotesk"}
+.club-mini-main{display:grid;gap:2px;flex:1;min-width:0}
+.club-mini-main b{font:italic 700 16px/1.2 "Space Grotesk";overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.club-mini-main small{color:var(--muted);font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.club-mini-go{flex-shrink:0;color:var(--muted)}
+.club-mini:hover .club-mini-go{color:var(--accent-ink)}
+
+/* Find a club to join: full cards with the club's cover and wave. */
+.club-cards{grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:16px}
+.club-card{position:relative;display:flex;flex-direction:column;gap:0;padding:0 18px 18px;overflow:hidden;border-radius:20px}
+.club-card-cover{display:block;height:64px;margin:0 -18px;background:color-mix(in srgb,var(--club) 78%,#0f2a22)}
+.club-card-cover svg{display:block;width:100%;height:100%}
+.club-card-cover path{fill:color-mix(in srgb,var(--club) 70%,#ffffff);opacity:.35}
+.club-card-badge{width:52px;height:52px;margin-top:-26px;border-radius:16px;background:var(--club);box-shadow:0 0 0 4px var(--panel);font-size:20px}
+.club-card-title{margin-top:10px;gap:2px}
+.club-card-title b{font:italic 700 19px/1.2 "Space Grotesk";letter-spacing:-.01em}
+.club-card>p{margin-top:8px;min-height:2.9em}
+.club-card-next{display:flex;align-items:center;gap:12px;margin:14px 0;padding:10px 12px;border-radius:14px;background:var(--soft)}
+.club-card-next.none{min-height:62px;color:var(--muted);font-size:13px;font-weight:600}
+.club-card-day{display:grid;justify-items:center;flex-shrink:0;width:44px;padding:5px 0;border-radius:10px;background:var(--brand-deep);line-height:1.05}
+.club-card-day small{color:var(--lime);font-size:10.5px;font-weight:800}
+.club-card-day b{color:#fff;font:700 18px "Space Grotesk"}
+.club-card-next-main{display:grid;gap:2px;min-width:0;flex:1}
+.club-card-next-main b{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.club-card-next-main small{color:var(--muted);font-size:12px;font-weight:700}
+.club-card-fill{display:block;height:5px;margin-top:4px;border-radius:5px;background:color-mix(in srgb,var(--ink) 10%,transparent);overflow:hidden}
+.club-card-fill i{display:block;height:100%;border-radius:inherit;background:var(--brand-green)}
+.club-card-cta{display:flex;align-items:center;justify-content:center;min-height:42px;margin-top:auto;padding:0 16px;border-radius:999px;font-size:13.5px;font-weight:800}
+.club-card-cta.join{background:light-dark(var(--brand-deep),var(--lime));color:light-dark(var(--lime),var(--on-lime))}
+.club-card:hover .club-card-cta.join{filter:brightness(1.1)}
+
+/* Start your own club: phones only (a wide screen has the button beside the search). */
+.club-card-new{display:none;align-items:center;gap:14px;margin-top:18px;padding:18px 20px;border:1.5px dashed var(--line-strong);border-radius:20px;color:var(--ink);text-decoration:none}
+.club-card-new:hover{border-color:var(--accent-line);background:var(--soft)}
+.club-card-new svg{flex-shrink:0;color:var(--accent-ink)}
+.club-card-new b{display:block;font:700 15px "Space Grotesk"}
+.club-card-new small{color:var(--muted);font-size:13px}
+@media (max-width:560px){.clubs-create{display:none}.club-card-new{display:flex}.host-panel{padding:14px;border-radius:18px}.host-panel::after{display:none}}
+
+/* Sticky bars sit right under the top bar while scrolling. On a wide screen .acct-main scrolls with a top padding of
+   header + 22px and sticky offsets count from inside it, so -22px lands on the top bar (header-h pushed the bar 56px too
+   low, with cards showing above it). On a phone the page itself scrolls and header-h is right. */
+@media (min-width:861px){.clubs-bar,.find-bar{top:-22px}.friend-code-card{top:-6px}} /* the friend code card: 16px under the top bar */
