@@ -1,7 +1,8 @@
 import { endHM } from "../utils/bookings";
-import { badgeColor, clubInitial } from "../utils/clubs";
+
 import { formatDay, formatHM, money } from "../utils/format";
 import { fillRatio, spotsLabel } from "../utils/sessions";
+import ClubBadge from "./ClubBadge";
 
 // One open-play session of a public club (Find session). It links to the club's public booking page (/open-play), where
 // anyone can send a booking request; that page is its own screen, so this is a normal link (a full page load).
@@ -12,7 +13,7 @@ export default function SessionCard({ session: s, mine, href, onClick }) {
   const live = s.status === "live";
   return (
     <a className={`session-card${live ? " live" : ""}`} href={to} onClick={onClick}>
-      <span className="session-badge" style={{ background: badgeColor(s.clubId) }} aria-hidden="true">{clubInitial(s.clubName)}</span>
+      <ClubBadge className="session-badge" id={s.clubId} name={s.clubName} photo={s.clubPhoto || ""} />
       <span className="session-main">
         <b>
           {s.title || "Open play"}<span className="sr-only">, {formatDay(s.date)}</span>

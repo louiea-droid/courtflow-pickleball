@@ -26,8 +26,9 @@ assert.equal(routeOf("/clubs/abc"), "club");
 assert.equal(routeOf("/clubs/abc/"), "club");
 assert.equal(routeOf("/clubs/abc/host"), "club-host");
 assert.equal(routeOf("/clubs/abc/settings"), "club-settings");
-assert.equal(routeOf("/clubs/abc/announcements"), "club-announcements");
-assert.equal(routeOf("/clubs/abc/announcements/"), "club-announcements");
+assert.equal(routeOf("/clubs/abc/announcements"), "club-feed"); // old links
+assert.equal(routeOf("/clubs/abc/feed"), "club-feed");
+assert.equal(routeOf("/clubs/abc/announcements/"), "club-feed");
 assert.equal(routeOf("/clubs/abc/chat"), "hub");
 assert.equal(routeOf("/clubs/abc/event/e1"), "club-event");
 assert.equal(routeOf("/clubs/abc/event/e1/"), "club-event");

@@ -11,10 +11,11 @@ import { byStart, endHM, isListed, myStatus, splitAttendees } from "./utils/book
 import { DEFAULT_DISPLAY } from "./data/constants";
 import { isAccountUser } from "./utils/account";
 import { liveChips } from "./utils/liveBoard";
-import { badgeColor, clubInitial } from "./utils/clubs";
+
 import { docsOf } from "./hooks/useLiveDocs";
 import { compressImage } from "./utils/receipt";
 import { bookingCopy } from "./utils/myBookings";
+import ClubBadge from "./components/ClubBadge";
 
 // The player's own requests live on their device: the request id is the only key to
 // read it back (rules allow a single get, never a list).
@@ -387,7 +388,7 @@ export default function OpenPlay() {
       <header className="op-hero">
         <a className="op-logo-link" href="/" aria-label="CourtWave home"><img className="op-logo" src="/images/courtwave-light.png" alt="CourtWave" /></a>
         <div className="op-hero-club">
-          <span className="op-badge" style={{ background: badgeColor(clubId) }} aria-hidden="true">{clubInitial(hostName)}</span>
+          <ClubBadge className="op-badge" id={clubId} name={hostName} />
           <div>
             <h1>Open play{hostName && <> at <span>{hostName}</span></>}</h1>
             <p>{club?.location && <><MapPin size={13} /> {club.location} · </>}Pick a game and save your spot</p>

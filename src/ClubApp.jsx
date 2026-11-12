@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { ArrowLeft, CalendarDays, LayoutDashboard, MapPin, Megaphone, Play, Users } from "lucide-react";
+import { ArrowLeft, CalendarDays, LayoutDashboard, Newspaper, Play, Users } from "lucide-react";
 import { useClubDoc } from "./hooks/useClubDoc";
 import { useClubActions } from "./hooks/useClubActions";
 import { useEvents, useEventRequests } from "./hooks/useEvents";
@@ -14,13 +14,13 @@ import { removeMyCopy, useMembershipActions } from "./hooks/useMembershipActions
 import { useMyClubs } from "./hooks/useMyClubs";
 import { useFriendships } from "./hooks/useFriends";
 import { useChatActions } from "./hooks/useChatActions";
-import { useAnnouncementActions, useAnnouncements } from "./hooks/useAnnouncements";
+import { useFeed, useFeedActions } from "./hooks/useFeed";
 import { friendBuckets } from "./utils/friends";
 import { applyDisplayPrefs, safeZone } from "./utils/format";
 import { applyTheme } from "./utils/theme";
 import { isOver } from "./utils/bookings";
 import { uidBySeat } from "./utils/gameSession";
-import { ROLE_LABEL, badgeColor, clubInitial, clubPath } from "./utils/clubs";
+import { clubPath } from "./utils/clubs";
 import { DEFAULT_DISPLAY, DEFAULT_RULES, RULE_DEFAULTS_VERSION } from "./data/constants";
 import ClubHome from "./views/ClubHome";
 import ClubMembers from "./views/ClubMembers";
@@ -28,10 +28,10 @@ import ClubSettings from "./views/ClubSettings";
 import QueueView from "./views/QueueView";
 import Host from "./views/Host";
 import EventPage from "./views/EventPage";
-import ClubAnnouncements from "./views/ClubAnnouncements";
+import ClubFeed from "./views/ClubFeed";
 import BookingModal from "./components/BookingModal";
 import ShareModal from "./components/ShareModal";
-import ClubHeaderActions from "./components/ClubHeaderActions";
+import ClubHeader from "./components/ClubHeader";
 import GamePickModal from "./components/GamePickModal";
 import AccountSidebar from "./components/AccountSidebar";
 import JoinPanel from "./components/JoinPanel";
@@ -145,8 +145,9 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
   const { clubs: myClubs } = useMyClubs(uid);
   const { friendships } = useFriendships(uid);
   const chatActions = useChatActions({ uid, name: personName });
-  const { announcements, ready: announcementsReady, error: announcementsError } = useAnnouncements(ready && isMember ? clubId : null);
-  const announcementActions = useAnnouncementActions({ clubId, uid });
+  // One set of feed listeners for the Overview preview and the Feed tab.
+  const feed = useFeed(ready && isMember && (route === "club" || route === "club-feed") ? clubId : null);
+  const feedActions = useFeedActions({ clubId, uid });
   const hasCard = myClubs.some((c) => c.id === clubId);
   useEffect(() => {
     if (!info.confirmed || isMember || !hasCard) return undefined;
@@ -178,14 +179,6 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
   const openEvent = events.find((e) => e.id === eventId);
   const latestPayInfo = [...events].filter((e) => !e.walkIn).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]?.payInfo;
   const todayYmd = new Intl.DateTimeFormat("en-CA", { timeZone: safeZone(display.timeZone) }).format(new Date());
-  const publishAnnouncement = async (text) => {
-    await announcementActions.publish(text);
-    notify("Announcement posted.");
-  };
-  const removeAnnouncement = async (id) => {
-    await announcementActions.remove(id);
-    notify("Announcement deleted.");
-  };
 
   const playNow = async () => {
     try {
@@ -267,9 +260,9 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
           )}
           {canSee && (
             <ClubHome
+              clubId={clubId} club={club} today={todayYmd} onShareBooking={() => setShowShare(true)}
               canManage={canManage} isMember={isMember} events={events} fallbackZone={fallbackZone} base={base} navigate={navigate}
-              onNew={() => setEventModal("new")} announcements={announcements} announcementsReady={announcementsReady}
-              announcementsError={announcementsError} onViewAnnouncements={() => navigate(`${base}/announcements`)}
+              onNew={() => setEventModal("new")} feed={feed} onViewFeed={() => navigate(`${base}/feed`)}
             />
           )}
         </>
@@ -284,9 +277,14 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
         />
       );
     }
-    if (route === "club-announcements") {
+    if (route === "club-feed") {
       if (!isMember) return <MembersOnly base={base} navigate={navigate} />;
-      return <ClubAnnouncements announcements={announcements} ready={announcementsReady} error={announcementsError} canManage={canManage} onPublish={publishAnnouncement} onRemove={removeAnnouncement} />;
+      return (
+        <ClubFeed
+          feed={feed} actions={feedActions} clubId={clubId} uid={uid} canManage={canManage} club={club}
+          events={events} fallbackZone={fallbackZone} base={base} navigate={navigate} notify={notify}
+        />
+      );
     }
     if (route === "club-queue") {
       if (!isMember) return <MembersOnly base={base} navigate={navigate} />;
@@ -296,7 +294,8 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
     if (route === "club-host") {
       return (
         <Host
-          events={events} requestsByEvent={requestsByEvent} fallbackZone={fallbackZone} base={base} navigate={navigate}
+          clubId={clubId} events={events} requestsByEvent={requestsByEvent} fallbackZone={fallbackZone} today={todayYmd}
+          base={base} navigate={navigate} onStartNew={() => setEventModal("new")} onPlayNow={playNow}
         />
       );
     }
@@ -327,7 +326,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
     navTab(base, "Overview", LayoutDashboard, ["club"]),
     ...(canManage ? [navTab(`${base}/host`, "Open play", CalendarDays, ["club-host", "club-event", "club-game"])] : []),
     navTab(`${base}/members`, "Members", Users, ["club-members"], canManage && pendingRequests.length > 0 ? { badge: pendingRequests.length, badgeText: "join requests waiting" } : {}),
-    navTab(`${base}/announcements`, "Announcements", Megaphone, ["club-announcements"]),
+    navTab(`${base}/feed`, "Feed", Newspaper, ["club-feed"]),
   ];
   const sideClub = { id: clubId, name: club.name, current: route === "club" };
   const gamePath = activeGame?.gamePath || (route === "club-event" && openEvent?.status === "live"
@@ -350,31 +349,11 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
     <div className="acct-shell">
       {sidebar(sideClub, gameShortcut)}
       <main className="acct-main">
-        <section className={`club-head${isMember ? "" : " solo"}`}>
-          <div className="club-head-top">
-            <span className="club-badge" style={{ background: badgeColor(clubId) }} aria-hidden="true">{clubInitial(club.name)}</span>
-            <div className="club-head-title">
-              {/* One h1 per page: the club name on the overview, the page title on the other screens. */}
-              {route === "club" ? <h1>{club.name}</h1> : <p className="club-name">{club.name}</p>}
-              <div className="club-meta">
-                {ROLE_LABEL[role] && <span className="pill">{ROLE_LABEL[role]}</span>}
-                <span className="pill off">{club.visibility === "public" ? "Public club" : "Private club"}</span>
-                {club.location && <span className="club-place"><MapPin size={12} /> {club.location}</span>}
-              </div>
-            </div>
-            {isMember && (
-              <ClubHeaderActions
-                clubId={clubId} canManage={canManage}
-                actions={membership} navigate={navigate} notify={notify}
-                onStartNew={() => setEventModal("new")} onPlayNow={playNow} onShareBookingPage={() => setShowShare(true)}
-              />
-            )}
-          </div>
-          {clubTabs.length > 0 && (
-            <ClubTabs tabs={clubTabs} label={`${club.name} navigation`} navigate={navigate} />
-          )}
-          {route === "club" && club.description && <p className="club-about">{club.description}</p>}
-        </section>
+        <ClubHeader
+          clubId={clubId} club={club} role={role} isMember={isMember} canManage={canManage} isOwner={isOwner} route={route}
+          membership={membership} clubActions={clubActions} notify={notify} onShareBooking={() => setShowShare(true)}
+          tabs={clubTabs.length > 0 && <ClubTabs tabs={clubTabs} label={`${club.name} navigation`} navigate={navigate} />}
+        />
         {screen()}
       </main>
       {eventModal && (

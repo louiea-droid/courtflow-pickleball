@@ -7,7 +7,7 @@ import { metaFor, needsSync, sessionMeta } from "../utils/sessions";
 // private is flipped in the same batch as the club, see useClubActions.updateClub; this is the backstop.) It stops after a refused
 // write (for example a just-demoted manager) until the club changes or the page reloads, so a refusal can't turn into a write loop.
 export function useSessionSync({ clubId, club, events, canManage }) {
-  const key = club ? `${club.visibility}|${club.name}|${club.location || ""}` : "";
+  const key = club ? `${club.visibility}|${club.name}|${club.location || ""}|${club.photo || ""}` : "";
   const refused = useRef("");
   useEffect(() => {
     if (!canManage || !club || !events.length || refused.current === `${clubId}|${key}`) return;

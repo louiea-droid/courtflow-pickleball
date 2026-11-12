@@ -92,3 +92,15 @@ export function filterClubs(clubs, search = "") {
   if (!q) return sorted;
   return sorted.filter((c) => `${c.name || ""} ${c.location || ""}`.toLowerCase().includes(q));
 }
+
+// The Members tab: owner and managers first, then members, each by name; the search matches the start of any word.
+export const SEARCH_FROM = 9; // show the search box from this many members
+const ROLE_ORDER = { owner: 0, manager: 1 };
+export function groupMembers(members, query = "") {
+  const q = query.trim().toLowerCase();
+  const hit = (m) => !q || (m.name || "").toLowerCase().split(/\s+/).some((w) => w.startsWith(q));
+  const sorted = members.filter(hit).sort((a, b) =>
+    (ROLE_ORDER[a.role] ?? 2) - (ROLE_ORDER[b.role] ?? 2) || (a.name || "").localeCompare(b.name || ""));
+  return { leads: sorted.filter((m) => m.role in ROLE_ORDER), others: sorted.filter((m) => !(m.role in ROLE_ORDER)) };
+}
+export const memberCounts = (members) => ({ members: members.length, managers: members.filter((m) => m.role in ROLE_ORDER).length });

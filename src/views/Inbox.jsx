@@ -4,7 +4,8 @@ import ChatPane, { whenLabel } from "../components/ChatPane";
 import PageTitle from "../components/PageTitle";
 import { useChatActions } from "../hooks/useChatActions";
 import { chatTitle, clubIdOfChat, isUnread } from "../utils/chat";
-import { badgeColor, clubInitial } from "../utils/clubs";
+
+import ClubBadge from "../components/ClubBadge";
 
 const href = (id) => (id ? `/inbox/${encodeURIComponent(id)}` : "/inbox");
 
@@ -44,7 +45,7 @@ export default function Inbox({ uid, name, clubs, clubsReady, inbox, chatId, nav
             return (
               <a key={c.id} className={`inbox-row${unread ? " unread" : ""}`} href={href(c.id)} aria-current={c.id === chatId ? "page" : undefined} onClick={go(href(c.id))}>
                 {clubId
-                  ? <span className="inbox-badge" style={{ background: badgeColor(clubId) }} aria-hidden="true">{clubInitial(c.title)}</span>
+                  ? <ClubBadge className="inbox-badge" id={clubId} name={c.title} />
                   : <span className="inbox-badge dm" aria-hidden="true"><MessageSquare size={16} /></span>}
                 <span className="inbox-row-main">
                   <b>{chatTitle(c, uid)}</b>

@@ -25,22 +25,30 @@ const load = (file) => new Promise((resolve, reject) => {
   img.src = url;
 });
 
-// A photo from the phone's camera or gallery -> a JPEG data URL under RECEIPT_MAX. Rejects for a non-image or a
-// picture that will not shrink enough (very rare: a huge, noisy photo even at the smallest step).
-export async function compressImage(file) {
-  if (!file || !String(file.type).startsWith("image/")) throw new Error("Choose a picture of your receipt.");
+// A photo from the phone's camera or gallery -> a JPEG data URL of at most `max` characters. Rejects for a non-image
+// or a picture that will not shrink enough (very rare: a huge, noisy photo even at the smallest step). `square` crops
+// the centered square to size x size (club photos); otherwise the picture keeps its shape.
+export async function compressImage(file, {
+  steps = COMPRESS_STEPS, square = false, max = RECEIPT_MAX,
+  message = "Choose a picture of your receipt.", tooLarge = "That picture is too large. Try a screenshot instead.",
+} = {}) {
+  if (!file || !String(file.type).startsWith("image/")) throw new Error(message);
   const img = await load(file);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  for (const [max, quality] of COMPRESS_STEPS) {
-    const { width, height } = fitSize(img.naturalWidth, img.naturalHeight, max);
+  const w = img.naturalWidth, h = img.naturalHeight;
+  for (const [size, quality] of steps) {
+    const { width, height } = square ? { width: size, height: size } : fitSize(w, h, size);
     canvas.width = width;
     canvas.height = height;
     ctx.fillStyle = "#fff"; // a transparent screenshot would turn black as a JPEG
     ctx.fillRect(0, 0, width, height);
-    ctx.drawImage(img, 0, 0, width, height);
+    if (square) {
+      const side = Math.min(w, h);
+      ctx.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, width, height);
+    } else ctx.drawImage(img, 0, 0, width, height);
     const url = canvas.toDataURL("image/jpeg", quality);
-    if (isReceipt(url)) return url;
+    if (url.startsWith(RECEIPT_PREFIX) && url.length <= max) return url;
   }
-  throw new Error("That picture is too large. Try a screenshot instead.");
+  throw new Error(tooLarge);
 }

@@ -36,6 +36,14 @@ await club("beta", "Beta Club", uid.bea, "bea", "Cebu", "Drills and socials by t
 await club("riverside", "Riverside Pickle", uid.cal, "cal", "Quezon City", "Evening games near the river.", { cal: "owner" });
 await put("clubs/pub/private/invite", { code: "DEMOJOIN" });
 await put("chats/club_pub", { kind: "club", clubId: "pub", title: "Pub Club", lastText: "See you all Friday!", lastAt: now, lastBy: uid.bea, createdAt: now });
+// The club feed: a pinned announcement from ann, and a member post from eli with hearts and replies.
+const post = (id, k, role, text, ago, extra = {}) => put(`clubs/pub/announcements/${id}`, {
+  authorId: uid[k], authorName: people[k], authorRole: role, text, createdAt: now - ago, announcement: false, hasPhoto: false, hearts: [], replyCount: 0, ...extra,
+});
+await post("welcome", "ann", "owner", "New court nets arrive Saturday. Thursday open play starts 30 minutes later this week while we set them up.", 2 * 86400000, { announcement: true, hearts: [uid.cal] });
+await post("eli1", "eli", "member", "Great games last night! Anyone up for drills before Thursday's open play?", 5 * 3600000, { hearts: [uid.ann, uid.dee], replyCount: 2, lastReplyId: "r2" });
+await put("clubs/pub/announcements/eli1/replies/r1", { authorId: uid.dee, authorName: people.dee, text: "I'm in! 6pm?", createdAt: now - 4 * 3600000 });
+await put("clubs/pub/announcements/eli1/replies/r2", { authorId: uid.ann, authorName: people.ann, text: "Court 3 is free from 5:30.", createdAt: now - 3 * 3600000 });
 
 const meta = (id, name, loc) => ({ clubPublic: true, clubId: id, clubName: name, clubLocation: loc });
 const ev = (club, title, date, start, extra = {}) => ({

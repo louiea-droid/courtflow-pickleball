@@ -1,13 +1,14 @@
 import { collection, deleteDoc, doc, getDoc, getDocs, query, where, writeBatch } from "firebase/firestore";
 import { clubChatId } from "./chat.js";
 import { wipeCollection } from "./wipe.js";
+import { deletePostBatch } from "./feedData.js";
 
 // Subcollections under each event: join requests, and the game's players, courts, matchLog
 // and costs. Listed here so deleting an event, a club or an account never orphans any of them.
 export const EVENT_SUBCOLLECTIONS = ["requests", "players", "courts", "matchLog", "costs", "private", "umpires", "courtClaims", "viewers"];
 
 // Subcollections directly under a club (events have their own cascade; members are handled in order).
-export const CLUB_SUBCOLLECTIONS = ["roster", "joinRequests", "joinCodes", "private", "announcements", "voice", "boardViewers"];
+export const CLUB_SUBCOLLECTIONS = ["roster", "joinRequests", "joinCodes", "private", "announcements", "voice", "boardViewers", "media"];
 // Everything under a quick session, sessions/{uid} (Erase this session, and deleting the account that owns it).
 export const SESSION_SUBCOLLECTIONS = ["players", "courts", "history", "costs", "matchLog", "bookings", "bookingRequests", "private", "umpires", "courtClaims", "voice"];
 
@@ -49,6 +50,8 @@ export async function deleteClubData(db, clubId, ownerId) {
     await wipeCollection(db, collection(chat, "messages"));
     await deleteDoc(chat);
   }
+  // Feed posts go one by one with their replies and photo (the rules only let those go with the post).
+  for (const p of (await getDocs(collection(ref, "announcements"))).docs) await deletePostBatch(db, clubId, p.id);
   await Promise.all(CLUB_SUBCOLLECTIONS.map((name) => wipeCollection(db, collection(ref, name))));
   const members = await getDocs(collection(ref, "members"));
   const others = writeBatch(db);

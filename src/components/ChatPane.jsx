@@ -3,8 +3,9 @@ import { ArrowLeft, EyeOff, Send, Trash2 } from "lucide-react";
 import ConfirmDialog from "./ConfirmDialog";
 import { useMessages } from "../hooks/useChats";
 import { MESSAGE_MAX, chatTitle, clubIdOfChat, validateMessage } from "../utils/chat";
-import { badgeColor, clubInitial } from "../utils/clubs";
+
 import { formatDate, formatTime } from "../utils/format";
+import ClubBadge from "./ClubBadge";
 
 const COUNTER_FROM = 900;
 const NEAR_BOTTOM = 120; // px from the end of the list that still counts as "reading the latest"
@@ -80,7 +81,7 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
     <section className="chat-pane" aria-label={`Chat: ${title}`}>
       <header className="chat-head">
         <button className="outline chat-back" type="button" onClick={onBack} aria-label={backLabel}><ArrowLeft size={16} /></button>
-        {!direct && <span className="inbox-badge" style={{ background: badgeColor(clubIdOfChat(chat.id) || "") }} aria-hidden="true">{clubInitial(title)}</span>}
+        {!direct && <ClubBadge className="inbox-badge" id={clubIdOfChat(chat.id) || ""} name={title} />}
         <div>
           <h2>{title}</h2>
           <p>{direct ? "Direct message" : "Club chat · only members can read and write"}</p>

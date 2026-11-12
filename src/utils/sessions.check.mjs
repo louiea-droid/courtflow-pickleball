@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { addDays, dayHeading, filterSessions, fillRatio, groupByDate, listedSessions, metaFor, needsSync, queryFromDate, sessionMeta, spotsLabel, weekDays } from "./sessions.js";
 
 const club = { name: "Ace Club", visibility: "public", location: "Manila" };
-assert.deepEqual(sessionMeta("c1", club), { clubPublic: true, clubId: "c1", clubName: "Ace Club", clubLocation: "Manila" });
+assert.deepEqual(sessionMeta("c1", club), { clubPublic: true, clubId: "c1", clubName: "Ace Club", clubLocation: "Manila", clubPhoto: "" });
 assert.equal(sessionMeta("c1", { name: "X", visibility: "private" }).clubPublic, false);
 assert.equal(sessionMeta("c1", { name: "X", visibility: "private" }).clubLocation, "");
 
@@ -72,4 +72,8 @@ assert.deepEqual(filterSessions([ev("f", "d", "t", { attendees: [{}, {}, {}, {}]
 assert.equal(dayHeading("2026-10-09", "2026-10-09"), "Today, Fri, Oct 9");
 assert.equal(dayHeading("2026-10-10", "2026-10-09"), "Tomorrow, Sat, Oct 10");
 assert.match(dayHeading("2026-10-12", "2026-10-09"), /Oct 12/);
+// The club's 64 px photo travels with each event (empty when none).
+assert.equal(sessionMeta("c", { name: "A", visibility: "public" }).clubPhoto, "");
+assert.equal(sessionMeta("c", { name: "A", visibility: "public", photo: "data:image/jpeg;base64,xx" }).clubPhoto, "data:image/jpeg;base64,xx");
+{ const m = sessionMeta("c", { name: "A", visibility: "public" }); const { clubPhoto: _, ...old } = m; assert.equal(needsSync(old, m), true); }
 console.log("sessions.check: ok");

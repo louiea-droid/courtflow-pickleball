@@ -13,6 +13,7 @@ export const sessionMeta = (clubId, club) => ({
   clubId,
   clubName: club.name,
   clubLocation: club.location || "",
+  clubPhoto: club.photo || "",
 });
 
 // A walk-in ("Play now") is never listed, so it is never public, whatever the club is.
@@ -36,6 +37,7 @@ export const validSession = (e) => Boolean(e) && typeof e === "object"
   && typeof e.startTime === "string" && /^\d{2}:\d{2}$/.test(e.startTime)
   && optional(e.durationMins, "number") && optional(e.fee, "number") && optional(e.maxPlayers, "number")
   && optional(e.title, "string") && optional(e.level, "string") && optional(e.clubName, "string") && optional(e.clubLocation, "string")
+  && optional(e.clubPhoto, "string")
   && (e.attendees === undefined || Array.isArray(e.attendees)) && zoneOk(e.timeZone);
 
 // The query's lower bound: yesterday in UTC, so no time zone is cut off. Exact filtering is listedSessions.

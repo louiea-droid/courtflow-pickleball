@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { CalendarSearch, ListOrdered, MessageSquare, Plus, UserPlus } from "lucide-react";
 import ActiveQueue from "../components/ActiveQueue";
+import Wave from "../components/Wave";
 import { useToday } from "../hooks/useToday";
-import { ROLE_LABEL, badgeColor, clubInitial, clubPath, permissions } from "../utils/clubs";
+
 import { endHM } from "../utils/bookings";
 import { formatHM, money } from "../utils/format";
 import { friendBuckets } from "../utils/friends";
 import { dayHeading, fillRatio, spotsLabel, weekDays } from "../utils/sessions";
+import { ROLE_LABEL, clubPath, permissions } from "../utils/clubs";
+import ClubBadge from "../components/ClubBadge";
 
 // Status colors, the same tones the booking page uses.
 const BOOKING_TONE = { confirmed: "ok", waitlist: "warn", pending: "info", declined: "bad", gone: "bad" };
@@ -17,15 +20,6 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 // "Today" / "Tomorrow" alone, else "Sat, Oct 17", so a row's line stays short.
 const shortDay = (date, today) => { const h = dayHeading(date, today); return /^(Today|Tomorrow)/.test(h) ? h.split(",")[0] : h; };
 
-
-function Wave() {
-  return (
-    <svg className="home-hero-wave" viewBox="0 0 800 70" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M0 40 C150 10 280 60 430 32 S700 8 800 26 V70 H0Z" fill="var(--lime)" />
-      <path d="M0 52 C160 26 300 72 460 46 S720 24 800 40 V70 H0Z" fill="var(--brand-green)" />
-    </svg>
-  );
-}
 
 // The home screen: a welcome band with the way to start playing, the game you're in right now, what's
 // coming up this week, then friends, inbox and your clubs.
@@ -109,7 +103,7 @@ export default function Hub({ uid, name, clubs, ready, friendships = [], inbox =
                 const fill = fillRatio(s);
                 return (
                   <a className="home-row" key={`${s.clubId}/${s.id}`} {...sessionLink(s)}>
-                    <span className="home-badge" style={{ background: badgeColor(s.clubId) }} aria-hidden="true">{clubInitial(s.clubName)}</span>
+                    <ClubBadge className="home-badge" id={s.clubId} name={s.clubName} photo={s.clubPhoto || ""} />
                     <span className="home-row-main">
                       <b>{s.title || "Open play"}{s.status === "live" && <span className="pill live">Live</span>}</b>
                       <small>{s.clubName}{mine.has(s.clubId) && " · Your club"} · {day ? "" : `${shortDay(s.date, today)}, `}{formatHM(s.startTime)} to {formatHM(endHM(s))}</small>
@@ -133,7 +127,7 @@ export default function Hub({ uid, name, clubs, ready, friendships = [], inbox =
           <div className="home-rows">
             {bookings.map((b) => (
               <a className="home-row" key={`${b.clubId}/${b.id}`} href={b.to}>
-                <span className="home-badge" style={{ background: badgeColor(b.clubId) }} aria-hidden="true">{clubInitial(b.clubName)}</span>
+                <ClubBadge className="home-badge" id={b.clubId} name={b.clubName} />
                 <span className="home-row-main">
                   <b>{b.title}{b.live && <span className="pill live">Live</span>}</b>
                   <small>{b.clubName} · {shortDay(b.date, today)}, {formatHM(b.startTime)} to {formatHM(endHM(b))}</small>
@@ -176,7 +170,7 @@ export default function Hub({ uid, name, clubs, ready, friendships = [], inbox =
         <div className="club-list">
           {clubs.map((c) => (
             <a key={c.id} className="club-row" href={`/clubs/${c.id}`} onClick={to(`/clubs/${c.id}`)}>
-              <span className="home-badge small" style={{ background: badgeColor(c.id) }} aria-hidden="true">{clubInitial(c.clubName)}</span>
+              <ClubBadge className="home-badge small" id={c.id} name={c.clubName} />
               <b>{c.clubName}</b>
               <span className="pill">{ROLE_LABEL[c.role] || ROLE_LABEL.member}</span>
             </a>

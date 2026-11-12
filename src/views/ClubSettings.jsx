@@ -18,7 +18,13 @@ export default function ClubSettings({ club, isOwner, notify, onUpdate, onDelete
   return (
     <div className="page-narrow">
       <PageTitle title="Settings" sub="These apply to this club only." />
-      <ClubProfileSettings club={club} isOwner={isOwner} onSave={save} />
+      {/* Jump to a section: the page is long (the club, queue rules, cost, display, then the danger zone). */}
+      <nav className="settings-jump" aria-label="Settings sections">
+        {[["set-club", "Club"], ["set-queue", "Queue rules"], ["set-cost", "Cost"], ["set-display", "Display"], ...(isOwner ? [["set-danger", "Danger zone"]] : [])].map(([id, label]) => (
+          <a key={id} href={`#${id}`} onClick={(e) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>{label}</a>
+        ))}
+      </nav>
+      <div id="set-club"><ClubProfileSettings club={club} isOwner={isOwner} onSave={save} /></div>
       <Settings
         mode="club" isOwner={isOwner}
         session={{ location: club.name, defaults: club.defaults }}

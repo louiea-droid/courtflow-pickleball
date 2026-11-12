@@ -75,16 +75,17 @@ export function useMyJoinRequest(uid, clubId) {
 }
 
 // The club's current invite code, or null when no link was made yet. `docId` is "invite" (managers read it)
-// or "managerInvite" (the owner's link that makes managers; only the owner reads it).
+// or "managerInvite" (the owner's link that makes managers; only the owner reads it). `error`: the read failed, so
+// "no code" is unknown (never offer to create one then: a new code breaks the links already shared).
 export function useInvite(clubId, docId = "invite") {
-  const [state, setState] = useState({ code: null, ready: false });
+  const [state, setState] = useState({ code: null, ready: false, error: false });
   useEffect(() => {
-    setState({ code: null, ready: false });
+    setState({ code: null, ready: false, error: false });
     if (!firebaseConfigured || !clubId) return;
     return onSnapshot(
       doc(db, "clubs", clubId, "private", docId),
-      (s) => setState({ code: s.exists() ? s.data().code : null, ready: true }),
-      () => setState({ code: null, ready: true }),
+      (s) => setState({ code: s.exists() ? s.data().code : null, ready: true, error: false }),
+      () => setState({ code: null, ready: true, error: true }),
     );
   }, [clubId, docId]);
   return state;

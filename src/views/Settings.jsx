@@ -205,7 +205,7 @@ export default function Settings({
         </div>
       </div>
 
-      <div className="account-group">
+      <div className="account-group" id="set-queue">
         <div className="eyebrow">Queue rules</div>
         <div className="panel account-panel">
           <SettingsRow title="Game length alert" body="Turns a court's timer red once a game runs this long.">
@@ -278,7 +278,7 @@ export default function Settings({
         </div>
       </div>
 
-      <div className="account-group">
+      <div className="account-group" id="set-cost">
         <div className="eyebrow">Cost</div>
         <div className="panel account-panel">
           <SettingsRow title="Court rate" body="Pre-filled on the Cost page each time you log a rental.">
@@ -306,7 +306,7 @@ export default function Settings({
           </SettingsRow>
           <SettingsRow title="Round each share" body="Rounds every player's share up to the nearest ₱1, ₱5, ₱10 or ₱20, so what you collect always covers the rental.">
             <div className="account-select">
-              <Select value={costDefaults.roundTo} onChange={(roundTo) => onSetCostDefaults({ roundTo })} options={ROUND_OPTIONS} />
+              <Select value={costDefaults.roundTo ?? 0} onChange={(roundTo) => onSetCostDefaults({ roundTo })} options={ROUND_OPTIONS} />
             </div>
           </SettingsRow>
         </div>
@@ -337,7 +337,7 @@ export default function Settings({
         </div>
       </div>
 
-      <div className="account-group">
+      <div className="account-group" id="set-display">
         <div className="eyebrow">Display</div>
         <div className="panel account-panel">
           <SettingsRow title="Theme color" body="Buttons, highlights, and active tabs. Pick a preset or your own.">
@@ -372,8 +372,8 @@ export default function Settings({
         </div>
       </div>
 
-      <div className="account-group" hidden={isClub && !isOwner}>
-        <div className="eyebrow">Danger Zone</div>
+      <div className="account-group" id="set-danger" hidden={isClub && !isOwner}>
+        <div className="eyebrow">Danger zone</div>
         <div className="panel account-panel account-danger">
           <SettingsRow
             title={isQuick ? "Erase this session" : "Delete club"}

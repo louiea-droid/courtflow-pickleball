@@ -422,7 +422,13 @@ service cloud.firestore {
         && d.visibility in ['public', 'private']
         && d.ownerId is string
         && (!('description' in d) || (d.description is string && d.description.size() <= 500))
-        && (!('location' in d) || (d.location is string && d.location.size() <= 100));
+        && (!('location' in d) || (d.location is string && d.location.size() <= 100))
+        // The club's 64 px photo (lists read it, so it stays tiny); the bigger ones live in media/.
+        && (!('photo' in d) || isJpeg(d.photo, 6000));
+    }
+    function isJpeg(v, max) {
+      // Base64 only after the prefix: the app puts these in CSS url("..."), so nothing may close the quote.
+      return v is string && v.size() <= max && v.matches('data:image/jpeg;base64,[A-Za-z0-9+/=]+');
     }
 
     // A player's request to join an event. Players may not be signed in (public clubs), so this is
@@ -456,7 +462,8 @@ service cloud.firestore {
       let c = getAfter(clubPath(clubId)).data;
       return (!('clubName' in d) || d.clubName == c.name)
         && (!('clubLocation' in d) || d.clubLocation == c.get('location', ''))
-        && (!('clubId' in d) || d.clubId == clubId);
+        && (!('clubId' in d) || d.clubId == clubId)
+        && (!('clubPhoto' in d) || d.clubPhoto == c.get('photo', ''));
     }
     // Only a game people can book takes requests: never a walk-in (Play now), never one the host ended.
     // ponytail: no per-person limit (rules can't count); a flood needs App Check or a Cloud Function.
@@ -507,6 +514,16 @@ service cloud.firestore {
 
       // The code a person joined with (validInviteJoin reads it with getAfter). Only they write it and no member
       // reads it; the owner (who knows the codes anyway) reads and deletes them when deleting the club.
+      // The club's cover and its 256 px photo: { image, updatedAt }. Read like a get on the club; managers change them.
+      match /media/{name} {
+        allow read: if isRealUser() || get(clubPath(clubId)).data.visibility == 'public';
+        allow create, update: if isManager(clubId) && name in ['photo', 'cover']
+          && request.resource.data.keys().hasOnly(['image', 'updatedAt'])
+          && request.resource.data.updatedAt is int
+          && isJpeg(request.resource.data.image, name == 'cover' ? 380000 : 40000);
+        allow delete: if isManager(clubId);
+      }
+
       match /joinCodes/{uid} {
         allow create, update: if isRealUser() && request.auth.uid == uid
           && request.resource.data.keys().hasOnly(['code'])
@@ -531,7 +548,7 @@ service cloud.firestore {
               getAfter(clubPath(clubId)).data.visibility == 'public'
               && (!('walkIn' in request.resource.data) || request.resource.data.walkIn != true)
             ))
-          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['clubName', 'clubLocation', 'clubId'])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['clubName', 'clubLocation', 'clubId', 'clubPhoto'])
             || clubCopyOk(clubId, request.resource.data));
         allow delete: if isManager(clubId);
 
@@ -624,19 +641,87 @@ service cloud.firestore {
         allow list: if isOwner(clubId); // deleting the club
       }
 
-      match /announcements/{announcementId} {
+      // The club feed (docs/superpowers/specs/2026-11-12-club-header-and-feed-design.md). Every member posts; only owners and
+      // managers post announcements. A post with no `announcement` field predates the feed (managers only then).
+      match /announcements/{postId} {
+        function postPath() {
+          return /databases/$(database)/documents/clubs/$(clubId)/announcements/$(postId);
+        }
+        function postReplyPath(replyId) {
+          return /databases/$(database)/documents/clubs/$(clubId)/announcements/$(postId)/replies/$(replyId);
+        }
+        function feedText(t, max) {
+          return t is string && t.trim().size() >= 1 && t.size() <= max;
+        }
         allow read: if isMember(clubId);
-        allow create: if isManager(clubId)
-          && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'text', 'createdAt'])
-          && request.resource.data.keys().hasAll(['authorId', 'authorName', 'text', 'createdAt'])
+        allow create: if isMember(clubId)
+          && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'authorRole', 'text', 'createdAt', 'announcement', 'hasPhoto', 'hearts', 'replyCount'])
+          && request.resource.data.keys().hasAll(['authorId', 'authorName', 'authorRole', 'text', 'createdAt', 'announcement', 'hasPhoto', 'hearts', 'replyCount'])
           && request.resource.data.authorId == request.auth.uid
           && request.resource.data.authorName == get(memberPath(clubId)).data.name
-          && validName(request.resource.data.authorName)
-          && request.resource.data.text is string
-          && request.resource.data.text.size() > 0
-          && request.resource.data.text.size() <= 2000
-          && nearNow(request.resource.data.createdAt);
-        allow delete: if isManager(clubId);
+          && request.resource.data.authorRole == memberRole(clubId)
+          && feedText(request.resource.data.text, 2000)
+          && nearNow(request.resource.data.createdAt)
+          && request.resource.data.announcement is bool
+          && (!request.resource.data.announcement || isManager(clubId))
+          && request.resource.data.hasPhoto is bool
+          && request.resource.data.hasPhoto == existsAfter(/databases/$(database)/documents/clubs/$(clubId)/announcements/$(postId)/photo/main)
+          && request.resource.data.hearts == []
+          && request.resource.data.replyCount == 0;
+        // A heart: your own uid in or out, nothing else.
+        allow update: if isMember(clubId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hearts'])
+          && request.resource.data.hearts is list
+          && request.resource.data.hearts.size() == request.resource.data.hearts.toSet().size()
+          && request.resource.data.hearts.toSet().difference(resource.data.get('hearts', []).toSet()).hasOnly([request.auth.uid])
+          && resource.data.get('hearts', []).toSet().difference(request.resource.data.hearts.toSet()).hasOnly([request.auth.uid])
+          && (request.resource.data.hearts.size() - resource.data.get('hearts', []).size()) in [1, -1];
+        // The reply count only moves with the reply it counts, in the same batch.
+        allow update: if isMember(clubId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount', 'lastReplyId'])
+          && request.resource.data.lastReplyId is string
+          && (
+            (request.resource.data.replyCount == resource.data.get('replyCount', 0) + 1
+              && !exists(postReplyPath(request.resource.data.lastReplyId))
+              && existsAfter(postReplyPath(request.resource.data.lastReplyId)))
+            || (request.resource.data.replyCount == resource.data.get('replyCount', 0) - 1
+              && exists(postReplyPath(request.resource.data.lastReplyId))
+              && !existsAfter(postReplyPath(request.resource.data.lastReplyId)))
+          );
+        allow delete: if isMember(clubId) && (resource.data.authorId == request.auth.uid || isManager(clubId));
+
+        // One photo per post, written only in the post's create batch and deleted only with the post.
+        match /photo/{name} {
+          allow read: if isMember(clubId);
+          allow create: if isMember(clubId) && name == 'main'
+            && !exists(postPath())
+            && getAfter(postPath()).data.authorId == request.auth.uid
+            && getAfter(postPath()).data.hasPhoto == true
+            && request.resource.data.keys().hasOnly(['image'])
+            && isJpeg(request.resource.data.image, 380000);
+          allow delete: if isMember(clubId) && !existsAfter(postPath())
+            && (get(postPath()).data.authorId == request.auth.uid || isManager(clubId));
+        }
+
+        // Replies, one level. Deleted by their author, the post's author or a manager; the count goes down with them
+        // unless the whole post goes in the same batch.
+        match /replies/{replyId} {
+          allow read: if isMember(clubId);
+          allow create: if isMember(clubId)
+            && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'text', 'createdAt'])
+            && request.resource.data.keys().hasAll(['authorId', 'authorName', 'text', 'createdAt'])
+            && request.resource.data.authorId == request.auth.uid
+            && request.resource.data.authorName == get(memberPath(clubId)).data.name
+            && feedText(request.resource.data.text, 1000)
+            && nearNow(request.resource.data.createdAt)
+            && getAfter(postPath()).data.replyCount == get(postPath()).data.get('replyCount', 0) + 1
+            && getAfter(postPath()).data.lastReplyId == replyId;
+          allow delete: if isMember(clubId)
+            && (resource.data.authorId == request.auth.uid || isManager(clubId) || get(postPath()).data.authorId == request.auth.uid)
+            && (!existsAfter(postPath())
+              || (getAfter(postPath()).data.replyCount == get(postPath()).data.get('replyCount', 0) - 1
+                && getAfter(postPath()).data.lastReplyId == replyId));
+        }
       }
 
       match /roster/{id} {

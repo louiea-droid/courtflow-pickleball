@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Building2, CalendarSearch, CircleHelp, House, Menu, MessageSquare, PanelLeft, UserPlus, X } from "lucide-react";
 import AccountMenu from "./AccountMenu";
 import NotificationBell from "./NotificationBell";
-import { badgeColor, clubInitial, clubPath } from "../utils/clubs";
+
+import { clubPath } from "../utils/clubs";
+import ClubBadge from "./ClubBadge";
 
 // The one sidebar for every signed-in screen in the hub and club area (a drawer behind a menu button on
 // phones). Home, Play (find a club, friends with a count of requests waiting, the inbox with a count of unread chats), My clubs (a link to the page of all your clubs, with the clubs listed under it; the open club links to its overview: `club` = { id, name, current }). The account menu lives in the sticky header across the top (with the button that collapses the
@@ -33,7 +35,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
     </a>
   );
   // A club's colored initial, as on Home; it is also the club's icon when the sidebar is collapsed.
-  const badge = (c) => <i className="acct-club-badge" style={{ background: badgeColor(c.id) }} aria-hidden="true">{clubInitial(c.clubName)}</i>;
+  const badge = (c) => <ClubBadge className="acct-club-badge" id={c.id} name={c.clubName} />;
   // Your clubs, with the open club listed even if they have not joined it (for example, a public club page).
   const list = club && !clubs.some((c) => c.id === club.id) ? [{ id: club.id, clubName: club.name }, ...clubs] : clubs;
 

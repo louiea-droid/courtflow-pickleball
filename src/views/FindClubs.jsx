@@ -2,10 +2,12 @@ import { useState } from "react";
 import { CalendarPlus, ChevronRight, MapPin, Plus, Search, Users } from "lucide-react";
 import PageTitle from "../components/PageTitle";
 import { useDirectory } from "../hooks/useMembership";
-import { ROLE_LABEL, badgeColor, clubInitial, clubPath, filterClubs, permissions } from "../utils/clubs";
+
 import { formatHM } from "../utils/format";
 import { splitAttendees } from "../utils/bookings";
 import { fillRatio, spotsLabel } from "../utils/sessions";
+import { ROLE_LABEL, badgeColor, clubPath, filterClubs, permissions } from "../utils/clubs";
+import ClubBadge from "../components/ClubBadge";
 
 const dayParts = (date) => {
   const d = new Date(`${date}T12:00:00`);
@@ -33,7 +35,8 @@ export default function FindClubs({ myClubs, myReady, sessions = [], joinRequest
   const details = new Map(clubs.map((c) => [c.id, c]));
   const nextOf = (id) => sessions.filter((s) => s.clubId === id).sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))[0];
   const find = (list) => [...filterClubs(list, text)].sort(byNext(nextOf));
-  const yours = myClubs.map((c) => ({ id: c.id, name: c.clubName, ...details.get(c.id) }));
+  // Private clubs aren't in the public directory: photo stays undefined so ClubBadge looks it up.
+  const yours = myClubs.map((c) => ({ id: c.id, name: c.clubName, ...details.get(c.id), listed: details.has(c.id) }));
   const manage = find(yours.filter((c) => permissions(mine.get(c.id)).canManage));
   const member = find(yours.filter((c) => !permissions(mine.get(c.id)).canManage));
   const toJoin = find(clubs.filter((c) => !mine.has(c.id)));
@@ -49,7 +52,7 @@ export default function FindClubs({ myClubs, myReady, sessions = [], joinRequest
     return (
       <li key={c.id} className="host-tile">
         <a className="host-tile-head" href={clubPath(c.id)} onClick={go(clubPath(c.id))}>
-          <span className="host-tile-badge" style={{ background: badgeColor(c.id) }} aria-hidden="true">{clubInitial(c.name)}</span>
+          <ClubBadge className="host-tile-badge" id={c.id} name={c.name} photo={c.listed ? c.photo || "" : undefined} />
           <span className="host-tile-name"><b>{c.name}</b><small>{ROLE_LABEL[mine.get(c.id)]}</small></span>
           <ChevronRight size={18} aria-hidden="true" />
         </a>
@@ -70,7 +73,7 @@ export default function FindClubs({ myClubs, myReady, sessions = [], joinRequest
     const next = nextOf(c.id);
     return (
       <a key={c.id} className="club-mini" href={clubPath(c.id)} onClick={go(clubPath(c.id))}>
-        <span className="club-mini-badge" style={{ background: badgeColor(c.id) }} aria-hidden="true">{clubInitial(c.name)}</span>
+        <ClubBadge className="club-mini-badge" id={c.id} name={c.name} photo={c.listed ? c.photo || "" : undefined} />
         <span className="club-mini-main">
           <b>{c.name}</b>
           <small>{next ? (next.status === "live" ? "Game on now" : `Next game ${when(next)}`) : "No open play scheduled yet"}</small>
@@ -88,7 +91,7 @@ export default function FindClubs({ myClubs, myReady, sessions = [], joinRequest
         <span className="club-card-cover" aria-hidden="true">
           <svg viewBox="0 0 320 64" preserveAspectRatio="none"><path d="M0 40 C60 22 110 52 170 34 S280 18 320 28 V64 H0Z" /></svg>
         </span>
-        <span className="club-card-badge" aria-hidden="true">{clubInitial(c.name)}</span>
+        <ClubBadge className="club-card-badge" id={c.id} name={c.name} photo={c.photo || ""} />
         <span className="club-card-title">
           <b>{c.name}</b>
           {c.location && <small><MapPin size={12} /> {c.location}</small>}

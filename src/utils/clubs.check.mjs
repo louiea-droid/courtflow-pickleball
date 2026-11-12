@@ -99,3 +99,23 @@ assert.equal(badgeColor("pub"), badgeColor("pub"));
 assert.match(badgeColor(""), /^#[0-9a-f]{6}$/);
 assert.equal(clubInitial(" pub club"), "P");
 assert.equal(clubInitial(""), "?");
+
+// Members tab: groups, search, counts.
+{
+  const { groupMembers, memberCounts, SEARCH_FROM } = await import("./clubs.js");
+  const people = [
+    { id: "m2", name: "Zed Uy", role: "member" },
+    { id: "o", name: "Ann Reyes", role: "owner" },
+    { id: "m1", name: "Bea Tan", role: "member" },
+    { id: "g", name: "Cal Cruz", role: "manager" },
+  ];
+  const all = groupMembers(people);
+  assert.deepEqual(all.leads.map((m) => m.id), ["o", "g"]); // owner first, then managers
+  assert.deepEqual(all.others.map((m) => m.id), ["m1", "m2"]); // by name
+  assert.deepEqual(groupMembers(people, "re").leads.map((m) => m.id), ["o"]); // start of a word, any case
+  assert.deepEqual(groupMembers(people, "re").others, []);
+  assert.deepEqual(groupMembers(people, " TAN ").others.map((m) => m.id), ["m1"]);
+  assert.deepEqual(memberCounts(people), { members: 4, managers: 2 });
+  assert.equal(SEARCH_FROM, 9);
+}
+console.log("clubs.check: members ok");
