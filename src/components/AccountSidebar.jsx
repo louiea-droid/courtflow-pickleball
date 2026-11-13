@@ -32,7 +32,7 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
   const go = (to) => (e) => { e.preventDefault(); setOpen(false); navigate(to); };
   const link = (to, label, Icon, current, extra, selected = false, lead = null) => (
     <a key={to} className={`acct-link${selected ? " selected-club" : ""}`} href={to} title={label} aria-current={current ? "page" : undefined} onClick={go(to)}>
-      {Icon && <Icon size={17} />}{lead}<span>{label}</span>{extra}
+      {Icon && <Icon size={17} />}{lead}<span className="acct-link-label">{label}</span>{extra}
     </a>
   );
   // A club's colored initial, as on Home; it is also the club's icon when the sidebar is collapsed.
