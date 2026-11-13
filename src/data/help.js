@@ -136,7 +136,7 @@ export const MAJOR = [
       },
       {
         title: "The Live Board",
-        body: "Part of the Quick session: a read-only screen for a TV or a phone (Share Live Board in the top bar) with live courts, who is next and the match log. In the Quick session's Settings the host chooses whether it shows skill stars, queue position, and games and wins, and can replace its link to cut off old copies. Club games don't have one yet.",
+        body: "Part of the Quick session: a read-only screen for a TV or a phone (Share in the top bar) with live courts, who is next and the match log. In the Quick session's Settings the host chooses whether it shows skill stars, queue position, and games and wins, and can replace its link to cut off old copies. A club game has one too, in the same Share window as Self check-in.",
       },
       {
         title: "Why am I not next?",
@@ -147,10 +147,10 @@ export const MAJOR = [
 ];
 
 export const MINOR = [
-  { id: "accounts", title: "Accounts and your profile", body: "Sign up with an email and password or with Google. Your profile has your name, your friend code and a switch that lets people find you by name. Choose a Light or Dark theme, or Match my device, there. Sign out from the account menu at the top right." },
+  { id: "accounts", title: "Accounts and your settings", body: "Sign up with an email and password or with Google. Settings in the account menu at the top right has your name, friend code and password (Account), Light, Dark or Match my device (Appearance, also the sun / moon button at the top), which alerts show in the bell (Notifications), whether people can find you by name (Privacy) and Delete account. A club's own settings are the Settings tab inside the club. Sign out from the account menu." },
   { id: "friends", title: "Friends", body: "Find people by the start of a name or by their friend code and send a request; they accept or decline. Friends can message each other. Either side can remove the friendship." },
   { id: "inbox", title: "Inbox and messages", body: "Each club has one group chat that a manager starts from the Members tab; every member can read and write it. You can also message a friend, or another member of a club you share. Hide a conversation to take it off your list; a new message brings it back. A dot and a count show unread chats." },
-  { id: "settings", title: "Settings", body: "A club's Settings page (Settings in the account menu, while you are in the club) holds the club's details, queue rules, cost defaults, the time zone and clock, and the colour theme. Each open play's courts, format, mode and team colours are in Court settings on its event page. (A Quick session's own Settings also has the session defaults, team colours and Live Board options.) Only managers see it, and only the owner changes who is public or private." },
+  { id: "settings", title: "Settings", body: "A club's Settings tab (after Feed in the club's tabs) holds the queue rules, scoring and voice, cost defaults, the time zone and clock, and the colour theme; the club's name, photos and visibility are under Edit club. Each open play's courts, format, mode and team colours are in Court settings on its event page. (A Quick session's own Settings also has the session defaults, team colours and Live Board options.) Only managers see it, and only the owner changes who is public or private." },
   { id: "sidebar", title: "The sidebar and header", body: "The sidebar stays in place. Collapse it with the button at its bottom or by clicking the logo, and the choice is remembered. The header at the top stays visible and holds your account menu at the right. On a phone the sidebar opens from the menu button." },
   { id: "undo", title: "Undo a result", body: "After you record who won, a message offers Undo for about 10 seconds. It puts back the players, games, wins and the court exactly as they were." },
   { id: "keyboard", title: "Keyboard", body: "Esc closes the top dialog or menu. In a chat, Enter sends a message and Shift+Enter starts a new line." },

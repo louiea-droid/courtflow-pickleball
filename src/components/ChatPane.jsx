@@ -6,6 +6,7 @@ import { MESSAGE_MAX, chatTitle, clubIdOfChat, validateMessage } from "../utils/
 
 import { formatDate, formatTime } from "../utils/format";
 import ClubBadge from "./ClubBadge";
+import UserAvatar from "./UserAvatar";
 
 const COUNTER_FROM = 900;
 const NEAR_BOTTOM = 120; // px from the end of the list that still counts as "reading the latest"
@@ -81,7 +82,9 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
     <section className="chat-pane" aria-label={`Chat: ${title}`}>
       <header className="chat-head">
         <button className="outline chat-back" type="button" onClick={onBack} aria-label={backLabel}><ArrowLeft size={16} /></button>
-        {!direct && <ClubBadge className="inbox-badge" id={clubIdOfChat(chat.id) || ""} name={title} />}
+        {direct
+          ? <UserAvatar uid={chat.members?.find((m) => m !== uid)} size={38} className="inbox-badge" />
+          : <ClubBadge className="inbox-badge" id={clubIdOfChat(chat.id) || ""} name={title} />}
         <div>
           <h2>{title}</h2>
           <p>{direct ? "Direct message" : "Club chat · only members can read and write"}</p>
@@ -103,6 +106,9 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
           return (
             <Fragment key={m.id}>
             {newDay && <p className="chat-day"><span>{sameDay(m.createdAt) ? "Today" : formatDate(m.createdAt)}</span></p>}
+            <div className={`chat-msg-row${mine ? " mine" : ""}`}>
+            {/* In a club chat each other person's message carries their picture; a direct message has it in the header. */}
+            {!mine && !direct && <UserAvatar uid={m.from} size={28} />}
             <article className={`chat-msg${mine ? " mine" : ""}`}>
               <div className="chat-msg-head">
                 <b>{mine ? "You" : m.name}</b>
@@ -115,6 +121,7 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
               </div>
               <p>{m.text}</p>
             </article>
+            </div>
             </Fragment>
           );
         })}</>}

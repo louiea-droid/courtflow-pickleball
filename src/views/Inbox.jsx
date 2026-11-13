@@ -3,7 +3,8 @@ import { MessageSquare, Search } from "lucide-react";
 import ChatPane, { whenLabel } from "../components/ChatPane";
 import PageTitle from "../components/PageTitle";
 import { useChatActions } from "../hooks/useChatActions";
-import { chatTitle, clubIdOfChat, isUnread } from "../utils/chat";
+import { chatTitle, clubIdOfChat, isUnread, otherMember } from "../utils/chat";
+import UserAvatar from "../components/UserAvatar";
 
 import ClubBadge from "../components/ClubBadge";
 
@@ -46,7 +47,7 @@ export default function Inbox({ uid, name, clubs, clubsReady, inbox, chatId, nav
               <a key={c.id} className={`inbox-row${unread ? " unread" : ""}`} href={href(c.id)} aria-current={c.id === chatId ? "page" : undefined} onClick={go(href(c.id))}>
                 {clubId
                   ? <ClubBadge className="inbox-badge" id={clubId} name={c.title} />
-                  : <span className="inbox-badge dm" aria-hidden="true"><MessageSquare size={16} /></span>}
+                  : <UserAvatar uid={otherMember(c, uid).id} size={40} className="inbox-badge" />}
                 <span className="inbox-row-main">
                   <b>{chatTitle(c, uid)}</b>
                   <small>{c.lastText ? `${c.lastBy === uid ? "You: " : ""}${c.lastText}` : "No messages yet"}</small>

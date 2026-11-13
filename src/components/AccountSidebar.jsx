@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Building2, CalendarSearch, CircleHelp, House, Menu, MessageSquare, PanelLeft, UserPlus, X } from "lucide-react";
+import { Building2, CalendarSearch, CircleHelp, House, Menu, MessageSquare, Moon, PanelLeft, Sun, UserPlus, X } from "lucide-react";
+import { isDarkTheme, setGlobalTheme } from "../utils/theme";
 import AccountMenu from "./AccountMenu";
 import NotificationBell from "./NotificationBell";
 
@@ -10,7 +11,7 @@ import ClubBadge from "./ClubBadge";
 // phones). Home, Play (find a club, friends with a count of requests waiting, the inbox with a count of unread chats), My clubs (a link to the page of all your clubs, with the clubs listed under it; the open club links to its overview: `club` = { id, name, current }). The account menu lives in the sticky header across the top (with the button that collapses the
 // sidebar to an icon rail on a wide screen; the choice is remembered). Creating a club and the quick session live on
 // Home. `active` highlights a place: "hub" | "sessions" | "find" | "friends" | "inbox" | "clubs" | "help".
-export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null, friendRequests = 0, inboxUnread = 0, headerAction = null, notifications = null, settingsPath = null }) {
+export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null, friendRequests = 0, inboxUnread = 0, headerAction = null, notifications = null, acct = null }) {
   const [open, setOpen] = useState(false);
   // Wide screens: the sidebar is a fixed rail that can collapse to icons. A data attribute on <html> carries the state to the CSS.
   const [collapsed, setCollapsed] = useState(() => {
@@ -47,8 +48,9 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
         </button>
         <a className="acct-brand" href="/" onClick={go("/")}><img src="/images/courtwave-light.png" alt="" /><b>CourtWave</b></a>
         {headerAction}
+        {acct?.account && <ThemeToggle acct={acct} />}
         {notifications && <NotificationBell items={notifications} navigate={navigate} />}
-        <AccountMenu name={name} email={email} onSignOut={onSignOut} navigate={navigate} settingsPath={settingsPath} />
+        <AccountMenu name={name} email={email} uid={acct?.user?.uid} onSignOut={onSignOut} navigate={navigate} />
       </header>
       <div className={`overlay${open ? " show" : ""}`} onClick={() => setOpen(false)} />
       <aside className={`acct-side${open ? " open" : ""}`} id="acct-side">
@@ -94,5 +96,21 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
         </div>
       </aside>
     </>
+  );
+}
+
+// One tap between light and dark (Match device flips to the opposite of what shows). Saves the same
+// account setting as Settings > Appearance, which the app applies on every screen.
+function ThemeToggle({ acct }) {
+  const theme = acct.account.display?.theme || "light";
+  const dark = theme === "dark" || (theme === "system" && isDarkTheme());
+  const next = dark ? "light" : "dark";
+  return (
+    <button
+      className="acct-bell-btn acct-theme-btn" type="button" aria-label={`Switch to ${next} mode`} title={`Switch to ${next} mode`}
+      onClick={() => { setGlobalTheme(next); acct.updateAccount({ display: { ...acct.account.display, theme: next } }); }}
+    >
+      {dark ? <Sun size={19} /> : <Moon size={19} />}
+    </button>
   );
 }

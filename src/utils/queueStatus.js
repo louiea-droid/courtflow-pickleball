@@ -9,10 +9,20 @@ const onCourt = (c) => [...(c.teamA || []), ...(c.teamB || [])];
 
 // Checked-in players who are not on a court, in the order they will be picked: whoever has waited longest
 // (since checking in or since their last game ended) first, then fewest games, then id.
+// Taking a break: `breakAt` (when they left) takes a checked-in player out of the queue without losing their place.
+// Back in moves `checkedAt` forward by the break's length, so they keep exactly the wait they had and the break
+// itself never counts as waiting.
+export const onBreak = (p) => Boolean(p?.breakAt);
+export const breakFields = (now) => ({ breakAt: now });
+export function backInFields(p, now) {
+  const waited = p.breakAt && p.checkedAt ? Math.max(0, p.breakAt - p.checkedAt) : 0;
+  return { checkedAt: now - waited, breakAt: null };
+}
+
 export function queueOrder(players, courts) {
   const playing = new Set(courts.flatMap(onCourt));
   return players
-    .filter((p) => p.checked && !playing.has(p.id))
+    .filter((p) => p.checked && !p.breakAt && !playing.has(p.id))
     .sort((a, b) => (a.checkedAt || 0) - (b.checkedAt || 0) || (a.games || 0) - (b.games || 0) || (a.id < b.id ? -1 : 1));
 }
 
@@ -26,6 +36,7 @@ export function queueStatus({ players, courts, uid, format, mode, gameMinutes = 
   if (!mine) return null;
   const court = courts.find((c) => onCourt(c).includes(mine.id));
   if (court) return { state: "playing", court: court.courtNumber };
+  if (mine.breakAt) return { state: "break" };
   const perCourt = format === "Singles" ? 2 : 4;
   const queue = queueOrder(players, courts);
   const position = queue.findIndex((p) => p.id === mine.id) + 1;

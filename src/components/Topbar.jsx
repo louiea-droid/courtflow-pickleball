@@ -16,7 +16,7 @@ export default function Topbar({ tab, onOpenMenu, onShare, onAddPlayer, eyebrow,
         <button className="primary" data-tour="add-player" onClick={onAddPlayer}><Plus /> Add Player</button>
         <PhClock />
         {showShare && (
-          <button className="outline" data-tour="share" onClick={onShare}><Share2 /> Share<span className="share-btn-full"> Live Board</span></button>
+          <button className="outline" data-tour="share" onClick={onShare}><Share2 /> Share</button>
         )}
       </div>
       <button className="fab-add" data-tour="add-player" onClick={onAddPlayer} aria-label="Add player"><Plus /></button>

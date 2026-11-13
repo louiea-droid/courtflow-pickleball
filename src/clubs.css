@@ -702,6 +702,8 @@ button.acct-brand:hover{background:var(--side-hover)}
 /* Notifications bell in the sticky header, just left of the account menu. */
 .acct-bell{position:relative;margin-left:auto;display:flex}
 .acct-bell+.account-menu{margin-left:0}
+.acct-theme-btn{margin-left:auto}
+.acct-theme-btn+.acct-bell{margin-left:0}
 .acct-bell-btn{position:relative;display:inline-grid;place-items:center;width:44px;height:44px;border:1px solid var(--card-line);border-radius:12px;background:var(--panel);color:var(--ink);box-shadow:none}
 .acct-bell-btn:hover{background:var(--soft)}
 .acct-bell-btn[aria-expanded="true"]{border-color:var(--accent-line);background:var(--accent-soft)}
@@ -753,7 +755,7 @@ button.acct-brand:hover{background:var(--side-hover)}
 
 /* 1. The scroll area fills the width, so its scrollbar is at the window edge. Content stays centered at --page-max. */
 @media (min-width:861px){
-  .acct-main{max-width:none;padding-left:max(var(--page-gutter),calc((100vw - var(--side-w) - var(--page-max)) / 2));padding-right:max(var(--page-gutter),calc((100vw - var(--side-w) - var(--page-max)) / 2));scrollbar-width:thin;scrollbar-color:light-dark(#0f2a2233,#ffffff26) transparent}
+  .acct-main{max-width:none;scrollbar-gutter:stable;padding-left:max(var(--page-gutter),calc((100vw - var(--side-w) - var(--page-max)) / 2));padding-right:max(var(--page-gutter),calc((100vw - var(--side-w) - var(--page-max)) / 2));scrollbar-width:thin;scrollbar-color:light-dark(#0f2a2233,#ffffff26) transparent}
   /* Chrome and Safari: the custom bar below (no arrow buttons); Firefox keeps the thin standard one. */
   @supports selector(::-webkit-scrollbar){.acct-main{scrollbar-width:auto;scrollbar-color:auto}}
   .acct-main::-webkit-scrollbar{width:8px;background:transparent}
@@ -1175,9 +1177,13 @@ a.ov-row:hover{background:var(--hover)}
 .theme-system .theme-swatch i:first-child{background:#fbfcf7}
 .theme-system .theme-swatch i:last-child{background:#0f2a22}
 .theme-note{margin:0;padding:0 16px 14px;color:var(--muted);font-size:12.5px}
-.settings-jump{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;margin:0 0 18px}
-.settings-jump a{display:inline-flex;align-items:center;min-height:38px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink-2);font-weight:700;font-size:13px;text-decoration:none}
-.settings-jump a:hover{border-color:var(--accent-line,var(--line-strong));color:var(--ink)}
+.settings-tabs{display:flex;flex-direction:row;gap:6px;margin:0 0 18px;overflow-x:auto;scrollbar-width:none}
+.settings-tabs::-webkit-scrollbar{display:none}
+.settings-tabs button{flex-shrink:0;min-height:40px;padding:0 15px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink-2);font:700 13px/1 inherit;box-shadow:none;cursor:pointer}
+.settings-tabs button:hover{border-color:var(--line-strong);color:var(--ink)}
+.settings-tabs button[aria-selected="true"]{border-color:var(--lime);background:var(--lime);color:var(--on-lime)}
+.settings-tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.account-row .danger{flex-shrink:0;white-space:nowrap}
 .acct-shell [id^="set-"]{scroll-margin-top:80px}
 @media (max-width:700px){
   .profile-band{padding:22px 18px 84px}
@@ -1185,3 +1191,52 @@ a.ov-row:hover{background:var(--hover)}
   .theme-choice{padding:8px;font-size:12.5px}
   .theme-swatch{height:42px}
 }
+
+/* Club text fields (Settings and Edit club), 2026-11-13: every field has the same width so they line up,
+   and in the Edit club window each label sits above a full-width field (the window is too narrow for two columns). */
+.account-row>.club-input{flex:0 0 min(300px,55%)}
+.edit-club-modal .account-group>.eyebrow{display:none}
+.edit-club-modal .account-row{display:grid;grid-template-columns:1fr;gap:8px;align-items:stretch}
+.edit-club-modal .account-row>div:first-child{display:block}
+.edit-club-modal .account-row>.club-input,.edit-club-modal .account-select{width:100%;flex:none;grid-column:auto;grid-row:auto}
+.edit-club-modal .club-save .primary{width:100%;justify-content:center}
+
+/* Account Settings (2026-11-13): the tabbed /settings page reuses .settings-tabs and the Profile pieces. */
+.settings-note{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+.profile-page .account-groups{display:grid;gap:14px}
+
+/* Club tabs keep one size (2026-11-13): .acct-main always reserves the scrollbar's space (scrollbar-gutter above), so a
+   long tab never narrows the page; the description lives on the Overview, so the header has one height; Settings
+   spans the same width as the other tabs, its rows capped for reading. */
+.ov-about{margin:0 2px}
+.club-settings-page .account-panel{max-width:860px}
+
+/* Profile pictures (2026-11-13, spec docs/superpowers/specs/2026-11-13-profile-pictures-design.md). */
+.user-avatar{display:inline-grid;place-items:center;flex-shrink:0;border-radius:50%;overflow:hidden;background:var(--soft);color:var(--muted)}
+.user-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.inbox-badge.user-avatar{border-radius:50%;background:var(--soft);color:var(--muted)}
+.member-row:has(> .user-avatar){justify-content:flex-start}
+.member-row > .user-avatar ~ .member-actions{margin-left:auto}
+.chat-msg-row{display:flex;align-items:flex-end;gap:8px;align-self:flex-start;max-width:min(600px,92%)}
+.chat-msg-row.mine{align-self:flex-end}
+.chat-msg-row .chat-msg{max-width:100%;align-self:auto}
+.account-menu-trigger .account-menu-pic{background:var(--soft)}
+.profile-band{display:grid;grid-template-columns:auto 1fr;column-gap:18px;align-items:center}
+.profile-band>*{grid-column:2}
+.profile-band>.profile-avatar{grid-column:1;grid-row:1 / span 2;position:relative;z-index:1}
+.profile-band>.wave-svg,.profile-band>svg{grid-column:1 / -1}
+.profile-avatar .user-avatar{box-shadow:0 0 0 3px #ffffff26;background:#ffffff14;color:#cfe0d6}
+.profile-avatar-btn{position:absolute;right:-4px;bottom:-4px;display:grid;place-items:center;width:32px;height:32px;padding:0;border:2px solid var(--brand-deep);border-radius:50%;background:var(--lime);color:var(--on-lime);cursor:pointer;box-shadow:none}
+.profile-avatar-btn:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+.avatar-picker{width:min(440px,100%)}
+.avatar-picker-actions{display:flex;flex-wrap:wrap;gap:8px}
+.avatar-picker-label{margin:16px 0 8px;color:var(--muted);font-size:13px;font-weight:700}
+.avatar-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.avatar-grid button{position:relative;aspect-ratio:1;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;box-shadow:0 0 0 1px var(--card-line)}
+.avatar-grid button img{width:100%;height:100%;border-radius:50%;display:block}
+.avatar-grid button:hover{transform:scale(1.06)}
+.avatar-grid button[aria-checked="true"]{box-shadow:0 0 0 3px var(--panel),0 0 0 5px var(--accent)}
+.avatar-grid button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.avatar-grid-check{position:absolute;right:-2px;bottom:-2px;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--on-accent)}
+@media (max-width:480px){.avatar-grid{grid-template-columns:repeat(4,1fr)}}
+@media (max-width:560px){.profile-band>.profile-code{grid-column:1 / -1;margin-top:14px}}

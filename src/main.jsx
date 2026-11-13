@@ -10,6 +10,7 @@ const QuickSession = lazy(() => import("./QuickSession"));
 const LiveBoard = lazy(() => import("./LiveBoard"));
 const OpenPlay = lazy(() => import("./OpenPlay"));
 const Umpire = lazy(() => import("./Umpire"));
+const Checkin = lazy(() => import("./Checkin"));
 const loadAccountApp = () => import("./AccountApp");
 const AccountApp = lazy(loadAccountApp);
 const Landing = lazy(() => import("./landing/Landing"));
@@ -37,7 +38,7 @@ function Front() {
 }
 
 // /club is the quick session (no login); the hub, profile and club screens live in AccountApp.
-const pages = { live: LiveBoard, "open-play": OpenPlay, quick: QuickSession, umpire: Umpire };
+const pages = { live: LiveBoard, "open-play": OpenPlay, quick: QuickSession, umpire: Umpire, checkin: Checkin };
 const Page = pages[routeOf(window.location.pathname)] || Front;
 
 ReactDOM.createRoot(document.getElementById("root")).render(

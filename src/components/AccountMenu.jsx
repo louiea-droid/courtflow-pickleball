@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, CircleHelp, LogOut, Settings as SettingsIcon, UserRound } from "lucide-react";
+import UserAvatar from "./UserAvatar";
+import { ChevronDown, LogOut, Settings as SettingsIcon, UserRound } from "lucide-react";
 
-export default function AccountMenu({ name, email, onSignOut, navigate, settingsPath = null }) {
+export default function AccountMenu({ name, email, uid, onSignOut, navigate }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
   const triggerRef = useRef(null);
@@ -34,12 +35,6 @@ export default function AccountMenu({ name, email, onSignOut, navigate, settings
     navigate("/settings");
   };
 
-  const goToHelp = (event) => {
-    event.preventDefault();
-    setOpen(false);
-    navigate("/help");
-  };
-
   return (
     <div className="account-menu" ref={menuRef}>
       <button
@@ -50,7 +45,7 @@ export default function AccountMenu({ name, email, onSignOut, navigate, settings
         aria-controls="account-menu-panel"
         onClick={() => setOpen((wasOpen) => !wasOpen)}
       >
-        <span className="account-menu-avatar"><UserRound size={17} /></span>
+        {uid ? <UserAvatar uid={uid} size={30} className="account-menu-pic" /> : <span className="account-menu-avatar"><UserRound size={17} /></span>}
         <span className="account-menu-trigger-copy">
           <b>{displayName}</b>
           <small>Account</small>
@@ -63,15 +58,7 @@ export default function AccountMenu({ name, email, onSignOut, navigate, settings
           {email && <span>{email}</span>}
         </div>
         <a className="account-menu-item" href="/settings" onClick={goToProfile}>
-          <UserRound size={16} /> Profile
-        </a>
-        {settingsPath && (
-          <a className="account-menu-item" href={settingsPath} onClick={(e) => { e.preventDefault(); setOpen(false); navigate(settingsPath); }}>
-            <SettingsIcon size={16} /> Settings
-          </a>
-        )}
-        <a className="account-menu-item" href="/help" onClick={goToHelp}>
-          <CircleHelp size={16} /> Help
+          <SettingsIcon size={16} /> Settings
         </a>
         <button className="account-menu-item" type="button" onClick={onSignOut}>
           <LogOut size={16} /> Sign out

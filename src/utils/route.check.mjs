@@ -10,6 +10,7 @@ assert.equal(routeOf("/live"), "live");
 assert.equal(routeOf("/open-play"), "open-play");
 assert.equal(routeOf("/open-play/"), "open-play");
 assert.equal(routeOf("/umpire"), "umpire");
+assert.equal(routeOf("/checkin"), "checkin");
 assert.equal(routeOf("/umpire/"), "umpire");
 // The quick session keeps its URL; its route is named "quick" so "club" can mean a real club.
 assert.equal(routeOf("/club"), "quick");

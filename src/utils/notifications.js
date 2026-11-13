@@ -76,3 +76,17 @@ export function markSeen(seen, items) {
   const live = new Set(current);
   return [...seen.filter((k) => !live.has(k)), ...current].slice(-MAX_SEEN);
 }
+
+// The bell kinds a person can switch off in Settings > Notifications: [kind, title, body].
+export const NOTIFY_KINDS = [
+  ["turn", "Your turn", "When you're up next or on a court in a live game."],
+  ["booking", "Bookings", "When a booking is accepted or declined, and when it starts soon."],
+  ["friend", "Friend requests", "When someone asks to be your friend."],
+  ["join", "Join requests", "When someone asks to join a club you run."],
+  ["chat", "Chat messages", "New messages in club chats and direct messages."],
+];
+
+// Drop the kinds switched off on the account (`notify: { chat: false }`); a missing setting means on.
+export function filterMuted(items, notify) {
+  return items.filter((i) => notify?.[i.kind] !== false);
+}

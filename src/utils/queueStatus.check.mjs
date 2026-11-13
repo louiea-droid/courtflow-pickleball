@@ -73,3 +73,30 @@ assert.deepEqual([m.nextOn, m.waitMins], [null, 10]); // too few for a match: th
 m = queueStatus({ players: line(2), courts: playing4, uid: "u", format: "Doubles", mode: "Custom", gameMinutes: 15 });
 assert.deepEqual([m.nextOn, m.waitMins], [null, 10]); // Custom: plain queue order
 console.log("queueStatus.check: ok");
+
+// Taking a break (2026-11-13): a player on a break is skipped by the queue; Back in keeps the wait they had.
+{
+  const { queueOrder: order, breakFields, backInFields, onBreak } = await import("./queueStatus.js");
+  const ps = [
+    { id: "a", checked: true, checkedAt: 100 },
+    { id: "b", checked: true, checkedAt: 200, breakAt: 250 },
+    { id: "c", checked: true, checkedAt: 300 },
+  ];
+  assert.deepEqual(order(ps, []).map((p) => p.id), ["a", "c"], "b is on a break");
+  assert.equal(onBreak(ps[1]), true);
+  assert.equal(onBreak(ps[0]), false);
+  assert.deepEqual(breakFields(500), { breakAt: 500 });
+  // b waited 50 (200 -> 250) before the break; back at 1000 they have waited 50 again: checkedAt 950.
+  assert.deepEqual(backInFields(ps[1], 1000), { checkedAt: 950, breakAt: null });
+  const back = ps.map((p) => (p.id === "b" ? { ...p, ...backInFields(p, 1000) } : p));
+  assert.deepEqual(order(back, []).map((p) => p.id), ["a", "c", "b"]);
+  // A break without a start time (bad data) just comes back now.
+  assert.deepEqual(backInFields({ id: "x", checkedAt: 10 }, 1000), { checkedAt: 1000, breakAt: null });
+  console.log("queueStatus breaks: ok");
+}
+{
+  const { queueStatus: qs } = await import("./queueStatus.js");
+  const players = [{ id: "a", uid: "u", checked: true, checkedAt: 1, breakAt: 5 }];
+  assert.deepEqual(qs({ players, courts: [], uid: "u", format: "Doubles" }), { state: "break" });
+  console.log("queueStatus break status: ok");
+}

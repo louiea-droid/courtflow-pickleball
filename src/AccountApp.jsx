@@ -15,7 +15,7 @@ import Landing from "./landing/Landing";
 import AccountSidebar from "./components/AccountSidebar";
 import { useManagerJoinRequests } from "./hooks/useManagerJoinRequests";
 import { useMyBookings } from "./hooks/useMyBookings";
-import { buildNotifications } from "./utils/notifications";
+import { buildNotifications, filterMuted } from "./utils/notifications";
 import { useActiveGames } from "./components/ActiveQueue";
 import DeleteAccountDialog from "./components/DeleteAccountDialog";
 import Toast from "./components/Toast";
@@ -58,8 +58,8 @@ export default function AccountApp() {
   const managerRequests = useManagerJoinRequests(uid, clubs);
   const bookings = useMyBookings(acct.status === "in" ? uid : null);
   const notifications = useMemo(
-    () => buildNotifications({ uid, friendships, chats: inbox.chats, reads: inbox.reads, joinRequests: managerRequests, activeGames, bookings }),
-    [uid, friendships, inbox.chats, inbox.reads, managerRequests, activeGames, bookings],
+    () => filterMuted(buildNotifications({ uid, friendships, chats: inbox.chats, reads: inbox.reads, joinRequests: managerRequests, activeGames, bookings }), acct.account?.notify),
+    [uid, friendships, inbox.chats, inbox.reads, managerRequests, activeGames, bookings, acct.account?.notify],
   );
   const gameShortcut = activeGame ? (
     <a
@@ -138,11 +138,11 @@ export default function AccountApp() {
         active={{ "clubs-find": "find", clubs: "find", friends: "friends", inbox: "inbox", sessions: "sessions", help: "help", hub: "hub" }[route] || null}
         name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} clubs={clubs}
         friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
-        headerAction={gameShortcut} notifications={notifications}
+        headerAction={gameShortcut} notifications={notifications} acct={acct}
       />
       <main className="acct-main">
         {route === "settings" ? (
-          <Profile acct={acct} onDelete={() => setShowDelete(true)} />
+          <Profile acct={acct} onDelete={() => setShowDelete(true)} notify={notify} />
         ) : route === "clubs-new" ? (
           <CreateClub onCreate={clubActions.createClub} navigate={navigate} />
         ) : route === "friends" ? (

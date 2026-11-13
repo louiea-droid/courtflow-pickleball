@@ -22,6 +22,8 @@ import { queueOrder } from "./utils/queueStatus";
 import { announceCall, canSpeak, speak } from "./utils/voice";
 import { useVoiceClips, voiceBaseOf } from "./hooks/useVoiceClips";
 import { Volume2, VolumeX } from "lucide-react";
+import QrCode from "./components/QrCode";
+import { checkinUrl } from "./utils/selfCheckin";
 
 // serving: "Server 2" / "Serving" on the serving team; state: "winner" / "lost" once a game is decided.
 function LiveTeam({ label, color, ids, players, showSkill, serving = null, state = null }) {
@@ -151,6 +153,9 @@ function useGameBoard(target) {
           setState((st) => ({ ...st, info: s.data() }));
           ready("info");
         }, dead),
+        // Self check-in: the QR and today's code, shown while the host has it on (a refused read just hides it).
+        onSnapshot(doc(db, ...base, "private", "checkin"), (s) => setState((st) => ({ ...st, checkin: s.data() || null })),
+          () => setState((st) => ({ ...st, checkin: null }))),
         onSnapshot(collection(db, ...base, "players"), (s) => {
           setState((st) => ({ ...st, players: docsOf(s).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)) }));
           ready("players");
@@ -304,6 +309,14 @@ export default function LiveBoard() {
           </div>
         )}
         <div className="liveboard-header-end">
+          {game.active && game.checkin?.on && (
+            <div className="liveboard-checkin" aria-label={`Check in: scan the QR code, then type ${game.checkin.code}`}>
+              <QrCode value={checkinUrl(window.location.origin, target.base[1], target.base[3]) + (game.checkin.ask === false ? `&code=${game.checkin.code}` : "")} size={84} label="QR code to check in" />
+              {game.checkin.ask === false
+                ? <div><small>SCAN TO</small><b className="liveboard-checkin-word">Check in</b></div>
+                : <div><small>SCAN TO CHECK IN</small><small>then type</small><b>{game.checkin.code}</b></div>}
+            </div>
+          )}
           {canSpeak() && (
             <button type="button" className={`liveboard-voice${voiceOn ? " on" : ""}`} aria-pressed={voiceOn}
               onClick={() => { const next = !voiceOn; setVoiceOn(next); if (next) speak("Voice calls are on."); }}

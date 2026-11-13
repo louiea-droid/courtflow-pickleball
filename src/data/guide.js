@@ -34,7 +34,7 @@ export const GUIDE_FEATURES = [
     ],
     notes: [
       { title: "Play now", body: "No event planned? Play now in Club tools starts a game for today straight away, with no seats. Type a fee on the Payment page if you charge one." },
-      { title: "Settings for the club", body: "Queue rules, scoring and the Live Board for a club are in Settings, in your account menu." },
+      { title: "Settings for the club", body: "Queue rules, scoring and the Live Board for a club are in the club's Settings tab (managers only)." },
     ],
     shots: [
       shot("event-page.png", 1280, 900, "An open play event page with the players who booked, their payments, and the game buttons.", "The event page: who booked, who paid, and the game buttons."),
@@ -75,7 +75,7 @@ export const GUIDE_FEATURES = [
     notes: [
       { title: "Who holds which court", body: "The Umpires window lists each court with its volunteer. Release a court to free it, or assign it to someone." },
       { title: "New link", body: "Makes a new code: old links stop working, and every volunteer and court claim is cleared." },
-      { title: "Record results automatically", body: "Turn this on in Settings, under Queue rules, and a saved game is recorded and its court rotates without your Confirm." },
+      { title: "Record results automatically", body: "Turn this on in Settings, under Scoring and voice, and a saved game is recorded and its court rotates without your Confirm." },
       { title: "Scoring style and target", body: "Side-out (only the serving team scores) or rally, playing to 11, 15 or 21, win by 2. Set in Settings; volunteers' screens follow it live." },
       { title: "Score it yourself", body: "No volunteer? Press the score button on a live court to keep score from your own screen. Stop scoring this match brings back the plain Team 1 / Team 2 Wins buttons." },
       { title: "Live Board", body: "The score shows under each live court on the Live Board while it's kept." },
@@ -155,7 +155,7 @@ export const GUIDE_FEATURES = [
     card: "A screen for a TV or phone: courts, scores and the queue.",
     summary: "The Live Board is a read-only screen players can watch: the courts with their scores, the queue and recent matches.",
     steps: [
-      "Press Share Live Board in the top bar to get the link and its QR code.",
+      "Press Share in the top bar to get the Live Board link and its QR code (in a club game the same window has Self check-in).",
       "Open it on a TV or a spare tablet at the venue, or let players scan the code on their phones.",
       "It updates by itself and keeps the screen awake.",
       "New link replaces the old one, so an old QR code stops working.",

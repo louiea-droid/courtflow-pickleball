@@ -29,7 +29,7 @@ for (const mode of ["Balanced", "Skill Separated", "Custom", "Winners / Losers",
 // Statements the code review corrected: keep them true
 assert.ok(queueText.includes("since their last game"), "the tie-break is who has waited longer, not only who checked in first");
 assert.ok(queueText.includes("moved you back"), "the host can move a player back");
-assert.ok(queueText.includes("Quick session") && queueText.includes("Club games don't have one yet"), "the Live Board belongs to the Quick session");
+assert.ok(queueText.includes("Quick session") && queueText.includes("same Share window as Self check-in"), "the Live Board: the Quick session's, and a club game's in Share");
 assert.ok(queueText.includes("member of the club"), "the active session card is for club members");
 assert.ok(queueText.includes("Back to game") && queueText.includes("Not Checked In by player name"), "the active game shortcut and player search are documented");
 assert.ok(queueText.includes("New arrivals"), "Winners / Losers groups new arrivals");

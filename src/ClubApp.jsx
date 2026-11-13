@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { ArrowLeft, CalendarDays, LayoutDashboard, Newspaper, Play, Users } from "lucide-react";
+import { ArrowLeft, CalendarDays, LayoutDashboard, Newspaper, Play, Settings as SettingsIcon, Users } from "lucide-react";
 import { useClubDoc } from "./hooks/useClubDoc";
 import { useClubActions } from "./hooks/useClubActions";
 import { useEvents, useEventRequests } from "./hooks/useEvents";
@@ -218,8 +218,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
       active={null} name={acct.account?.name || acct.account?.clubName} email={acct.user?.email}
       onSignOut={acct.signOutUser} navigate={navigate} clubs={myClubs} club={sideClub}
       friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
-      headerAction={headerAction} notifications={notifications}
-      settingsPath={sideClub && canManage ? clubPath(clubId, "/settings") : null}
+      headerAction={headerAction} notifications={notifications} acct={acct}
     />
   );
   const inShell = (content) => <div className="acct-shell">{sidebar(null)}<main className="acct-main">{content}</main></div>;
@@ -243,6 +242,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
           clubId={clubId} club={{ ...club, display: { ...club.display, theme: personalTheme } }} event={events.find((e) => e.id === eventId)} ready={eventsReady}
           base={base} navigate={navigate} endGame={endGame} onSetAttendeesPaid={actions.setPaidMany} onSetAttendeeMethod={(eventId, id, method) => actions.patch(eventId, id, { method })}
           memberChoices={clubMembers.map((m) => ({ id: m.id, name: m.name }))}
+          onSetTheme={(theme) => acct.updateAccount({ display: { ...acct.account?.display, theme } }).catch(() => {})}
         />
       </Suspense>
     );
@@ -327,6 +327,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
     ...(canManage ? [navTab(`${base}/host`, "Open play", CalendarDays, ["club-host", "club-event", "club-game"])] : []),
     navTab(`${base}/members`, "Members", Users, ["club-members"], canManage && pendingRequests.length > 0 ? { badge: pendingRequests.length, badgeText: "join requests waiting" } : {}),
     navTab(`${base}/feed`, "Feed", Newspaper, ["club-feed"]),
+    ...(canManage ? [navTab(`${base}/settings`, "Settings", SettingsIcon, ["club-settings"])] : []),
   ];
   const sideClub = { id: clubId, name: club.name, current: route === "club" };
   const gamePath = activeGame?.gamePath || (route === "club-event" && openEvent?.status === "live"

@@ -108,6 +108,18 @@ service cloud.firestore {
         && request.resource.data.nameLower == request.resource.data.name.trim().lower();
       allow delete: if isRealUser() && request.auth.uid == uid;
     }
+    // Profile pictures (2026-11-13): an uploaded 128 px JPEG or a built-in avatar id. Any signed-in account reads one by id
+    // (Members, Friends, chats); only the owner writes or removes it.
+    function validAvatar(d) {
+      return d.keys().hasOnly(['image', 'builtin', 'updatedAt']) && d.updatedAt == request.time
+        && (('image' in d && !('builtin' in d) && isJpeg(d.image, 12000))
+          || ('builtin' in d && !('image' in d) && d.builtin in ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10', 'a11', 'a12']));
+    }
+    match /avatars/{uid} {
+      allow get: if isRealUser();
+      allow create, update: if isRealUser() && request.auth.uid == uid && validAvatar(request.resource.data);
+      allow delete: if isRealUser() && request.auth.uid == uid;
+    }
     match /friendCodes/{code} {
       allow get: if isRealUser();
       allow create: if isRealUser() && validFriendCode(code)
@@ -310,6 +322,33 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/sessions/$(s)).data.get('umpireOn', false) == true
         && umpireIn(/databases/$(database)/documents/sessions/$(s)/umpires/$(request.auth.uid),
                     /databases/$(database)/documents/sessions/$(s)/private/umpire);
+    }
+    // ---- Player self check-in (docs/superpowers/specs/2026-11-13-self-checkin-design.md). A phone registers with the
+    // 4-digit code on the Live Board (private/checkin = { on, code }); while it matches, the game is live and check-in is on,
+    // it may read the players, check one in (from not checked in only; stars only for an unrated player) or add a new one.
+    function eventCheckin(c, e) {
+      let r = /databases/$(database)/documents/clubs/$(c)/events/$(e)/checkins/$(request.auth.uid);
+      let p = /databases/$(database)/documents/clubs/$(c)/events/$(e)/private/checkin;
+      return request.auth != null
+        && get(/databases/$(database)/documents/clubs/$(c)/events/$(e)).data.status == 'live'
+        && exists(r) && exists(p) && get(p).data.get('on', false) == true && get(r).data.code == get(p).data.code;
+    }
+    function selfCheckIn() {
+      let d = request.resource.data;
+      let rated = resource.data.get('skill', 0) in [1, 2, 3, 4, 5, 6];
+      return resource.data.get('checked', false) != true
+        && d.diff(resource.data).affectedKeys().hasOnly(['checked', 'checkedAt', 'breakAt', 'skill', 'selfRated'])
+        && d.checked == true && nearNow(d.checkedAt) && d.get('breakAt', null) == null
+        && (rated
+          ? !d.diff(resource.data).affectedKeys().hasAny(['skill', 'selfRated'])
+          : (d.get('skill', 0) in [1, 2, 3, 4, 5, 6] && d.get('selfRated', false) == true));
+    }
+    function selfNewPlayer(id) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['id', 'name', 'skill', 'selfRated', 'checked', 'checkedAt', 'createdAt', 'games', 'wins', 'losses'])
+        && d.keys().hasAll(['id', 'name', 'skill', 'selfRated', 'checked', 'checkedAt', 'createdAt', 'games', 'wins', 'losses'])
+        && d.id == id && validName(d.name) && d.name.size() <= 40 && d.skill in [1, 2, 3, 4, 5, 6] && d.selfRated == true
+        && d.checked == true && nearNow(d.checkedAt) && nearNow(d.createdAt) && d.games == 0 && d.wins == 0 && d.losses == 0;
     }
     function validUmpireRecord(d, p) {
       return d.keys().hasOnly(['code', 'name', 'at']) && d.keys().hasAll(['code', 'name', 'at'])
@@ -576,7 +615,7 @@ service cloud.firestore {
 
         // Volunteer umpires: see the helpers above. Managers already reach all of this through the wildcard.
         match /private/{id} {
-          allow get: if (id == 'umpire' && eventUmpire(clubId, eventId)) || (id == 'live' && eventViewer(clubId, eventId));
+          allow get: if (id == 'umpire' && eventUmpire(clubId, eventId)) || (id in ['live', 'checkin'] && eventViewer(clubId, eventId));
         }
         match /umpires/{uid} {
           allow get: if request.auth != null && request.auth.uid == uid;
@@ -602,7 +641,20 @@ service cloud.firestore {
           allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
         }
         match /players/{playerId} {
-          allow read: if eventUmpire(clubId, eventId) || eventViewer(clubId, eventId);
+          allow read: if eventUmpire(clubId, eventId) || eventViewer(clubId, eventId) || eventCheckin(clubId, eventId);
+          allow update: if eventCheckin(clubId, eventId) && selfCheckIn();
+          allow create: if eventCheckin(clubId, eventId) && selfNewPlayer(playerId);
+        }
+        // A phone checking players in: its own record only; the code must be the current one while check-in is on.
+        match /checkins/{uid} {
+          allow get, delete: if request.auth != null && request.auth.uid == uid;
+          allow create: if request.auth != null && request.auth.uid == uid
+            && get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)).data.status == 'live'
+            && request.resource.data.keys().hasOnly(['code', 'at']) && request.resource.data.keys().hasAll(['code', 'at'])
+            && request.resource.data.at is number
+            && exists(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/private/checkin)
+            && get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/private/checkin).data.get('on', false) == true
+            && request.resource.data.code == get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/private/checkin).data.code;
         }
         match /matchLog/{entryId} {
           allow read: if eventViewer(clubId, eventId);
@@ -617,7 +669,7 @@ service cloud.firestore {
         }
         match /courts/{courtId} {
           // A public club's courts (player ids, level, start, score: no names) feed the booking page's live strip.
-          allow read: if eventUmpire(clubId, eventId) || eventViewer(clubId, eventId) || isPublicClub(clubId);
+          allow read: if eventUmpire(clubId, eventId) || eventViewer(clubId, eventId) || isPublicClub(clubId) || eventCheckin(clubId, eventId);
           allow update: if eventUmpire(clubId, eventId) && scoreOnly()
             && exists(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/courtClaims/$(courtId))
             && get(/databases/$(database)/documents/clubs/$(clubId)/events/$(eventId)/courtClaims/$(courtId)).data.uid == request.auth.uid;

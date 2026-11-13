@@ -3,6 +3,7 @@ import { Copy, Link2, LogOut, MessageSquare, RefreshCw, Search } from "lucide-re
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageTitle from "../components/PageTitle";
 import RowMenu from "../components/RowMenu";
+import UserAvatar from "../components/UserAvatar";
 import { useInvite, useMembers } from "../hooks/useMembership";
 import { formatDate } from "../utils/format";
 import { ROLE_LABEL, SEARCH_FROM, canChangeRole, canRemove, groupMembers, inviteUrl, memberCounts } from "../utils/clubs";
@@ -81,6 +82,7 @@ export default function ClubMembers({ clubId, club, uid, canManage, isOwner, req
     const items = m.id === uid ? [] : menuFor(m);
     return (
       <div className="member-row" key={m.id}>
+        <UserAvatar uid={m.id} />
         <div className="member-main">
           <b>{m.name}{m.id === uid ? " (you)" : ""}</b>
           {m.joinedAt && <small>Joined {formatDate(m.joinedAt)}</small>}

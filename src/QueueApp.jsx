@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { addDoc, collection, doc, setDoc, updateDoc, deleteDoc, deleteField, writeBatch, getDocs, } from "firebase/firestore";
 import { db, firebaseConfigured } from "./firebase";
 import { applyDisplayPrefs, splitCost, winPct } from "./utils/format";
-import { applyTheme, getGlobalTheme } from "./utils/theme";
+import { applyTheme, getGlobalTheme, isDarkTheme, setGlobalTheme } from "./utils/theme";
 import { matchCount } from "./utils/stats";
 import { csvCell, downloadCsv } from "./utils/download";
 import { isValidSkillLevel, matchesCourtLevel } from "./utils/courtLevels";
@@ -42,7 +42,7 @@ import Settings from "./views/Settings";
 import { announceCall } from "./utils/voice";
 import { useVoiceClips, voiceBaseOf } from "./hooks/useVoiceClips";
 import VoiceModal from "./components/VoiceModal";
-import { queueOrder } from "./utils/queueStatus";
+import { backInFields, breakFields, queueOrder } from "./utils/queueStatus";
 
 // The queue app on one session. `base` is the Firestore path of the document that holds it
 // (utils/paths.js): the quick session at /club today. Every read and write goes through
@@ -51,7 +51,7 @@ import { queueOrder } from "./utils/queueStatus";
 // settings, there is no Settings tab, and End game keeps all data.
 export default function QueueApp({
   base, kind = "quick", deriveSession, eyebrow, backLabel, onBack, onHome, onEndSession, onErase,
-  onSetAttendeesPaid, onSetAttendeeMethod, memberChoices, clubName,
+  onSetAttendeesPaid, onSetAttendeeMethod, memberChoices, clubName, onSetTheme, onOpenSettings,
 }) {
   const at = (...rest) => doc(db, ...base, ...rest);
   const col = (name) => collection(db, ...base, name);
@@ -135,6 +135,14 @@ export default function QueueApp({
   }, [showPlayer, editingPlayer, checkingInPlayer, showSession, menuOpen]);
 
   const selectTab = (t) => { setTab(t); setMenuOpen(false); };
+  // The sidebar's moon / sun: flips what shows now, kept on this device and (in a club game) on the account.
+  const [, redraw] = useState(0);
+  const toggleTheme = () => {
+    const next = isDarkTheme() ? "light" : "dark";
+    setGlobalTheme(next);
+    onSetTheme?.(next);
+    redraw((n) => n + 1);
+  };
 
   const queue = useMemo(() => queueOrder(players, courts), [players, courts]);
   const notCheckedIn = useMemo(() => players.filter((p) => !p.checked), [players]);
@@ -165,7 +173,7 @@ export default function QueueApp({
       if (problem) return notify(problem, 4500);
     }
     const batch = writeBatch(db);
-    batch.update(at("players", id), fields);
+    batch.update(at("players", id), current?.selfRated ? { ...fields, selfRated: false } : fields); // a host edit confirms the level
     if (lockedWithId !== undefined && (lockedWithId || null) !== (current?.lockedWithId || null)) {
       applyLockChange(batch, current, lockedWithId || null);
     }
@@ -220,17 +228,31 @@ export default function QueueApp({
     }
     const now = Date.now();
     const fields = isEventGame ? checkInFields(skill, now) : { checked: true, checkedAt: now };
-    await updateDoc(at("players", id), fields);
+    await updateDoc(at("players", id), { ...fields, breakAt: null });
     setCheckingInPlayer(null);
     notify(`${player.name} checked in.`);
   }
 
   async function checkOutPlayer(id) {
     const batch = writeBatch(db);
-    batch.update(at("players", id), { checked: false });
+    batch.update(at("players", id), { checked: false, breakAt: null });
     leaveCourts(batch, id);
     await batch.commit();
     notify(`${players.find((p) => p.id === id)?.name || "Player"} checked out.`);
+  }
+
+  // Taking a break: out of the queue (and Up Next) until Back in, keeping the wait they had (utils/queueStatus.js).
+  async function takeBreak(id) {
+    const p = players.find((x) => x.id === id);
+    if (!p || courts.some((c) => [...(c.teamA || []), ...(c.teamB || [])].includes(id))) return;
+    await updateDoc(at("players", id), breakFields(Date.now()));
+    notify(`${p.name} is on a break.`);
+  }
+  async function endBreak(id) {
+    const p = players.find((x) => x.id === id);
+    if (!p) return;
+    await updateDoc(at("players", id), backInFields(p, Date.now()));
+    notify(`${p.name} is back in the queue.`);
   }
 
   async function callPlayer(id) {
@@ -899,7 +921,10 @@ export default function QueueApp({
         onSelectTab={selectTab}
         onEndSession={() => { setShowEndSession(true); setMenuOpen(false); }}
         endLabel={kind === "event" ? "End game" : "End Session"}
-        hiddenTabs={kind === "event" ? ["settings"] : []}
+        hiddenTabs={["settings"]} // Settings opens from the gear at the bottom of the sidebar
+        dark={isDarkTheme()} onToggleTheme={toggleTheme}
+        live={kind === "event"} queueCount={queue.length}
+        onOpenSettings={kind === "event" ? onOpenSettings || null : () => selectTab("settings")}
         backLink={kind === "event" ? { label: backLabel, onClick: onBack } : { label: "Back to home", onClick: onHome }}
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -939,7 +964,8 @@ export default function QueueApp({
           )}
           {tab === "queue" && (
             <Queue queue={queue} notCheckedIn={notCheckedIn} players={players} mixed={mixed}
-              onCall={callPlayer} onCheckOut={checkOutPlayer} onCheckIn={checkInPlayer} onSetLock={setPlayerLock} />
+              onCall={callPlayer} onCheckOut={checkOutPlayer} onCheckIn={checkInPlayer} onSetLock={setPlayerLock}
+              onBreak={takeBreak} onBackIn={endBreak} />
           )}
           {tab === "players" && (
             <Players players={players} mixed={mixed} onEdit={setEditingPlayer} onDelete={deletePlayer} />

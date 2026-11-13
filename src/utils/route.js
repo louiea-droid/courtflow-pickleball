@@ -8,6 +8,7 @@ export function routeOf(pathname) {
   if (path === "/live") return "live";
   if (path === "/open-play") return "open-play";
   if (path === "/umpire") return "umpire";
+  if (path === "/checkin") return "checkin";
   if (path === "/club") return "quick";
   if (path === "/settings") return "settings";
   if (path === "/clubs") return "clubs";

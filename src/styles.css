@@ -47,7 +47,7 @@
   --shadow-sm:0 8px 18px light-dark(#13231b14,#0005);
   --scrim:#06100aa8;
   --radius:15px;--ease:cubic-bezier(.22,1,.36,1);
-  --sidebar-w:245px;--sidebar-w-tablet:210px;
+  --sidebar-w:212px;--sidebar-w-tablet:210px;
 }
 
 *{box-sizing:border-box;min-width:0}
@@ -2104,3 +2104,149 @@ button.ci-btn:focus-visible{outline:2px solid var(--accent-bright);outline-offse
 .op-promo.is-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
 .op-promo.is-in p{margin:0;flex:1 1 220px;color:var(--ink-2);font-size:14px}
 @media (max-width:480px){.op-promo-actions>a{flex:1 1 100%}}
+
+/* Queue sidebar, compact "game first" redesign (2026-11-13, owner's pick C): 212px; the game as a green card on top
+   (Live, name, courts / format / mode chips); compact nav with the queue count; one icon row (light / dark, settings,
+   collapse) and Back / End side by side. Collapsed: a 76px rail with the card, labels and counts hidden. */
+.sidebar-game{margin:6px 0 12px;padding:12px;border-radius:14px;background:linear-gradient(135deg,var(--brand-green),var(--brand-deep));border:1px solid #c6ef1f33;color:#fff}
+.sidebar-game-live{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--lime)}
+.sidebar-game-live svg{animation:pulseDot 2.2s ease-in-out infinite}
+.sidebar-game>b{display:block;margin-top:2px;font:italic 800 16px/1.2 "Space Grotesk",system-ui;overflow-wrap:anywhere}
+.sidebar-game-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.sidebar-game-chips>span{display:inline-flex;align-items:center;min-height:26px;padding:0 9px;border:1px solid #ffffff1f;border-radius:99px;background:#0b1f18aa;font-size:11.5px;font-weight:700}
+.sidebar-game .mode-select{margin:0}
+.sidebar-game .mode-select-trigger{width:auto;min-height:26px;padding:0 9px;gap:5px;border-radius:99px;border-color:#ffffff1f;background:#0b1f18aa}
+.sidebar-game .mode-select-label{display:none}
+.sidebar-game .mode-select-trigger b{margin:0;font-size:11.5px;font-style:normal;color:#fff}
+.sidebar-game .mode-select-trigger svg{color:#cfe0d6}
+.sidebar-game .mode-menu{top:100%;bottom:auto;right:auto;min-width:180px;margin:6px 0 0}
+.sidebar nav .nav{padding:8px 10px;font-size:13px;margin:0}
+.nav-count{margin-left:auto;min-width:20px;padding:1px 7px;border-radius:99px;background:var(--lime);color:var(--on-lime);font:800 11px/16px "DM Sans",system-ui;font-style:normal;text-align:center}
+.sidebar .sidefoot{margin-top:auto;padding-top:10px;display:grid;gap:6px}
+.sidebar-icons{display:flex;gap:6px}
+.sidebar-icons .outline.dark{flex:1;justify-content:center;min-height:38px;padding:7px}
+.sidebar-exit{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sidebar-exit:has(> :only-child){grid-template-columns:1fr}
+.sidebar-exit .outline.dark,.sidebar-exit .sidebar-endsession{min-height:38px;justify-content:center;padding:7px 8px}
+.sidebar-exit .sidebar-endsession{background:transparent;border:1px solid #e6483a80;color:#ff8f84;box-shadow:none}
+.sidebar-exit .sidebar-endsession:hover{background:#e6483a1f;filter:none;box-shadow:none}
+.sidebar.collapsed .sidebar-game,.sidebar.collapsed .nav-count{display:none}
+.sidebar.collapsed .sidebar-icons,.sidebar.collapsed .sidebar-exit{display:grid;grid-template-columns:1fr}
+@media (max-width:860px){.sidebar.collapsed .sidebar-game{display:block}.sidebar.collapsed .nav-count{display:inline-block}.sidebar.collapsed .sidebar-icons{display:flex}.sidebar.collapsed .sidebar-exit{grid-template-columns:1fr 1fr}}
+
+/* Dashboard tap targets on a phone or touch screen (2026-11-13, owner: "just increase a bit"). The swap / remove icons
+   grow from about 17 to 24 px with no box and each row keeps its height; every small control gets an invisible ~40 px
+   tap area through ::after (measure with elementFromPoint, not the drawn size). */
+@media (max-width:700px),(pointer:coarse){
+  .chip-actions{gap:8px}
+  .chip-btn{position:relative;padding:4px}
+  .chip-btn svg,.chip-btn svg[width]{width:16px;height:16px}
+  .chip-btn::after{content:"";position:absolute;top:-8px;bottom:-8px;left:-4px;right:-4px}
+  .next-actions .icon,.board-next-toggle,.pill.toggle,.court-top .score-chip{position:relative}
+  .next-actions .icon::after{content:"";position:absolute;inset:-8px}
+  .board-next-toggle::after,.pill.toggle::after{content:"";position:absolute;left:0;right:0;top:-8px;bottom:-8px}
+  .court-top .score-chip::after{left:-5px;right:-5px}
+  .preview-send{min-height:40px}
+  .icon.hamburger{min-width:40px;min-height:40px}
+}
+
+/* Taking a break (2026-11-13): the Break button on a queue row and the "On a break" list under the queue. */
+.break-list{border-top:1px dashed var(--line);background:var(--soft)}
+.break-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;font-weight:800;font-size:13px}
+.break-head small{font-weight:500;color:var(--muted)}
+.break-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:12px;padding:9px 14px;border-top:1px solid var(--line);font-size:13px}
+.break-row b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.break-row small{color:var(--muted)}
+.tiny.back-in{background:var(--lime);border-color:var(--lime);color:var(--on-lime);font-weight:800}
+.break-btn{display:inline-flex;align-items:center;gap:4px}
+@media (max-width:700px){.break-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.break-row{grid-template-columns:minmax(0,1fr) auto auto}.break-row .stars,.break-row>span:nth-child(2){display:none}}
+/* The queue table's actions column fits Break, Call and Check Out side by side. */
+@media (min-width:701px){.panel.table:has(.row-actions) .row{grid-template-columns:35px 1.6fr .9fr .6fr .6fr .8fr 84px 228px}}
+
+/* Player self check-in page (/checkin, 2026-11-13). */
+.checkin-page .primary,.checkin-page .outline{min-height:48px;justify-content:center;width:100%}
+.checkin-code{width:100%;max-width:260px;margin:0 auto;display:block;padding:12px;border:2px solid var(--line);border-radius:16px;background:var(--panel);color:var(--ink);font:800 40px/1 "Space Grotesk",system-ui;letter-spacing:.4em;text-align:center}
+.checkin-code:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-ring)}
+.checkin-card{display:grid;gap:10px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+.checkin-card input{min-height:48px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
+.checkin-person{grid-template-columns:minmax(0,1fr) auto;align-items:center}
+.checkin-person .primary{width:auto}
+.checkin-person b{display:block;font-size:16px}
+.checkin-person small{color:var(--muted)}
+.checkin-levels{display:grid;gap:8px}
+.checkin-level{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:10px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.checkin-level[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px var(--accent-ring)}
+.checkin-done{display:grid;justify-items:center;gap:2px;padding:22px;border-radius:20px;background:var(--brand-deep);color:#fff;text-align:center}
+.checkin-done b{font:italic 800 26px "Space Grotesk",system-ui;color:var(--lime)}
+.checkin-done strong{font:800 48px/1.1 "Space Grotesk",system-ui;margin-top:8px}
+.checkin-done small{opacity:.8}
+/* Live Board: the "Check in here" panel (QR + code) while self check-in is on. */
+.liveboard-checkin{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 8px;border-radius:14px;background:#fff;color:#13201a}
+.liveboard-checkin small{display:block;font-size:10px;font-weight:800;letter-spacing:.08em;color:#5d6b63}
+.liveboard-checkin b{display:block;font:800 30px/1 "Space Grotesk",system-ui;letter-spacing:.12em}
+/* Host: self-rated / new tag on a queue row. */
+.self-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;background:var(--warn-soft);color:var(--warn-ink);font-size:10.5px;font-weight:800;vertical-align:middle}
+.checkin-host{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.checkin-host-code{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--soft)}
+.checkin-host-code span{color:var(--muted);font-size:12.5px}
+.checkin-host-code b{font:800 24px/1 "Space Grotesk",system-ui;letter-spacing:.12em}
+.checkin-host-code .outline{margin-left:auto}
+.checkin-host .umpire-row{display:flex;align-items:center;gap:14px}
+.checkin-host .umpire-row>div{flex:1;min-width:0}
+
+/* The game's Share window (layout A, 2026-11-13): Live Board / Self check-in tabs, Send, and a full-screen check-in sign. */
+.share-modal{width:min(440px,100%)}
+.share-tabs{margin:0 0 14px}
+.share-tabs button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.share-tab{display:grid;gap:12px}
+.share-tab .share-linkbox{margin:0}
+.share-tab .share-qr{margin:0}
+.share-tab .share-hint{margin:0;text-align:center}
+.share-tab .modalactions{margin:0}
+.share-switch-row{display:flex;align-items:center;gap:14px}
+.share-switch-row>div{flex:1;min-width:0}
+.share-switch-row b{font-size:14px}
+.share-switch-row p{margin:2px 0 0;color:var(--muted);font-size:12.5px;line-height:1.45}
+.share-switch-row+.share-switch-row{padding-top:12px;border-top:1px solid var(--line)}
+.share-tab .checkin-host-code{margin:0}
+.share-send,.share-full{width:100%;justify-content:center;min-height:44px}
+.checkin-sign{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;background:var(--brand-deep);color:#fff;text-align:center;cursor:pointer}
+.checkin-sign-close{position:absolute;top:14px;right:14px;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:#ffffff1a;color:#fff}
+.checkin-sign-title{font:italic 800 clamp(26px,7vw,44px) "Space Grotesk",system-ui;color:#fff}
+.checkin-sign-sub{opacity:.8;font-size:15px}
+.checkin-sign-qr{padding:14px;border-radius:20px;background:#fff;margin:8px 0}
+.checkin-sign-qr img,.checkin-sign-qr canvas{width:min(70vw,52vh,320px)!important;height:auto!important;display:block}
+.checkin-sign-code{font:800 clamp(48px,14vw,84px)/1 "Space Grotesk",system-ui;letter-spacing:.14em;color:var(--lime)}
+.liveboard-checkin-word{font-size:22px!important;letter-spacing:0!important}
+/* Share window, compact (2026-11-13, owner: "too big"): QR beside its code and actions; link, Copy and Send on one row. */
+.share-modal{width:min(400px,100%)}
+.share-modal .share-tabs{margin:0 0 10px}
+.share-modal .share-tabs button{min-height:36px;font-size:12.5px}
+.share-tab{gap:10px}
+.share-switch-row b{font-size:13.5px}
+.share-switch-row p{font-size:12px;margin:1px 0 0}
+.share-switch-row+.share-switch-row{padding-top:10px}
+.share-pair{display:flex;gap:12px;align-items:stretch}
+.share-pair .share-qr{flex-shrink:0;padding:6px;border:1px solid var(--line);border-radius:12px;background:#fff;line-height:0}
+.share-side{flex:1;min-width:0;display:grid;gap:6px;align-content:start}
+.share-side .primary,.share-side .outline{min-height:36px;padding:6px 10px;font-size:12.5px;justify-content:center}
+.share-code{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:10px;background:var(--soft)}
+.share-code small{color:var(--muted);font-size:11.5px}
+.share-code b{font:800 22px/1 "Space Grotesk",system-ui;letter-spacing:.1em}
+.share-code b.share-count{font:700 13.5px/1.3 "DM Sans",system-ui;letter-spacing:0}
+.share-linkrow{gap:6px;margin:0}
+.share-linkrow input{min-width:0;font-size:12px;padding:8px 10px}
+.share-linkrow button{min-height:38px;padding:6px 10px;font-size:12.5px}
+.share-tab .share-hint{font-size:11.5px}
+@media (max-width:380px){.share-linkrow button span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
+.share-body{display:grid}
+.share-pane{grid-area:1/1;min-width:0}
+.share-pane[hidden]{display:block;visibility:hidden;pointer-events:none}
+/* Fixed card: each pane fills it; the link row sits at the bottom of both tabs. */
+.share-pane{display:flex}
+.share-pane>.share-tab{flex:1;display:flex;flex-direction:column}
+.share-pane>.share-tab>.share-linkrow{margin-top:auto}
+.share-live-pill{flex-shrink:0;padding:4px 10px;border-radius:99px;background:var(--soft);color:var(--muted);font-size:12px;font-weight:800}
+.share-live-pill.on{background:var(--lime);color:var(--on-lime)}
+.share-code.share-note{display:block;padding:8px 10px}
+.share-code.share-note small{line-height:1.4}

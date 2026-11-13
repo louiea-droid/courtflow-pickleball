@@ -22,9 +22,7 @@ const STREAK_OPTIONS = [2, 3, 4, 5].map((n) => ({ value: n, label: `${n} wins in
 const HISTORY_OPTIONS = [5, 10, 15, 20].map((n) => ({ value: n, label: `Last ${n} games` }));
 const SCORE_STYLE_OPTIONS = [{ value: "sideout", label: "Side-out (serving team scores)" }, { value: "rally", label: "Rally (every rally scores)" }];
 const SCORE_TO_OPTIONS = SCORE_TARGETS.map((n) => ({ value: n, label: `Play to ${n}` }));
-const ON_OFF = [{ value: "off", label: "Off" }, { value: "on", label: "On" }];
 const VOICE_WHERE_OPTIONS = [{ value: "device", label: "This device" }, { value: "board", label: "Live Board" }];
-const SHOW_HIDE = [{ value: "show", label: "Shown" }, { value: "hide", label: "Hidden" }];
 const CLOCK_OPTIONS = [{ value: "12", label: "12-hour" }, { value: "24", label: "24-hour" }];
 const TIME_ZONES = [
   ["Asia/Manila", "Philippines"], ["Asia/Singapore", "Singapore / Malaysia"], ["Asia/Hong_Kong", "Hong Kong"],
@@ -48,6 +46,15 @@ export function SettingsRow({ title, body, children, hidden }) {
       </div>
       {children}
     </div>
+  );
+}
+
+// An on/off setting as a switch (saves on change, like every other control here).
+export function Toggle({ label, checked, onChange }) {
+  return (
+    <label className="switch">
+      <input type="checkbox" role="switch" aria-label={label} checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
+    </label>
   );
 }
 
@@ -81,8 +88,10 @@ export function ColorSwatches({ label, cssVar, presets, value, onChange }) {
 export default function Settings({
   session, onRenameClub, onNewSession, onDeleteAccount, onChangePassword, onSetPasswordHint,
   onSetDefaults, rules, onSetRules, costDefaults, onSetCostDefaults, live, onSetLive, display, onSetDisplay,
-  mode = "club", canChangePassword = true, isOwner = false, onDeleteClub,
+  mode = "club", canChangePassword = true, isOwner = false, onDeleteClub, section = null,
 }) {
+  // A club shows one tab at a time ("queue" | "scoring" | "cost" | "display" | "danger"); the quick session shows every group.
+  const off = (name) => !!section && section !== name;
   const isClub = mode === "club"; // a club's settings page: no password rows, no Live Board (that is per event)
   const isQuick = mode === "quick"; // the classic session: no login, data lives on this device
   const [confirmNewLink, setConfirmNewLink] = useState(false);
@@ -205,10 +214,10 @@ export default function Settings({
         </div>
       </div>
 
-      <div className="account-group" id="set-queue">
+      <div className="account-group" hidden={off("queue")}>
         <div className="eyebrow">Queue rules</div>
         <div className="panel account-panel">
-          <SettingsRow title="Game length alert" body="Turns a court's timer red once a game runs this long.">
+          <SettingsRow title="Game length alert" body="A court's timer turns red once a game runs this long.">
             <div className="account-select">
               <Select value={rules.gameAlertMinutes} onChange={(gameAlertMinutes) => onSetRules({ gameAlertMinutes })} options={ALERT_OPTIONS} />
             </div>
@@ -224,7 +233,7 @@ export default function Settings({
           </SettingsRow>
           <SettingsRow
             title="Wins in a row before resting"
-            body="A winning team holds its court until it has won this many in a row, then goes to the back of the queue. Winners / Losers mode always uses this; other modes use it when winners stay on."
+            body="Then the winners go to the back of the queue. Always used in Winners / Losers mode."
           >
             <div className="account-select">
               <Select value={rules.maxWinStreak} onChange={(maxWinStreak) => onSetRules({ maxWinStreak })} options={STREAK_OPTIONS} />
@@ -232,25 +241,25 @@ export default function Settings({
           </SettingsRow>
           <SettingsRow
             title="Mix up partners and opponents"
-            body="The player who has waited longest always plays next. The other seats, and how the foursome splits into teams, are chosen so nobody keeps getting the same partners or opponents. Balanced always does this."
+            body="Whoever waited longest still plays first; the rest are picked to avoid repeat partners and opponents. Balanced always does this."
           >
-            <div className="account-select">
-              <Select
-                value={rules.avoidRepeatPartners ? "on" : "off"}
-                onChange={(v) => onSetRules({ avoidRepeatPartners: v === "on" })}
-                options={ON_OFF}
-              />
-            </div>
+            <Toggle label="Mix up partners and opponents" checked={rules.avoidRepeatPartners} onChange={(avoidRepeatPartners) => onSetRules({ avoidRepeatPartners })} />
           </SettingsRow>
           <SettingsRow
             title="How far back to remember"
-            body="Who someone played with and against in their most recent games counts as a repeat. A longer memory spreads partners further but needs more players to stay fresh."
+            body="Recent games that count as a repeat. Longer spreads partners further but needs more players."
           >
             <div className="account-select">
               <Select value={rules.historyGames || 10} onChange={(historyGames) => onSetRules({ historyGames })} options={HISTORY_OPTIONS} />
             </div>
           </SettingsRow>
-          <SettingsRow title="Scoring style" body="How the umpire&apos;s score works. Side-out is the official pickleball way: only the serving team scores, and the serve passes from server 1 to server 2 to the other team. Rally scores on every rally.">
+        </div>
+      </div>
+
+      <div className="account-group" hidden={off("scoring")}>
+        <div className="eyebrow">Scoring and voice</div>
+        <div className="panel account-panel">
+          <SettingsRow title="Scoring style" body="Side-out: only the serving team scores (official rules). Rally: every rally scores.">
             <div className="account-select">
               <Select value={rules.scoreStyle} onChange={(scoreStyle) => onSetRules({ scoreStyle })} options={SCORE_STYLE_OPTIONS} />
             </div>
@@ -260,25 +269,21 @@ export default function Settings({
               <Select value={rules.scoreTo} onChange={(scoreTo) => onSetRules({ scoreTo })} options={SCORE_TO_OPTIONS} />
             </div>
           </SettingsRow>
-          <SettingsRow title="Record umpire results automatically" body="When on, a game the umpire finishes is recorded and its court rotates by itself once the 5 second countdown ends. When off, the host taps Confirm on the court card.">
-            <div className="account-select">
-              <Select value={rules.autoRecord ? "on" : "off"} onChange={(v) => onSetRules({ autoRecord: v === "on" })} options={ON_OFF} />
-            </div>
+          <SettingsRow title="Record umpire results automatically" body="A finished umpire game is recorded and the court rotates by itself. Off: the host taps Confirm.">
+            <Toggle label="Record umpire results automatically" checked={rules.autoRecord} onChange={(autoRecord) => onSetRules({ autoRecord })} />
           </SettingsRow>
-          <SettingsRow title="Voice calls play on" body="Where the Call button on an Up Next card reads the players out. This device: the phone or laptop running the Dashboard (connect a speaker to it). Live Board: the TV or screen showing the Live Board, after someone taps Turn on voice there once.">
+          <SettingsRow title="Voice calls play on" body="Where the Call button speaks: the device running the Dashboard, or the Live Board screen (tap Turn on voice there once).">
             <div className="account-select">
               <Select value={rules.voiceWhere || "device"} onChange={(voiceWhere) => onSetRules({ voiceWhere })} options={VOICE_WHERE_OPTIONS} />
             </div>
           </SettingsRow>
-          <SettingsRow title="Call players automatically" body="When on, players are also called by voice as soon as their match starts on a court. When off, only the Call button calls them.">
-            <div className="account-select">
-              <Select value={rules.voiceAuto ? "on" : "off"} onChange={(v) => onSetRules({ voiceAuto: v === "on" })} options={ON_OFF} />
-            </div>
+          <SettingsRow title="Call players automatically" body="Also call players when their match starts. Off: only the Call button calls them.">
+            <Toggle label="Call players automatically" checked={rules.voiceAuto} onChange={(voiceAuto) => onSetRules({ voiceAuto })} />
           </SettingsRow>
         </div>
       </div>
 
-      <div className="account-group" id="set-cost">
+      <div className="account-group" hidden={off("cost")}>
         <div className="eyebrow">Cost</div>
         <div className="panel account-panel">
           <SettingsRow title="Court rate" body="Pre-filled on the Cost page each time you log a rental.">
@@ -304,7 +309,7 @@ export default function Settings({
               </div>
             )}
           </SettingsRow>
-          <SettingsRow title="Round each share" body="Rounds every player's share up to the nearest ₱1, ₱5, ₱10 or ₱20, so what you collect always covers the rental.">
+          <SettingsRow title="Round each share" body="Rounds each share up so what you collect always covers the rental.">
             <div className="account-select">
               <Select value={costDefaults.roundTo ?? 0} onChange={(roundTo) => onSetCostDefaults({ roundTo })} options={ROUND_OPTIONS} />
             </div>
@@ -316,9 +321,7 @@ export default function Settings({
         <div className="eyebrow">Live Board</div>
         <div className="panel account-panel">
           <SettingsRow title="Public Live Board" body="When off, anyone opening your link sees a notice instead of the courts.">
-            <div className="account-select">
-              <Select value={live.enabled ? "on" : "off"} onChange={(v) => onSetLive({ enabled: v === "on" })} options={ON_OFF} />
-            </div>
+            <Toggle label="Public Live Board" checked={live.enabled} onChange={(enabled) => onSetLive({ enabled })} />
           </SettingsRow>
           <SettingsRow title="Link" body="Makes a new link and stops every old one, including any TV already showing the board.">
             <button className="outline" onClick={() => setConfirmNewLink(true)}><RefreshCw size={14} /> New Link</button>
@@ -329,15 +332,13 @@ export default function Settings({
             ["showStats", "Games and wins", "Each waiting player's game and win counts."],
           ].map(([key, title, body]) => (
             <SettingsRow key={key} title={title} body={body}>
-              <div className="account-select">
-                <Select value={live[key] ? "show" : "hide"} onChange={(v) => onSetLive({ [key]: v === "show" })} options={SHOW_HIDE} />
-              </div>
+              <Toggle label={`Show ${title.toLowerCase()}`} checked={live[key]} onChange={(v) => onSetLive({ [key]: v })} />
             </SettingsRow>
           ))}
         </div>
       </div>
 
-      <div className="account-group" id="set-display">
+      <div className="account-group" hidden={off("display")}>
         <div className="eyebrow">Display</div>
         <div className="panel account-panel">
           <SettingsRow title="Theme color" body="Buttons, highlights, and active tabs. Pick a preset or your own.">
@@ -372,7 +373,7 @@ export default function Settings({
         </div>
       </div>
 
-      <div className="account-group" id="set-danger" hidden={isClub && !isOwner}>
+      <div className="account-group" hidden={(isClub && !isOwner) || off("danger")}>
         <div className="eyebrow">Danger zone</div>
         <div className="panel account-panel account-danger">
           <SettingsRow
@@ -391,7 +392,7 @@ export default function Settings({
       {confirmNewLink && (
         <ConfirmDialog
           title="Make a new Live Board link?"
-          message="Every old link stops working, including screens already showing the board. Share the new one from Share Live Board."
+          message="Every old link stops working, including screens already showing the board. Share the new one from Share in the top bar."
           confirmLabel="Make New Link"
           onCancel={() => setConfirmNewLink(false)}
           onConfirm={() => { setConfirmNewLink(false); onSetLive({ key: crypto.randomUUID().slice(0, 8) }); }}

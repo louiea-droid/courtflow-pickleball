@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { MAX_ITEMS, MAX_SEEN, buildNotifications, capItems, markSeen, unseenCount } from "./notifications.js";
+import { MAX_ITEMS, MAX_SEEN, NOTIFY_KINDS, buildNotifications, capItems, filterMuted, markSeen, unseenCount } from "./notifications.js";
 
 const me = "me";
 const friendships = [
@@ -105,3 +105,12 @@ const mixed = [...Array.from({ length: 20 }, () => ({ key: "k", to: "/friends" }
 assert.equal(capItems(mixed).moreTo, "/clubs/pub/members");
 
 console.log("notifications.check: ok");
+
+// Muted kinds (Settings > Notifications): a missing setting or true shows the kind; only false hides it.
+assert.equal(filterMuted(items).length, items.length);
+assert.equal(filterMuted(items, {}).length, items.length);
+assert.ok(filterMuted(items, { chat: false }).every((i) => i.kind !== "chat"));
+assert.ok(filterMuted(items, { chat: false }).some((i) => i.kind === "friend"));
+assert.equal(filterMuted(items, { chat: true, foo: false }).length, items.length);
+assert.deepEqual(NOTIFY_KINDS.map(([k]) => k), ["turn", "booking", "friend", "join", "chat"]);
+console.log("notifications filterMuted: ok");

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Copy, MessageSquare, Search, UserPlus } from "lucide-react";
+import UserAvatar from "../components/UserAvatar";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageTitle from "../components/PageTitle";
 import { useChatActions } from "../hooks/useChatActions";
@@ -90,6 +91,7 @@ export default function Friends({ uid, name, friendCode, friendships, ready, not
           ) : (
             results.map((p) => (
               <div className="member-row" key={p.id}>
+                <UserAvatar uid={p.id} />
                 <div className="member-main"><b>{p.name}</b></div>
                 <div className="member-actions">{resultAction(p)}</div>
               </div>
@@ -107,6 +109,7 @@ export default function Friends({ uid, name, friendCode, friendships, ready, not
           <h2 className="club-section">{received.length ? "Waiting for you" : "Requests"} <span className="count-badge">{received.length + sent.length}</span></h2>
           {received.map((f) => (
             <div className="member-row" key={f.id}>
+              <UserAvatar uid={f.otherId} />
               <div className="member-main"><b>{f.name}</b><small>Wants to be your friend</small></div>
               <div className="member-actions">
                 <button className="primary" disabled={Boolean(busy)} onClick={() => act(`acc-${f.id}`, () => actions.accept(f), `You and ${f.name} are friends.`, "Couldn't accept. Try again.")}>Accept</button>
@@ -116,6 +119,7 @@ export default function Friends({ uid, name, friendCode, friendships, ready, not
           ))}
           {sent.map((f) => (
             <div className="member-row" key={f.id}>
+              <UserAvatar uid={f.otherId} />
               <div className="member-main"><b>{f.name}</b><small>Waiting for them to accept</small></div>
               <div className="member-actions">
                 <button className="outline" disabled={Boolean(busy)} onClick={() => act(`can-${f.id}`, () => actions.remove(f), "Request cancelled.", "Couldn't cancel. Try again.")}>Cancel</button>
@@ -133,6 +137,7 @@ export default function Friends({ uid, name, friendCode, friendships, ready, not
           <p className="hub-empty">No friends yet. Search by name or friend code above.</p>
         ) : friends.map((f) => (
           <div className="member-row" key={f.id}>
+            <UserAvatar uid={f.otherId} />
             <div className="member-main"><b>{f.name}</b></div>
             <div className="member-actions">
               <button className="outline" disabled={Boolean(busy)} onClick={() => act(`msg-${f.id}`, async () => navigate(`/inbox/${await chat.startDm(f.otherId, { me: f.names?.[uid], other: f.names?.[f.otherId] })}`), null, "Couldn't open the conversation. Try again.")}><MessageSquare size={15} /> Message</button>

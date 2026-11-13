@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, CircleAlert, Link2, Search, UserCheck, X } from "lucide-react";
+import { Check, CircleAlert, Coffee, Link2, Search, UserCheck, X } from "lucide-react";
 import Modal from "../components/Modal";
 import PersonBadge from "../components/PersonBadge";
 import StarDisplay from "../components/StarDisplay";
@@ -9,7 +9,9 @@ import { hasGender, validLock } from "../utils/rotationModes";
 
 const NO_GENDER = "Set gender to play Mixed Doubles";
 
-export default function Queue({ queue, notCheckedIn, players, mixed, onCall, onCheckOut, onCheckIn, onSetLock }) {
+export default function Queue({ queue, notCheckedIn, players, mixed, onCall, onCheckOut, onCheckIn, onSetLock, onBreak, onBackIn }) {
+  // Players on a break: checked in, out of the queue until Back in (they keep the wait they had).
+  const breaks = (players || []).filter((p) => p.checked && p.breakAt).sort((a, b) => a.breakAt - b.breakAt);
   const [pendingLockId, setPendingLockId] = useState(null);
   const [checkInSearch, setCheckInSearch] = useState("");
   const [showCheckIn, setShowCheckIn] = useState(false);
@@ -75,6 +77,7 @@ export default function Queue({ queue, notCheckedIn, players, mixed, onCall, onC
           <div className="row" key={p.id} style={{ animationDelay: `${Math.min(i, 10) * 30}ms` }}>
             <span>{i + 1}</span>
             <PersonBadge name={p.name} warn={warnOf(p)}>
+              {p.selfRated && <small className="self-tag" title="Picked their own level when checking in. Edit the player to confirm or change it.">{p.games ? "self-rated" : "new · self-rated"}</small>}
               {p.lockedWithId && (
                 <small className={`lock-chip${badLock(p) ? " bad" : ""}`} title={badLock(p) ? "Ignored in Mixed Doubles: lock a man with a woman" : undefined}>
                   <Link2 size={11} /> <span>{nameOf(p.lockedWithId)}{badLock(p) ? " (ignored)" : ""}</span>
@@ -103,12 +106,30 @@ export default function Queue({ queue, notCheckedIn, players, mixed, onCall, onC
               </button>
             </span>
             <span className="row-actions">
+              {onBreak && (
+                <button className="tiny break-btn" onClick={() => onBreak(p.id)} title="Take a break: out of the queue, keeps their place" aria-label={`Break for ${p.name}`}>
+                  <Coffee size={12} aria-hidden="true" /><span className="break-label">Break</span>
+                </button>
+              )}
               <button className="tiny" onClick={() => onCall(p.id)}>Call</button>
               <button className="tiny danger" onClick={() => onCheckOut(p.id)}>Check Out</button>
             </span>
           </div>
         ))}
         {!queue.length && <div className="empty">Queue is empty.</div>}
+        {breaks.length > 0 && (
+          <div className="break-list" aria-label="On a break">
+            <div className="break-head"><Coffee size={14} aria-hidden="true" /> On a break <span className="count-badge">{breaks.length}</span><small>Skipped by the queue until they're back</small></div>
+            {breaks.map((p) => (
+              <div className="break-row" key={p.id}>
+                <b>{p.name}</b>
+                <StarDisplay value={p.skill} />
+                <small>away {Math.max(0, Math.round((Date.now() - p.breakAt) / 60000))} min</small>
+                <button className="tiny back-in" onClick={() => onBackIn(p.id)}>Back in</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {showCheckIn && (

@@ -72,6 +72,8 @@ export default function ClubHome({
   return (
     <div className={`ov-layout${isMember ? "" : " solo"}`}>
       <div className="ov-main">
+        {/* The club's description sits here, not in the header, so the header is the same height on every tab. */}
+        {club.description && <p className="club-about ov-about">{club.description}</p>}
         {live.map((e) => (
           <LiveCard
             key={e.id} e={e} clubId={clubId} open={canManage ? go(`${base}/event/${e.id}`) : null}

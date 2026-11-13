@@ -36,6 +36,9 @@ await club("beta", "Beta Club", uid.bea, "bea", "Cebu", "Drills and socials by t
 await club("riverside", "Riverside Pickle", uid.cal, "cal", "Quezon City", "Evening games near the river.", { cal: "owner" });
 await put("clubs/pub/private/invite", { code: "DEMOJOIN" });
 await put("chats/club_pub", { kind: "club", clubId: "pub", title: "Pub Club", lastText: "See you all Friday!", lastAt: now, lastBy: uid.bea, createdAt: now });
+// Profile pictures: built-in avatars for most demo people (dee has none, to show the plain icon).
+for (const [who, pic] of [["ann", "a8"], ["bea", "a3"], ["cal", "a10"], ["eli", "a1"]]) await put(`avatars/${uid[who]}`, { builtin: pic, updatedAt: now });
+
 // The club feed: a pinned announcement from ann, and a member post from eli with hearts and replies.
 const post = (id, k, role, text, ago, extra = {}) => put(`clubs/pub/announcements/${id}`, {
   authorId: uid[k], authorName: people[k], authorRole: role, text, createdAt: now - ago, announcement: false, hasPhoto: false, hearts: [], replyCount: 0, ...extra,

@@ -56,7 +56,6 @@ export default function ClubHeader({
         )}
       </div>
       {tabs}
-      {route === "club" && club.description && <p className="club-about">{club.description}</p>}
       {editing && (
         <EditClubModal
           clubId={clubId} club={club} isOwner={isOwner} cover={cover} photo={photo} notify={notify}

@@ -22,7 +22,7 @@ function Message({ text, to, label, navigate }) {
 
 // /clubs/:id/event/:eventId/game: the queue app on one event. The event doc is the session; the club's
 // settings (rules, cost defaults, display) are merged over it by buildGameSession.
-export default function Game({ clubId, club, event, ready, base, navigate, endGame, onSetAttendeesPaid, onSetAttendeeMethod, memberChoices }) {
+export default function Game({ clubId, club, event, ready, base, navigate, endGame, onSetAttendeesPaid, onSetAttendeeMethod, memberChoices, onSetTheme }) {
   if (!event) {
     return ready ? (
       <Message text="This open play doesn't exist or was deleted." to={`${base}/host`} label="Back to open play" navigate={navigate} />
@@ -49,6 +49,8 @@ export default function Game({ clubId, club, event, ready, base, navigate, endGa
       onSetAttendeeMethod={(attendeeId, method) => onSetAttendeeMethod(event.id, attendeeId, method)}
       memberChoices={memberChoices}
       clubName={club?.name}
+      onSetTheme={onSetTheme}
+      onOpenSettings={() => navigate(`${base}/settings`)}
     />
   );
 }
