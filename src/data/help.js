@@ -14,7 +14,7 @@ export const MAJOR = [
       "The Friends and Inbox tiles show how many friends and chats you have, with a badge when something is waiting.",
       "My clubs lists the clubs you belong to. Create a club from there if you host.",
     ],
-    shots: [{ src: "/help/home.png", w: 1280, h: 900, alt: "The Home screen: a Ready to play bar, your active session, a Coming up list of sessions by date, Friends and Inbox tiles and your clubs.", caption: "Home, with the sessions coming up by date." }],
+    shots: [{ src: "/help/home.png", w: 1280, h: 900, alt: "The Home screen: a welcome band with Find session and Quick session, your game as a ticket, and a Coming up list with a 7-day strip.", caption: "Home, with the sessions coming up by date." }],
     go: { to: "/", label: "Go to Home" },
   },
   {
@@ -29,8 +29,8 @@ export const MAJOR = [
       "Roles: an owner runs everything, a manager runs open play, games and requests, a member can read and chat.",
     ],
     shots: [
-      { src: "/help/clubs-directory.png", w: 1280, h: 900, alt: "The Clubs page listing public clubs with a search box.", caption: "Clubs: every public club, searchable." },
-      { src: "/help/club-members.png", w: 1280, h: 900, alt: "A club's Members tab with the club chat, the invite link and the list of members with their roles.", caption: "A club's Members tab: chat, invite link and roles." },
+      { src: "/help/clubs-directory.png", w: 1280, h: 900, alt: "The Clubs page: a search box, the clubs you are in, and public clubs to ask to join.", caption: "Clubs: every public club, searchable." },
+      { src: "/help/club-members.png", w: 1280, h: 900, alt: "A club's Members tab with member counts, the invite link and everyone grouped by role, with Message buttons.", caption: "A club's Members tab: chat, invite link and roles." },
     ],
     go: { to: "/clubs/find", label: "Browse clubs" },
   },
@@ -46,8 +46,8 @@ export const MAJOR = [
       "The host marks each player unpaid, paid or refunded, and sees how much has been collected.",
     ],
     shots: [
-      { src: "/help/host-events.png", w: 1280, h: 900, alt: "The Open play tab listing a club's sessions with spots and a New open play button.", caption: "The host's list of open play." },
-      { src: "/help/booking-page.png", w: 620, h: 995, alt: "The public booking page showing upcoming open play with fee, level, spots left and a Join button.", caption: "What a player sees on the booking page." },
+      { src: "/help/host-events.png", w: 1280, h: 900, alt: "The Open play tab with the live game on top, upcoming games by day with booked and paid bars, and Play now and Start new buttons.", caption: "The host's list of open play." },
+      { src: "/help/booking-page.png", w: 621, h: 1151, alt: "The public booking page showing upcoming open play with fee, level, spots left and a Join button.", caption: "What a player sees on the booking page." },
     ],
     go: { to: "/clubs", label: "Open your clubs" },
   },
@@ -96,7 +96,7 @@ export const MAJOR = [
     ],
     shots: [
       { src: "/help/quick-session.png", w: 1280, h: 900, alt: "The Quick session dashboard with two courts and a waiting queue.", caption: "Quick session: courts and the waiting queue." },
-      { src: "/help/active-queue.png", w: 921, h: 86, alt: "Home's active session card reading You're number 3 in line, 2 players ahead, about 10 minutes.", caption: "Your place in line, on Home." },
+      { src: "/help/active-queue.png", w: 506, h: 158, alt: "Home's game card reading In match 1, on the first court to free up, about 10 minutes, with View queue.", caption: "Your place in line, on Home." },
       { src: "/help/queue-page.png", w: 1280, h: 900, alt: "The read-only queue page listing who is on court and who is waiting, in order.", caption: "View queue: the live list for everyone in the game." },
       { src: "/help/modes.png", w: 1280, h: 900, alt: "The mode picker listing Balanced, Skill Separated, Custom, Winners / Losers and Mixed Doubles.", caption: "The rotation modes." },
     ],

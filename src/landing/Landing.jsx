@@ -21,7 +21,7 @@ const FEATURES = [
     icon: Megaphone, title: "Volunteer umpires on their own phones",
     body: "Share a link and anyone can keep score for one court. No account, no app to install.",
     points: ["Side-out or rally scoring, to 11, 15 or 21", "The score is called for them, server included", "Results land in the match log by themselves"],
-    shot: { src: "/help/scorekeeper.png", w: 510, h: 573, alt: "The score screen: Team 1 on the left, Team 2 on the right, the called score and Undo." },
+    shot: { src: "/help/scorekeeper.png", w: 510, h: 574, alt: "The score screen: Team 1 on the left, Team 2 on the right, the called score and Undo." },
   },
   {
     icon: MonitorPlay, title: "A Live Board for the venue",

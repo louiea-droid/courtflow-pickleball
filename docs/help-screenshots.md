@@ -13,7 +13,7 @@ The Help page (`/help`, `src/views/Help.jsx`, content in `src/data/help.js`) sho
 | File | Signed in as | Screen | Crop |
 | --- | --- | --- | --- |
 | `home.png` | Eli | `/` after the active session card has loaded | viewport |
-| `active-queue.png` | Eli | the "Your active session" card on Home | the card only |
+| `active-queue.png` | Eli | the "Your game" card on Home (`.queue-card`) | the card only |
 | `queue-page.png` | Eli | `/clubs/pub/event/thursday/queue` | viewport |
 | `find-session.png` | Eli | `/sessions` | viewport |
 | `clubs-directory.png` | Eli | `/clubs/find` | viewport |
@@ -40,3 +40,5 @@ Tips: pages load lazily, so wait until the content (not the spinner) shows befor
 ## After changing a screenshot
 
 Update `w` / `h` for that image in `src/data/help.js` (the page reserves the space so nothing jumps) and run `node src/utils/help.check.mjs`.
+
+Links in a shot (Umpires, the Members invite link) show the dev address; swap `localhost:5300` for `courtwave.web.app` in the page text before capturing.
