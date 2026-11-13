@@ -20,7 +20,7 @@ for (const [k, name] of Object.entries(people)) {
   const r = await (await fetch(AUTH, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: `${k}@demo.test`, password: "password1", returnSecureToken: true }) })).json();
   if (!r.localId) throw new Error(JSON.stringify(r));
   uid[k] = r.localId;
-  await put(`accounts/${r.localId}`, { name, email: `${k}@demo.test`, createdAt: now, friendCode: `DEMO${k.toUpperCase().padEnd(4, "X")}`.slice(0, 8) });
+  await put(`accounts/${r.localId}`, { name, email: `${k}@demo.test`, createdAt: now, friendCode: `DEMO${k.toUpperCase().padEnd(4, "X")}`.slice(0, 8).replace(/[IO01]/g, "X") }); // friend codes use CODE_CHARS (no I, O, 0, 1)
 }
 
 const display = { timeZone: "Asia/Manila", hour12: true, theme: "light", accent: "#2fa55b", team1: "#6c5ce0", team2: "#0e9488" };

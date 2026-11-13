@@ -71,14 +71,19 @@ export function useAccount() {
   // because its own snapshot arrives while it is still "creating".
   const syncing = useRef(false);
   const syncFailures = useRef(0);
+  // A refused batch also reverts its local write, which changes `account` and re-runs this effect at once: without
+  // this wait a permanent refusal became a write loop (hundreds a second) that broke other writes on the same stream.
+  const syncRetryAt = useRef(0);
   useEffect(() => {
     if (status !== "in" || creating.current || deleting.current || syncing.current || !needsDirectorySync(account)) return;
+    if (Date.now() < syncRetryAt.current) return;
     syncing.current = true;
     syncDirectory(db, user.uid, account)
       // Re-check once it lands: a name changed while this ran was skipped above and would otherwise stay old.
       .then(() => { syncFailures.current = 0; setSyncTick((t) => t + 1); })
       .catch(() => {
         syncFailures.current += 1;
+        syncRetryAt.current = syncFailures.current <= 3 ? Date.now() + 4000 * syncFailures.current : Infinity;
         if (syncFailures.current <= 3) setTimeout(() => setSyncTick((t) => t + 1), 4000 * syncFailures.current);
       })
       .finally(() => { syncing.current = false; });
