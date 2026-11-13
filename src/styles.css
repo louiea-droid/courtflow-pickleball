@@ -2250,3 +2250,7 @@ button.ci-btn:focus-visible{outline:2px solid var(--accent-bright);outline-offse
 .share-live-pill.on{background:var(--lime);color:var(--on-lime)}
 .share-code.share-note{display:block;padding:8px 10px}
 .share-code.share-note small{line-height:1.4}
+
+/* Scrollbar space kept even when a tab or list is short, so the page never shifts sideways when one appears (2026-11-13). */
+.app main{scrollbar-gutter:stable}
+html:has(.openplay){scrollbar-gutter:stable}
