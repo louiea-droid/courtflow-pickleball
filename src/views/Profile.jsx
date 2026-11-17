@@ -51,6 +51,12 @@ export default function Profile({ acct, onDelete, notify }) {
   const [draft, setDraft] = useState(name);
   const [showPassword, setShowPassword] = useState(false);
   useEffect(() => setTheme(account.display?.theme || "light"), [account.display?.theme]);
+  // The account menu's links (Account settings, Notifications, Privacy) change the hash while Settings may already be open.
+  useEffect(() => {
+    const onHash = () => { const t = TABS.find(([id]) => `#${id}` === location.hash)?.[0]; if (t) setTab(t); };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
   const save = () => {
     const trimmed = draft.trim();
     if (trimmed && trimmed !== name) acct.updateAccount({ name: trimmed });
