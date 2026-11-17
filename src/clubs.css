@@ -1244,6 +1244,67 @@ a.ov-row:hover{background:var(--hover)}
 /* Help panes keep their scrollbar space, so a search that shortens the list never shifts them (2026-11-13). */
 .help-toc,.help-body{scrollbar-gutter:stable}
 
+/* Find session: a quiet "Join the club" line under the first game of a club you're not in (2026-11-17). */
+.session-with-join{display:grid;gap:6px}
+.session-join{margin:0 4px;color:var(--muted);font-size:13px;line-height:1.4}
+.session-join a{color:var(--accent);font-weight:700;text-underline-offset:3px}
+@media (max-width:560px){.session-join span{display:none}}
+
+/* Find session pop-up (2026-11-17, owner picked option A "game ticket", .superpowers/brainstorm/2211-session-popup):
+   GameTicketModal.jsx. A centered ticket on a wide screen, a sheet from the bottom on a phone. */
+.sm-backdrop{z-index:70}
+.sm{position:relative;display:flex;flex-direction:column;width:min(460px,100%);max-height:min(640px,calc(100dvh - 36px));border-radius:22px;overflow:hidden;background:var(--panel);border:1px solid var(--line);box-shadow:0 30px 80px #0009;animation:smIn .22s var(--ease) both}
+@keyframes smIn{from{opacity:0;transform:translateY(14px) scale(.98)}}
+.sm-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+.sm-close{position:absolute;top:12px;right:12px;z-index:2;display:grid;place-items:center;width:36px;height:36px;padding:0;border:0;border-radius:50%;background:#0006;color:#fff}
+.sm-close:hover{background:#000a}
+.sm-hero{position:relative;padding:20px 22px 46px;background:linear-gradient(135deg,var(--club),var(--brand-deep) 72%);color:#fff;overflow:hidden}
+.sm-wave{position:absolute;left:0;right:0;bottom:-1px;width:100%;height:36px}
+.sm-club{display:flex;align-items:center;gap:10px;padding-right:44px}
+.sm-club b{display:block;font-size:14px}.sm-club small{display:block;font-size:12px;color:#d3e6da}
+.sm-club .sm-badge{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;color:#fff;font:700 13px "Space Grotesk";flex:none;overflow:hidden}
+.sm-club .sm-badge img{width:100%;height:100%;object-fit:cover}
+.sm-title{display:flex;align-items:center;gap:14px;margin-top:16px}
+.sm-title .date-tile{width:56px;height:62px;flex:none;background:#eef5ef;border-color:transparent;color:var(--brand-deep)}
+.sm-title .date-tile small{color:var(--brand-green)}
+.sm-title h2{margin:0;font:italic 700 26px/1.1 "Space Grotesk";color:#fff;overflow-wrap:anywhere}
+.sm-title p{margin:4px 0 0;font-size:14px;color:#d6e7dc}
+.sm-body{display:grid;gap:12px;padding:16px 22px 18px}
+.sm-chips{display:flex;flex-wrap:wrap;gap:6px}
+.sm-chip{padding:4px 10px;border-radius:99px;background:var(--soft);color:var(--ink-2);font-size:12px;font-weight:700}
+.sm-chip.live{background:var(--lime);color:var(--on-lime)}
+.sm-fill{margin:0;font-weight:700;font-size:14px}
+.sm-bar{height:8px;margin-top:-6px;border-radius:9px;background:var(--soft);overflow:hidden}
+.sm-bar i{display:block;height:100%;border-radius:9px;background:var(--lime)}
+.sm-fact{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;font-weight:600}
+.sm-fact svg{color:var(--muted);flex:none}
+.sm-note{margin:0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink-2);font-size:13.5px;white-space:pre-line}
+.sm-going{margin:0;font-size:13.5px;color:var(--ink-2)}.sm-going b{color:var(--ink)}
+.sm-mine{display:flex;align-items:center;gap:7px;margin:0;font-size:14px;font-weight:700;color:var(--accent)}
+.sm-join{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px dashed var(--line-strong);border-radius:12px}
+.sm-join p{margin:0;font-size:13px;color:var(--ink-2)}.sm-join b{color:var(--ink)}
+.sm-join a{flex:none;font-weight:700;font-size:14px;color:var(--accent);text-underline-offset:3px}
+.sm-foot{display:flex;align-items:center;gap:12px;padding:14px 22px;border-top:1px solid var(--line);background:var(--panel)}
+.sm-price{margin-right:auto}.sm-price b{display:block;font:700 20px "Space Grotesk"}.sm-price small{font-size:12px;color:var(--muted)}
+.sm-cta{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 22px;border:0;border-radius:99px;background:var(--lime);color:var(--on-lime);font-weight:800;font-size:14.5px;text-decoration:none;cursor:pointer}
+.sm-cta:hover{filter:brightness(1.05)}
+.sm-foot a.outline{margin-right:auto;min-height:44px;display:inline-flex;align-items:center;border-radius:99px;padding:0 18px;color:var(--ink);text-decoration:none}
+.sm-book{padding:22px 22px 18px}
+.sm-club.plain small{color:var(--muted)}
+.sm-book .op-form{margin-top:12px}
+.sm-done{padding:36px 24px 4px;text-align:center}
+.sm-ok{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 12px;border-radius:50%;background:var(--lime);color:var(--on-lime)}
+.sm-done h2{margin:0 0 6px;font:italic 700 26px "Space Grotesk"}
+.sm-done p{margin:0;color:var(--ink-2)}
+.sm :focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+@media (max-width:560px){
+  .sm-backdrop{place-items:end stretch;padding:0}
+  .sm{width:100%;max-height:92dvh;border-radius:22px 22px 0 0;border-bottom:0;animation-name:smUp}
+  .sm-foot{padding-bottom:max(14px,env(safe-area-inset-bottom))}
+}
+@keyframes smUp{from{transform:translateY(40%);opacity:.4}}
+@media (prefers-reduced-motion:reduce){.sm{animation:none}}
+
 /* ---------- No top bar on a wide screen (2026-11-17, owner's pick from a mockup) ----------
    The game card leads the sidebar, the account menu and theme switch sit at its foot, and only the bell is left up
    top, floating in the right corner. A phone keeps its dark bar (the drawer hides both sidebar pieces). */
@@ -1286,6 +1347,56 @@ a.ov-row:hover{background:var(--hover)}
   [data-acct-side="collapsed"] .acct-side-me .account-menu-trigger{justify-content:center;padding:4px}
   [data-acct-side="collapsed"] .acct-side-me .account-menu-trigger-copy,[data-acct-side="collapsed"] .acct-side-me .account-menu-chevron{display:none}
 }
+
+/* ---------- Find session, layout A (2026-11-17, owner's pick from a mockup) ----------
+   Wide: the search, days and filters are a column on the left that stays put, sessions in a grid beside it. Narrower:
+   the same controls are the bar on top. The card: date tile, the time big, club, price, level, one block per spot, a Book button. */
+.find-label{display:flex;align-items:center;gap:2px;margin:10px 0 6px;color:var(--muted);font-size:12px;font-weight:700}
+.find-label>span{flex:1}
+.find-label .week-nav{min-height:32px;min-width:32px}
+.find-bar>.find-label{margin-top:0}
+.find-chips{display:flex;flex-wrap:wrap;gap:6px}
+.find-chip-group{display:contents}
+.find-chip-group .find-label{display:none}
+@media (min-width:1000px){
+  .find-page{display:grid;grid-template-columns:232px minmax(0,1fr);gap:28px;align-items:start}
+  .find-bar{position:sticky;top:0;display:grid;gap:0;margin:0;padding:0;border:0;background:none}
+  .find-bar .find-search{margin:0 0 18px}
+  .find-bar .week-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;overflow:visible;margin:0}
+  .find-bar .week-all,.find-bar .week-day{min-width:0}
+  .find-chips{display:grid;gap:0;margin:0}
+  .find-chip-group{display:flex;flex-wrap:wrap;gap:6px}
+  .find-chip-group .find-label{display:block;width:100%;margin:18px 0 0}
+  .find-results .session-group:first-child .find-day{margin-top:0}
+  .find-list{grid-template-columns:repeat(auto-fill,minmax(340px,1fr));align-items:start;gap:14px}
+}
+.session-card{grid-template-columns:none;align-content:start;align-items:stretch;gap:12px;padding:16px}
+.session-top{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.session-tile{flex:none;display:grid;justify-items:center;width:52px;padding:6px 0;border:1px solid light-dark(transparent,var(--line));border-radius:12px;background:var(--brand-deep);color:var(--lime);font-size:10.5px;font-weight:700;line-height:1.15}
+.session-tile b{font:700 20px/1.1 "Space Grotesk";color:#fff}
+.session-what{flex:1;display:grid;gap:1px;min-width:0}
+.session-live{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--accent-ink)}
+.session-live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 3px color-mix(in srgb,var(--lime) 30%,transparent)}
+.session-time{font:700 18px/1.2 "Space Grotesk";letter-spacing:-.01em;color:var(--ink)}
+.session-title{font:italic 700 15px/1.25 "Space Grotesk";color:var(--ink-2);overflow-wrap:anywhere}
+.session-club{display:flex;align-items:center;gap:7px;min-width:0;margin-top:6px;color:var(--muted);font-size:12.5px}
+.session-club>span:nth-child(2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.session-card .session-badge{width:20px;height:20px;border-radius:6px;font-size:11px}
+.session-mine{flex:none;padding:1px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent-ink);font-size:11px;font-weight:700}
+.session-price{display:grid;justify-items:end;text-align:right;white-space:nowrap}
+.session-price b{font:700 17px "Space Grotesk"}
+.session-price small{color:var(--muted);font-size:11.5px;font-weight:600}
+.session-tags span{display:inline-block;padding:3px 9px;border-radius:999px;background:var(--soft);color:var(--ink-2);font-size:11.5px;font-weight:700}
+.session-seats{display:grid;gap:6px}
+.session-seatline{display:flex;justify-content:space-between;gap:8px;color:var(--ink-2);font-size:12.5px}
+.session-seatline b{color:var(--ink)}
+.session-dots{display:flex;gap:3px}
+.session-dots i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.session-dots i.on,.session-card .session-fill i{background:light-dark(var(--brand-green),var(--lime))}
+.session-card .session-fill{width:auto;margin:0}
+.session-book{display:grid;place-items:center;min-height:42px;border-radius:12px;background:var(--lime);color:var(--on-lime);font-size:13.5px;font-weight:800;transition:filter .15s ease}
+.session-book.wait{border:1.5px solid light-dark(var(--brand-green),var(--lime));background:transparent;color:light-dark(var(--brand-green),var(--lime))}
+.session-card:hover .session-book{filter:brightness(1.05)}
 
 /* ---------- Inbox (2026-11-17 redesign, owner-approved mockup) ----------
    Both panels are the height of the window. The list: title + New message, search, All / Clubs / Direct (unread chats
@@ -1354,4 +1465,3 @@ a.ov-row:hover{background:var(--hover)}
 .account-menu-theme button[aria-checked="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px #0000002e}
 .account-menu-links{margin:0 0 4px;padding:4px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .account-menu-photo:focus-visible,.account-menu-code button:focus-visible,.account-menu-theme button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-

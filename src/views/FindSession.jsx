@@ -2,21 +2,33 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import PageTitle from "../components/PageTitle";
 import SessionCard from "../components/SessionCard";
+import GameTicketModal from "../components/GameTicketModal";
 import { useToday } from "../hooks/useToday";
 import { addDays, dayHeading, filterSessions, groupByDate, weekDays } from "../utils/sessions";
 import { formatDay } from "../utils/format";
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-// Open play from public clubs, joined or not. Search, the day strip and the quick filters share one bar that stays at the
-// top while the list scrolls.
-export default function FindSession({ clubs, sessions: { sessions, ready, error }, navigate }) {
+// Open play from public clubs, joined or not (2026-11-17 redesign A, owner's pick). On a wide screen the search, days and
+// filters are a column on the left that stays put while the sessions scroll in a grid beside it; narrower, the same
+// controls are one bar on top.
+export default function FindSession({ clubs, sessions: { sessions, ready, error }, uid, name, bookings = [], navigate }) {
   const today = useToday();
   const [date, setDate] = useState("any");
   const [text, setText] = useState("");
   const [level, setLevel] = useState(null);
   const [hasSpots, setHasSpots] = useState(false);
   const [onlyMine, setOnlyMine] = useState(false);
+  const [open, setOpen] = useState(null); // "clubId/eventId" of the game in the pop-up
+  // A plain click opens the pop-up; ctrl / cmd / middle click still opens the booking page in a new tab.
+  const openCard = (s) => (e) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    setOpen(`${s.clubId}/${s.id}`);
+  };
+  const openSession = open && sessions.find((s) => `${s.clubId}/${s.id}` === open);
+  const ACTIVE = ["pending", "confirmed", "waitlist"];
+  const bookingOf = (s) => bookings.find((b) => b.clubId === s.clubId && b.eventId === s.id && ACTIVE.includes(b.status.key));
   const mine = new Set(clubs.map((c) => c.id));
   const [weekOffset, setWeekOffset] = useState(0); // 0 = the week starting today; past days have no sessions to show
   const week = weekDays(addDays(today, weekOffset * 7));
@@ -25,20 +37,25 @@ export default function FindSession({ clubs, sessions: { sessions, ready, error 
   const levels = [...new Set(sessions.map((s) => s.level).filter((l) => l && l !== "Any Level"))].sort();
   const shown = filterSessions(sessions, text, date, { level, hasSpots, clubs: onlyMine ? mine : null });
   const filtered = level || hasSpots || onlyMine;
+  const suggested = new Set(); // clubs whose "Join the club" line is already shown
 
   return (
-    <div className="page-narrow">
+    <div className="find-page">
       <PageTitle title="Find a game" hidden />
       <div className="find-bar">
         <label className="find-search">
           <Search size={16} />
           <input
             type="search" value={text} onChange={(e) => setText(e.target.value)}
-            placeholder="Search games by club, place or session" aria-label="Search sessions"
+            placeholder="Search clubs and places" aria-label="Search sessions"
           />
         </label>
-        <div className="week-strip" role="group" aria-label="Day">
+        <div className="find-label">
+          <span>Day</span>
           <button type="button" className="week-nav" aria-label="Previous week" disabled={weekOffset === 0} onClick={() => setWeekOffset((w) => w - 1)}><ChevronLeft size={16} /></button>
+          <button type="button" className="week-nav" aria-label="Next week" disabled={weekOffset >= 26} onClick={() => setWeekOffset((w) => w + 1)}><ChevronRight size={16} /></button>
+        </div>
+        <div className="week-strip" role="group" aria-label="Day">
           <button type="button" className="week-all" aria-pressed={date === "any"} onClick={() => setDate("any")}>All</button>
           {week.map((d) => (
             <button
@@ -49,15 +66,21 @@ export default function FindSession({ clubs, sessions: { sessions, ready, error 
               <small>{d.date === today ? "Today" : d.wd}</small><b>{d.day}</b><i className={hasSessions.has(d.date) ? "on" : undefined} aria-hidden="true" />
             </button>
           ))}
-          <button type="button" className="week-nav" aria-label="Next week" disabled={weekOffset >= 26} onClick={() => setWeekOffset((w) => w + 1)}><ChevronRight size={16} /></button>
         </div>
-        <div className="find-chips" role="group" aria-label="Filters">
-          <button type="button" aria-pressed={!level} onClick={() => setLevel(null)}>Any level</button>
-          {levels.map((l) => <button key={l} type="button" aria-pressed={level === l} onClick={() => setLevel(level === l ? null : l)}>{l}</button>)}
-          <button type="button" aria-pressed={hasSpots} onClick={() => setHasSpots(!hasSpots)}>Has spots</button>
-          {mine.size > 0 && <button type="button" aria-pressed={onlyMine} onClick={() => setOnlyMine(!onlyMine)}>My clubs</button>}
+        <div className="find-chips">
+          <div className="find-chip-group" role="group" aria-label="Level">
+            <span className="find-label">Level</span>
+            <button type="button" aria-pressed={!level} onClick={() => setLevel(null)}>Any level</button>
+            {levels.map((l) => <button key={l} type="button" aria-pressed={level === l} onClick={() => setLevel(level === l ? null : l)}>{l}</button>)}
+          </div>
+          <div className="find-chip-group" role="group" aria-label="Show">
+            <span className="find-label">Show</span>
+            <button type="button" aria-pressed={hasSpots} onClick={() => setHasSpots(!hasSpots)}>Has spots</button>
+            {mine.size > 0 && <button type="button" aria-pressed={onlyMine} onClick={() => setOnlyMine(!onlyMine)}>My clubs</button>}
+          </div>
         </div>
       </div>
+      <div className="find-results">
 
       {!ready ? (
         <p className="hub-empty">Loading sessions…</p>
@@ -79,11 +102,34 @@ export default function FindSession({ clubs, sessions: { sessions, ready, error 
           <section className="session-group" key={g.date}>
             <h2 className="find-day">{isNamed ? head : formatDay(g.date)} <small>{isNamed ? `${rest.join(", ")} · ` : ""}{plural(g.events.length, "session")}</small></h2>
             <div className="find-list">
-              {g.events.map((s) => <SessionCard key={`${s.clubId}/${s.id}`} session={s} mine={mine.has(s.clubId)} />)}
+              {g.events.map((s) => {
+                const card = <SessionCard key={`${s.clubId}/${s.id}`} session={s} mine={mine.has(s.clubId)} booked={!!bookingOf(s)} onClick={openCard(s)} />;
+                if (mine.has(s.clubId) || suggested.has(s.clubId)) return card;
+                suggested.add(s.clubId); // the join line shows once per club, under its first game
+                const to = `/clubs/${encodeURIComponent(s.clubId)}`;
+                return (
+                  <div className="session-with-join" key={`${s.clubId}/${s.id}`}>
+                    {card}
+                    <p className="session-join">
+                      Play at {s.clubName} often?{" "}
+                      <a href={to} onClick={(e) => { e.preventDefault(); navigate(to); }}>Join the club</a>
+                      <span> for its feed, chat and your place in the queue.</span>
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </section>
         );
       })}
+      </div>
+      {openSession && (
+        <GameTicketModal
+          session={openSession} member={mine.has(openSession.clubId)} uid={uid} name={name} navigate={navigate}
+          booking={bookingOf(openSession)}
+          onClose={() => setOpen(null)}
+        />
+      )}
     </div>
   );
 }

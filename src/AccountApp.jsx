@@ -141,7 +141,7 @@ export default function AccountApp() {
         ) : route === "help" ? (
           <Help navigate={navigate} />
         ) : route === "sessions" ? (
-          <FindSession clubs={clubs} sessions={sessions} navigate={navigate} />
+          <FindSession clubs={clubs} sessions={sessions} uid={uid} name={name} bookings={bookings} navigate={navigate} />
         ) : route === "clubs" || route === "clubs-find" ? (
           <FindClubs myClubs={clubs} joinRequests={managerRequests} myReady={clubsReady} sessions={sessions.sessions} navigate={navigate} />
         ) : (
