@@ -23,13 +23,13 @@ export const MAJOR = [
     summary: "A club holds open play, games, members and settings. Anyone can find a public club; private clubs use an invite link.",
     steps: [
       "Open Clubs in the sidebar to see every public club. Search by name or place.",
-      "Open a club and choose Ask to join. A manager approves your request. If you have an invite link, open it to join straight away.",
+      "Open a public club and choose Join club: you are in straight away. Private clubs are invite only: open the invite link a manager sends you.",
       "To start your own, choose Create a club on Home or My clubs, then pick public or private. You become its owner.",
       "In the Members tab, managers approve requests and share the invite link; only the owner makes managers (by role, or with the manager link).",
       "Roles: an owner runs everything, a manager runs open play, games and requests, a member can read and chat.",
     ],
     shots: [
-      { src: "/help/clubs-directory.png", w: 1280, h: 900, alt: "The Clubs page: a search box, the clubs you are in, and public clubs to ask to join.", caption: "Clubs: every public club, searchable." },
+      { src: "/help/clubs-directory.png", w: 1280, h: 900, alt: "The Clubs page: a search box, the clubs you are in, and public clubs to join.", caption: "Clubs: every public club, searchable." },
       { src: "/help/club-members.png", w: 1280, h: 900, alt: "A club's Members tab with member counts, the invite link and everyone grouped by role, with Message buttons.", caption: "A club's Members tab: chat, invite link and roles." },
     ],
     go: { to: "/clubs/find", label: "Browse clubs" },

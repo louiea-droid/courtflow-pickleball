@@ -15,7 +15,7 @@ const own = real("own"), mgr = real("mgr"), mem = real("mem"), mem2 = real("mem2
 const now = () => Date.now();
 
 // A public club "pub" and a private club "priv": an owner, two managers, two members, an invite code and the
-// members' "My clubs" copies. "noinv" is a public club that never created an invite link.
+// members' "My clubs" copies. "noinv" is a private club that never created an invite link.
 async function seed() {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async (ctx) => {
@@ -30,7 +30,7 @@ async function seed() {
       await setDoc(doc(db, `clubs/${id}/private/invite`), { code: "GOODCODE" });
       await setDoc(doc(db, `clubs/${id}/private/managerInvite`), { code: "MGRCODE1" });
     }
-    await setDoc(doc(db, "clubs/noinv"), { name: "noinv", nameLower: "noinv", visibility: "public", ownerId: "own", createdAt: 1 });
+    await setDoc(doc(db, "clubs/noinv"), { name: "noinv", nameLower: "noinv", visibility: "private", ownerId: "own", createdAt: 1 });
     await setDoc(doc(db, "clubs/noinv/members/own"), { role: "owner", name: "own", joinedAt: 1 });
   });
 }
@@ -94,18 +94,18 @@ const join = (db, club, uid, { inviteCode, ...data }, copy = copyDoc(club)) => {
   return b.commit();
 };
 const { inviteCode: _code, ...noCode } = memberDoc();
-await assertFails(join(other, "pub", "other", memberDoc({ inviteCode: "OLDCODE" }))); // Review Focus 3: wrong code
-await assertFails(join(other, "pub", "other", noCode));
-await assertFails(join(other, "pub", "other", memberDoc({ role: "manager" }))); // Review Focus 1: higher role
-await assertFails(join(other, "pub", "other", memberDoc({ role: "owner" })));
-await assertFails(join(other, "pub", "other", memberDoc({ extra: 1 })));
-await assertFails(join(other, "pub", "other", memberDoc({ name: "" })));
-await assertFails(join(other, "pub", "other", memberDoc({ joinedAt: 0 })));
-await assertFails(join(other, "pub", "req", memberDoc())); // someone else's record
-await assertFails(join(anon, "pub", "x", memberDoc()));
-await assertFails(join(quick, "pub", "q1", memberDoc()));
-await assertFails(join(legacy, "pub", "c1", memberDoc()));
-await assertFails(join(mem, "pub", "mem", memberDoc())); // already a member: re-creating is an update
+await assertFails(join(other, "priv", "other", memberDoc({ inviteCode: "OLDCODE" }))); // Review Focus 3: wrong code
+await assertFails(join(other, "priv", "other", noCode));
+await assertFails(join(other, "priv", "other", memberDoc({ role: "manager" }))); // Review Focus 1: higher role
+await assertFails(join(other, "priv", "other", memberDoc({ role: "owner" })));
+await assertFails(join(other, "priv", "other", memberDoc({ extra: 1 })));
+await assertFails(join(other, "priv", "other", memberDoc({ name: "" })));
+await assertFails(join(other, "priv", "other", memberDoc({ joinedAt: 0 })));
+await assertFails(join(other, "priv", "req", memberDoc())); // someone else's record
+await assertFails(join(anon, "priv", "x", memberDoc()));
+await assertFails(join(quick, "priv", "q1", memberDoc()));
+await assertFails(join(legacy, "priv", "c1", memberDoc()));
+await assertFails(join(mem, "priv", "mem", memberDoc())); // already a member: re-creating is an update
 await assertFails(join(other, "noinv", "other", memberDoc())); // a club that never made an invite link
 await assertSucceeds(join(req, "pub", "req", memberDoc()));
 await assertSucceeds(join(req2, "priv", "req2", memberDoc())); // private clubs are joined this way
@@ -128,13 +128,26 @@ await assertFails(getDoc(doc(req, "clubs/pub/private/invite"))); // but the invi
 await assertFails(getDoc(doc(other, "clubs/pub/private/invite")));
 await assertFails(getDoc(doc(mem, "clubs/pub/private/invite")));
 // reset: a manager replaces the code; the old one stops working at once
-await assertSucceeds(setDoc(doc(mgr, "clubs/pub/private/invite"), { code: "NEWCODE2" }));
+await assertSucceeds(setDoc(doc(mgr, "clubs/priv/private/invite"), { code: "NEWCODE2" }));
 await assertFails(setDoc(doc(mem, "clubs/pub/private/invite"), { code: "MEMCODE1" }));
 await assertFails(setDoc(doc(mgr, "clubs/pub/private/invite"), { code: "short" })); // a code is 8 characters
 await assertFails(setDoc(doc(mgr, "clubs/pub/private/invite"), { code: 12345678 }));
 await assertFails(setDoc(doc(mgr, "clubs/pub/private/invite"), { code: "ABCDEFGH", extra: 1 }));
-await assertFails(join(other, "pub", "other", memberDoc())); // GOODCODE is old now
-await assertSucceeds(join(other, "pub", "other", memberDoc({ inviteCode: "NEWCODE2" })));
+await assertFails(join(other, "priv", "other", memberDoc())); // GOODCODE is old now
+await assertSucceeds(join(other, "priv", "other", memberDoc({ inviteCode: "NEWCODE2" })));
+
+// ---- Open join: a public club takes anyone signed in as a plain member, no code; a private club never
+await seed();
+await assertSucceeds(join(other, "pub", "other", noCode));
+await assertFails(join(req, "pub", "req", { ...noCode, role: "manager" }));
+await assertFails(join(req, "pub", "req", { ...noCode, extra: 1 }));
+await assertFails(join(req, "pub", "req", { ...noCode, joinedAt: 0 }));
+await assertFails(join(req, "pub", "req2", noCode)); // someone else
+await assertFails(join(anon, "pub", "x", noCode));
+await assertFails(join(quick, "pub", "q1", noCode));
+await assertFails(join(legacy, "pub", "c1", noCode));
+await assertFails(join(req, "priv", "req", noCode)); // private clubs are invite only
+await assertFails(join(req, "noinv", "req", noCode));
 
 // ---- Approval: member record + the person's card + the request, in one batch, by a manager
 await seed();
@@ -226,7 +239,7 @@ await assertFails(setDoc(doc(own, "clubs/priv/private/managerInvite"), { code: "
 const managerDoc = (extra = {}) => memberDoc({ role: "manager", inviteCode: "MGRCODE1", ...extra });
 const managerCard = (club) => ({ clubName: club, role: "manager", joinedAt: now() });
 await assertFails(join(other, "pub", "other", managerDoc({ inviteCode: "GOODCODE" }), managerCard("pub"))); // the member code doesn't make managers
-await assertFails(join(other, "pub", "other", memberDoc({ inviteCode: "MGRCODE1" }))); // and the manager code doesn't make members
+await assertFails(join(other, "priv", "other", memberDoc({ inviteCode: "MGRCODE1" }))); // and the manager code doesn't make members
 await assertFails(join(other, "pub", "other", managerDoc({ inviteCode: "WRONGONE" }), managerCard("pub")));
 await assertFails(join(other, "noinv", "other", managerDoc(), managerCard("noinv"))); // no manager link was ever made
 await assertFails(join(other, "pub", "other", managerDoc({ role: "owner" }), managerCard("pub")));

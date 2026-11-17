@@ -1,6 +1,6 @@
 import { deleteDoc, doc, getDoc, setDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
-import { joinRequestDoc, memberRecord, membershipCopy, newInviteCode } from "../utils/clubs";
+import { memberRecord, membershipCopy, newInviteCode } from "../utils/clubs";
 import { leaveClub } from "../utils/accountData";
 
 // Removes this person's own "My clubs" card (a stale one: they were removed, or the club is gone).
@@ -13,17 +13,17 @@ export function useMembershipActions({ uid, name, clubId, club }) {
   const memberRef = (id) => doc(db, "clubs", clubId, "members", id);
   const cardRef = (id) => doc(db, "accounts", id, "memberships", clubId);
 
-  const requestToJoin = (message) => setDoc(requestRef(uid), joinRequestDoc(name, message, Date.now()));
-  // Withdraw a pending request, or dismiss a declined one.
+  // Withdraw a pending request (sent while joining a public club still needed approval), or dismiss a declined one.
   const cancelRequest = () => deleteDoc(requestRef(uid));
 
   // The invite code goes in joinCodes/{uid} in the same batch (never on the member record, which every member can
   // read); the rules compare it to the club's current code (the member link for role "member", the owner's manager
   // link for role "manager").
+  // With no code it is the open join of a public club (the rules refuse it for a private one).
   const joinWithInvite = async (code, role = "member") => {
     const now = Date.now();
     const batch = writeBatch(db);
-    batch.set(doc(db, "clubs", clubId, "joinCodes", uid), { code });
+    if (code) batch.set(doc(db, "clubs", clubId, "joinCodes", uid), { code });
     batch.set(memberRef(uid), memberRecord(name, now, role));
     batch.set(cardRef(uid), membershipCopy(club, role, now));
     batch.delete(requestRef(uid)); // an earlier request of theirs is answered by joining
@@ -74,5 +74,7 @@ export function useMembershipActions({ uid, name, clubId, club }) {
     return code;
   };
 
-  return { requestToJoin, cancelRequest, joinWithInvite, approve, decline, leave, removeMember, setRole, saveInvite };
+  const join = () => joinWithInvite(null);
+
+  return { cancelRequest, joinWithInvite, join, approve, decline, leave, removeMember, setRole, saveInvite };
 }

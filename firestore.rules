@@ -443,7 +443,19 @@ service cloud.firestore {
           || (d.role == 'manager' && exists(managerInvitePath(clubId))
             && getAfter(joinCodePath(clubId, uid)).data.code == get(managerInvitePath(clubId)).data.code));
     }
-    // A manager approving a pending request: a plain member record, nothing else.
+    // Public clubs are open: anyone signed in adds themselves as a plain member, no code, no approval.
+    // Private clubs are invite only (validInviteJoin).
+    function validOpenJoin(clubId, uid) {
+      let d = request.resource.data;
+      return request.auth.uid == uid
+        && isPublicClub(clubId)
+        && d.role == 'member'
+        && d.keys().hasOnly(['role', 'name', 'joinedAt'])
+        && d.keys().hasAll(['role', 'name', 'joinedAt'])
+        && validName(d.name)
+        && nearNow(d.joinedAt);
+    }
+    // A manager approving a pending request (left from before public clubs were open): a plain member record.
     function validApproval(clubId, uid) {
       let d = request.resource.data;
       return isManager(clubId)
@@ -528,13 +540,14 @@ service cloud.firestore {
         // Your own record (to learn your role, even when you have none), or any record if you're a member.
         allow get: if isRealUser() && (request.auth.uid == uid || isMember(clubId));
         allow list: if isMember(clubId);
-        // Three ways in: the owner's record (same batch as the club, getAfter sees the new club), an invite
-        // join with the current code, and a manager approving a pending request.
+        // Four ways in: the owner's record (same batch as the club, getAfter sees the new club), joining a
+        // public club, an invite join with the current code, and a manager approving a pending request.
         allow create: if isRealUser() && (
           (request.auth.uid == uid
             && request.resource.data.role == 'owner'
             && request.resource.data.keys().hasOnly(['role', 'name', 'joinedAt'])
             && getAfter(clubPath(clubId)).data.ownerId == request.auth.uid)
+          || validOpenJoin(clubId, uid)
           || validInviteJoin(clubId, uid)
           || validApproval(clubId, uid));
         // The owner changes a role between member and manager (never the owner's own, never to owner).

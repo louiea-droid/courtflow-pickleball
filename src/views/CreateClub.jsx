@@ -4,8 +4,8 @@ import PageTitle from "../components/PageTitle";
 import Select from "../components/Select";
 
 const VISIBILITY = [
-  { value: "public", label: "Public: listed, anyone can book" },
-  { value: "private", label: "Private: members only" },
+  { value: "public", label: "Public: anyone can find, book and join" },
+  { value: "private", label: "Private: invite only" },
 ];
 
 // The create-club form. onCreate resolves to { id } (go to the new club) or { error } (show it).

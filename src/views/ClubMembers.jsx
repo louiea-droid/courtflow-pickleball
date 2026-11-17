@@ -170,7 +170,7 @@ export default function ClubMembers({ clubId, club, uid, canManage, isOwner, req
       )}
       {confirm?.kind === "remove" && (
         <ConfirmDialog
-          title={`Remove ${confirm.member.name}?`} message="They lose access to this club. They can ask to join again." confirmLabel="Remove"
+          title={`Remove ${confirm.member.name}?`} message="They lose access to this club. They can join again." confirmLabel="Remove"
           onCancel={() => setConfirm(null)}
           onConfirm={() => {
             const m = confirm.member;
@@ -181,7 +181,7 @@ export default function ClubMembers({ clubId, club, uid, canManage, isOwner, req
       )}
       {confirm?.kind === "leave" && (
         <ConfirmDialog
-          title={`Leave ${club.name}?`} message="You lose access to this club. You can ask to join again, or use an invite link." confirmLabel="Leave club"
+          title={`Leave ${club.name}?`} message="You lose access to this club. You can join again (a private club needs an invite link)." confirmLabel="Leave club"
           onCancel={() => setConfirm(null)}
           onConfirm={() => {
             setConfirm(null);

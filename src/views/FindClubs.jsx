@@ -109,7 +109,7 @@ export default function FindClubs({ myClubs, myReady, sessions = [], joinRequest
         ) : (
           <span className="club-card-next none">No open play scheduled yet</span>
         )}
-        <span className="club-card-cta join">Ask to join</span>
+        <span className="club-card-cta join">Join</span>
       </a>
     );
   };
@@ -156,7 +156,7 @@ export default function FindClubs({ myClubs, myReady, sessions = [], joinRequest
           {toJoin.length > 0 && (
             <section className="clubs-group" aria-labelledby="clubs-join">
               {heading("Find a club to join", toJoin.length, "clubs-join")}
-              <p className="clubs-join-note">Public clubs you can ask to join. Private clubs join with an invite link from the club.</p>
+              <p className="clubs-join-note">Anyone can join a public club. Private clubs are invite only.</p>
               <div className="club-cards">{toJoin.map(joinCard)}</div>
             </section>
           )}

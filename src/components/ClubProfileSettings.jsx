@@ -4,8 +4,8 @@ import { SettingsRow } from "../views/Settings";
 import Select from "./Select";
 
 const VISIBILITY = [
-  { value: "public", label: "Public: listed, anyone can book" },
-  { value: "private", label: "Private: members only" },
+  { value: "public", label: "Public: anyone can find, book and join" },
+  { value: "private", label: "Private: invite only" },
 ];
 
 // The club's name, description, location and visibility. Managers edit the text; only the owner
@@ -52,7 +52,7 @@ export default function ClubProfileSettings({ club, isOwner, onSave }) {
         </SettingsRow>
         <SettingsRow
           title="Visibility"
-          body={isOwner ? "Public clubs can be found and their open play booked by anyone. Private clubs are for members only." : "Only the owner can change this."}
+          body={isOwner ? "Public clubs can be found, booked and joined by anyone. Private clubs are invite only: people join with an invite link." : "Only the owner can change this."}
         >
           <div className="account-select">
             <Select value={form.visibility} onChange={(visibility) => isOwner && set({ visibility })} options={VISIBILITY} />

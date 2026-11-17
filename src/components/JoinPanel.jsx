@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { Lock } from "lucide-react";
 import { useMyJoinRequest } from "../hooks/useMembership";
-import { JOIN_MESSAGE_MAX, validateJoinMessage } from "../utils/clubs";
 
-// What a signed-in person who is not in the club sees: use an invite link, or ask to join a public
-// club. Once they are a member the club page switches to the member view by itself.
+// What a signed-in person who is not in the club sees: use an invite link, or join a public club in one tap
+// (private clubs are invite only). Once they are a member the club page switches to the member view by itself.
 export default function JoinPanel({ uid, clubId, club, invite, inviteRole = "member", actions, notify, onJoined }) {
   const { request, ready } = useMyJoinRequest(uid, clubId);
-  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,49 +40,37 @@ export default function JoinPanel({ uid, clubId, club, invite, inviteRole = "mem
     );
   }
 
+  if (club.visibility === "public") {
+    return (
+      <div className="panel join-panel">
+        <h2 className="club-section">Join {club.name}</h2>
+        <p>Anyone can join this club. Members see the club feed and chat, their place in the queue, and every game.</p>
+        {error && <p className="join-error" role="alert">{error}</p>}
+        <button
+          className="primary" disabled={busy}
+          onClick={() => run(async () => { await actions.join(); notify(`You joined ${club.name}.`); onJoined(); }, "Couldn't join. Check your connection and try again.")}
+        >
+          Join club
+        </button>
+      </div>
+    );
+  }
+
   if (!ready) return <p className="hub-empty">Loading…</p>;
 
-  if (request?.status === "pending") {
+  // A request sent while the club was still public: it can still be withdrawn or dismissed.
+  if (request) {
     return (
       <div className="panel join-panel">
-        <h2 className="club-section">Request sent</h2>
-        <p>A manager will review it. You'll see the club's members here once you're in.</p>
+        <h2 className="club-section">{request.status === "declined" ? "Your request was declined" : "Request sent"}</h2>
+        <p>This club is invite only now. Ask a manager for an invite link.</p>
         {error && <p className="join-error" role="alert">{error}</p>}
-        <button className="outline" disabled={busy} onClick={() => run(actions.cancelRequest, "Couldn't withdraw the request. Try again.")}>Withdraw request</button>
-      </div>
-    );
-  }
-  if (request?.status === "declined") {
-    return (
-      <div className="panel join-panel">
-        <h2 className="club-section">Your request was declined</h2>
-        <p>You can dismiss this and ask again later.</p>
-        {error && <p className="join-error" role="alert">{error}</p>}
-        <button className="outline" disabled={busy} onClick={() => run(actions.cancelRequest, "Couldn't dismiss it. Try again.")}>Dismiss</button>
+        <button className="outline" disabled={busy} onClick={() => run(actions.cancelRequest, "Couldn't update the request. Try again.")}>
+          {request.status === "declined" ? "Dismiss" : "Withdraw request"}
+        </button>
       </div>
     );
   }
 
-  if (club.visibility !== "public") {
-    return <div className="panel notice"><p><Lock size={14} /> This club is private. Ask a manager for an invite link.</p></div>;
-  }
-
-  const send = (e) => {
-    e.preventDefault();
-    const problem = validateJoinMessage(message);
-    if (problem) return setError(problem);
-    run(async () => { await actions.requestToJoin(message); setMessage(""); }, "Couldn't send your request. Check your connection and try again.");
-  };
-  return (
-    <form className="panel join-panel" onSubmit={send}>
-      <h2 className="club-section">Join {club.name}</h2>
-      <p>Send a request. A manager will approve it.</p>
-      <label>
-        Message to the managers <small>(optional)</small>
-        <textarea rows={3} value={message} maxLength={JOIN_MESSAGE_MAX} onChange={(e) => setMessage(e.target.value)} placeholder="Who you are and when you play." />
-      </label>
-      {error && <p className="join-error" role="alert">{error}</p>}
-      <button className="primary" disabled={busy}>Request to join</button>
-    </form>
-  );
+  return <div className="panel notice"><p><Lock size={14} /> This club is private and invite only. Ask a manager for an invite link.</p></div>;
 }
