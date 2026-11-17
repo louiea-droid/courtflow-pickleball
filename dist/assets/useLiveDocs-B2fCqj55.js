@@ -1,1 +1,0 @@
-import{r as e}from"./index-DKhr63lp.js";import{f as a,o as c,c as i,a as f}from"./firebase-DkPwL0Co.js";const d=o=>o.docs.map(s=>({id:s.id,...s.data()}));function m(o){const s=o?o.join("/"):"",[r,t]=e.useState([]);return e.useEffect(()=>{if(t([]),!(!a||!s))return c(i(f,...s.split("/")),n=>t(d(n)),()=>t([]))},[s]),r}export{d,m as u};
