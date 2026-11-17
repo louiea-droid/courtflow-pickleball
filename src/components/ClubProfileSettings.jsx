@@ -2,6 +2,7 @@ import { useState } from "react";
 import { validateClubInput } from "../utils/clubs";
 import { SettingsRow } from "../views/Settings";
 import Select from "./Select";
+import PlaceInput from "./PlaceInput";
 
 const VISIBILITY = [
   { value: "public", label: "Public: anyone can find, book and join" },
@@ -48,7 +49,7 @@ export default function ClubProfileSettings({ club, isOwner, onSave }) {
           <textarea className="club-input" rows={3} value={form.description} maxLength={500} onChange={(e) => set({ description: e.target.value })} aria-label="Description" />
         </SettingsRow>
         <SettingsRow title="Location" body="Where you play, for example a city or venue.">
-          <input className="club-input" value={form.location} maxLength={100} onChange={(e) => set({ location: e.target.value })} aria-label="Location" />
+          <PlaceInput className="club-input" value={form.location} onChange={(location) => set({ location })} placeholder="Start typing a city or venue" ariaLabel="Location" />
         </SettingsRow>
         <SettingsRow
           title="Visibility"

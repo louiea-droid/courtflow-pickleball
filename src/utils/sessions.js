@@ -90,7 +90,7 @@ export function weekDays(start) {
 export function filterSessions(events, text, date, { level = null, hasSpots = false, clubs = null } = {}) {
   const q = (text || "").trim().toLowerCase();
   return events.filter((e) => (date === "any" || e.date === date)
-    && (!q || [e.clubName, e.clubLocation, e.title, e.level].some((v) => (v || "").toLowerCase().includes(q)))
+    && (!q || [e.clubName, e.venue, e.clubLocation, e.title, e.level].some((v) => (v || "").toLowerCase().includes(q)))
     && (!level || e.level === level)
     && (!hasSpots || !e.maxPlayers || fillRatio(e) < 1)
     && (!clubs || clubs.has(e.clubId)));

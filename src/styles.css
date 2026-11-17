@@ -671,6 +671,7 @@ main{width:100%;max-width:1480px;padding:0 34px 50px;min-width:0}
 }
 .modal{
   width:min(510px,100%);background:var(--panel);border-radius:19px;padding:19px;
+  max-height:calc(100vh - 36px);max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain; /* a tall window scrolls inside itself */
   box-shadow:0 30px 80px #0004;animation:scaleIn .25s var(--ease) both
 }
 .modaltop{display:flex;justify-content:space-between;margin-bottom:15px}
@@ -1880,6 +1881,36 @@ button.ci-btn:focus-visible{outline:2px solid var(--accent-bright);outline-offse
 .fee-who{display:grid;gap:1px;min-width:0}
 .fee-who b{font-size:15px;color:var(--ink);overflow-wrap:anywhere}
 .fee-who small{font-size:12px;color:var(--muted)}
+/* A player's own fee: the amount under the name opens a small window to change it. */
+.fee-amount{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px 7px;font-size:12px;color:var(--muted)}
+.fee-amount .fee-owes{font-weight:700;font-variant-numeric:tabular-nums}
+.fee-was{opacity:.65;font-variant-numeric:tabular-nums}
+.fee-tag{padding:1px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent-ink);font-size:11px;font-weight:700;line-height:1.6}
+.fee-amount-btn{justify-self:start;padding:3px 7px;margin:-3px -7px;border:0;border-radius:8px;background:none;box-shadow:none;font:inherit;font-size:12px;color:var(--muted);cursor:pointer;transition:background-color .15s ease,color .15s ease}
+.fee-amount-btn svg{opacity:.55;transition:opacity .15s ease}
+.fee-amount-btn:hover,.fee-amount-btn:focus-visible{background:var(--soft);color:var(--ink)}
+.fee-amount-btn:hover svg,.fee-amount-btn:focus-visible svg{opacity:1}
+.fee-amount-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.fee-editor{width:min(420px,100%)}
+.fee-editor form{gap:14px}
+.fee-editor-amount{display:flex;align-items:baseline;gap:6px;padding:10px 16px;border:1px solid var(--line-strong);border-radius:14px;background:var(--bg);transition:border-color .15s ease,box-shadow .15s ease}
+.fee-editor-amount:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent)}
+.fee-editor-amount span{font:700 26px "Space Grotesk";color:var(--muted)}
+.modal .fee-editor-amount input,.modal .fee-editor-small input{margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;outline:0;appearance:textfield;-moz-appearance:textfield;font-variant-numeric:tabular-nums}
+.modal .fee-editor-amount input{font:700 34px "Space Grotesk";color:var(--ink);min-width:0}
+.fee-editor input::-webkit-inner-spin-button,.fee-editor input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.fee-editor-hint{margin:-6px 2px 0;font-size:12.5px;color:var(--muted)}
+.fee-editor-hint.less{color:var(--accent-ink)}
+.fee-editor-picks button{min-height:34px}
+.fee-editor-why{display:grid;gap:9px;margin:0;padding:12px 0 0;border:0;border-top:1px solid var(--line-soft)}
+.fee-editor-why legend{float:left;width:100%;padding:0;font-size:13px;font-weight:700;color:var(--ink)}
+.fee-editor-why legend span{font-weight:500;color:var(--faint);font-size:12px;margin-left:4px}
+.fee-editor-before{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px;color:var(--muted)}
+.fee-editor-small{display:inline-flex;align-items:center;gap:3px;height:36px;padding:0 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--bg)}
+.fee-editor-small:focus-within{border-color:var(--accent)}
+.modal .fee-editor-small input{width:76px;font-size:14px;font-weight:700;color:var(--ink)}
+.fee-editor-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:4px}
+.fee-editor-actions .text{margin-right:auto}
 .method-switch{display:inline-flex;padding:3px;gap:2px;border:1px solid var(--line);border-radius:99px;background:var(--soft)}
 .method-switch button{min-height:32px;padding:0 12px;border:0;border-radius:99px;background:transparent;color:var(--muted);font-weight:700;font-size:12px;box-shadow:none}
 .method-switch button:hover{color:var(--ink)}
@@ -2053,7 +2084,7 @@ button.ci-btn:focus-visible{outline:2px solid var(--accent-bright);outline-offse
 .tour-bar i{display:block;height:100%;background:var(--accent);transition:width .45s var(--ease)}
 .tour-actions{display:flex;align-items:center;gap:8px;justify-content:flex-end}
 .tour-skip{margin-right:auto;color:var(--muted)}
-.tour-offer{position:fixed;right:18px;bottom:22px;z-index:65;width:min(380px,calc(100vw - 32px));display:grid;gap:12px;
+.tour-offer{position:fixed;right:18px;bottom:22px;z-index:55;width:min(380px,calc(100vw - 32px));display:grid;gap:12px;
   background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lg);padding:16px;animation:fadeSlideUp .3s var(--ease) both}
 .tour-offer b{display:block;font:700 16px "Space Grotesk";margin-bottom:3px}
 .tour-offer span{color:var(--muted);font-size:13px;line-height:1.5}

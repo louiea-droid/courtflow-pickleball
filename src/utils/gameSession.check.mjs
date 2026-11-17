@@ -156,6 +156,13 @@ const paidWalkIn = [{ id: "a" }, { id: "w", name: "Walk", feePaid: true, feeAmou
 assert.deepEqual(feeTotals(feeRows(raised, paidWalkIn), 200), { total: 500, collected: 300, remaining: 200, unpaid: 1, paid: 2 });
 assert.deepEqual(feeReport(raised, paidWalkIn, 1).rows.map((r) => r.amount), [150, 150, 200]);
 assert.deepEqual(feeTotals([{ paid: "paid" }], 150).collected, 150); // nothing saved (older data): the current fee
+// A custom fee (discount, part paid earlier) on the player doc: owed and collected at that amount, 0 means free.
+const custom = feeRows(raised, [{ id: "a" }, { id: "w", name: "Walk", feeCustom: 120 }, { id: "u", name: "Owes", feeCustom: 0 }]);
+assert.deepEqual(feeTotals(custom, 200), { total: 270, collected: 150, remaining: 120, unpaid: 2, paid: 1 });
+assert.deepEqual(feeTotals([{ paid: "paid", custom: 80 }], 150).collected, 80);
+const noted = feeReport(raised, [{ id: "a" }, { id: "w", name: "Walk", feeCustom: 120, feeNote: "Discount" }], 1);
+assert.equal(noted.rows.find((r) => r.name === "Walk").note, "Discount");
+assert.ok(feeCsv(noted).includes('"Walk","Cash","Unpaid","120","Discount"'));
 
 // A name typed on the public booking form never runs as an Excel formula.
 const evil = feeCsv({ ...rep, rows: [{ name: "=HYPERLINK(\"x\")", method: "cash", status: "unpaid", amount: 150 }, { name: "@SUM(1)", method: "cash", status: "paid", amount: 150 }] });

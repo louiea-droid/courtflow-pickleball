@@ -1002,7 +1002,7 @@ button.acct-brand:hover{background:var(--side-hover)}
 .club-head-v2 .club-about{margin:12px 22px 18px}
 /* Edit club window */
 .edit-club-cover{position:relative;height:130px;border-radius:16px;overflow:hidden;background:linear-gradient(120deg,var(--club,var(--brand-green)),var(--brand-deep) 72%) center/cover no-repeat}
-.edit-club-cover-btns{position:absolute;right:10px;bottom:10px;z-index:1;display:flex;gap:6px}
+.edit-club-cover-btns{position:absolute;right:10px;top:10px;z-index:1;display:flex;gap:6px}
 .edit-club-photo{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:-30px 0 0 16px}
 .edit-club-photo .club-head-photo{width:76px;height:76px;font-size:28px;border-radius:20px}
 .edit-club-photo>button{margin-top:30px}
@@ -1465,3 +1465,21 @@ a.ov-row:hover{background:var(--hover)}
 .account-menu-theme button[aria-checked="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px #0000002e}
 .account-menu-links{margin:0 0 4px;padding:4px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .account-menu-photo:focus-visible,.account-menu-code button:focus-visible,.account-menu-theme button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Place field with suggestions (PlaceInput: Create a club, Edit club) */
+.place-input{position:relative;width:100%;min-width:0}
+.place-input>input{width:100%}
+.place-list{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);margin:0;padding:6px;list-style:none;background:var(--panel);border:1px solid var(--line-strong);border-radius:12px;box-shadow:0 14px 34px #0003}
+.place-list li{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border-radius:8px;font-size:13px;line-height:1.35;color:var(--ink);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600}
+.place-list li svg{flex:none;margin-top:2px;color:var(--accent)}
+.place-list li:hover,.place-list li[aria-selected="true"]{background:var(--soft)}
+.place-list .place-credit{cursor:default;padding:6px 10px 2px;font-size:11px;font-weight:500;color:var(--faint)}
+.place-list .place-credit:hover{background:none}
+.place-input>input{padding-right:48px}
+.place-map-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:36px;height:36px;padding:0;border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer}
+.place-map-btn:hover{background:var(--soft);color:var(--accent)}
+.place-map-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.map-modal{width:min(640px,100%)}
+.map-box{height:min(52vh,420px);border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--soft)}
+.map-locate{margin-top:10px}
+.map-label{margin:10px 2px 14px;font-size:14px;font-weight:600;color:var(--ink);min-height:20px}

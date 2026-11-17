@@ -818,10 +818,18 @@ export default function QueueApp({
 
   // Open play fees for a player who isn't a booked attendee (added in the game): paid lives on the player, with what
   // they paid (feeAmount), so a later fee change doesn't rewrite it.
-  async function setPlayersFeePaid(playerIds, paid, amount = 0) {
+  // `amounts` = { [id]: fee } for players with a custom fee; the rest pay `amount`.
+  async function setPlayersFeePaid(playerIds, paid, amount = 0, amounts = {}) {
     const batch = writeBatch(db);
-    playerIds.forEach((id) => batch.update(at("players", id), { feePaid: paid, feeAmount: paid ? amount : deleteField() }));
+    playerIds.forEach((id) => batch.update(at("players", id), { feePaid: paid, feeAmount: paid ? amounts[id] ?? amount : deleteField() }));
     await batch.commit();
+  }
+
+  // The host's own fee for one player and why (discount, part paid earlier); null goes back to the game's fee.
+  async function setPlayerFeeCustom(playerId, fee, note = "") {
+    await updateDoc(at("players", playerId), {
+      feeCustom: fee == null ? deleteField() : fee, feeNote: fee == null || !note ? deleteField() : note,
+    });
   }
 
   async function setPlayerFeeMethod(playerId, method) {
@@ -983,6 +991,7 @@ export default function QueueApp({
               onSetPlayersPaid={setPlayersFeePaid}
               onSetAttendeeMethod={isEventGame ? onSetAttendeeMethod : undefined}
               onSetPlayerMethod={setPlayerFeeMethod}
+              onSetCustomFee={setPlayerFeeCustom}
               maxPlayers={isEventGame ? session.maxPlayers : undefined}
               onSetAttendeesPaid={isEventGame ? onSetAttendeesPaid : undefined}
             />

@@ -29,7 +29,7 @@ export default function SessionCard({ session: s, mine, booked, href, onClick })
           <span className="session-title">{s.title || "Open play"}</span>
           <span className="session-club">
             <ClubBadge className="session-badge" id={s.clubId} name={s.clubName} photo={s.clubPhoto || ""} />
-            <span>{s.clubName}{s.clubLocation && `, ${s.clubLocation}`}</span>
+            <span>{s.clubName}{(s.venue || s.clubLocation) && `, ${s.venue || s.clubLocation}`}</span>
             {mine && <span className="session-mine">Your club</span>}
           </span>
         </span>

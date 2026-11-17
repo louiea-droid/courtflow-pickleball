@@ -80,7 +80,7 @@ export default function GameTicketModal({ session: s, member, booking, uid, name
               </div>
               <p className="sm-fill">{fillLine(s)}</p>
               {ratio !== null && <div className="sm-bar" aria-hidden="true"><i style={{ width: `${Math.round(ratio * 100)}%` }} /></div>}
-              {s.clubLocation && <p className="sm-fact"><MapPin size={16} aria-hidden="true" /> {s.clubLocation}</p>}
+              {(s.venue || s.clubLocation) && <p className="sm-fact"><MapPin size={16} aria-hidden="true" /> {s.venue || s.clubLocation}</p>}
               {s.notes && <p className="sm-note">{s.notes}</p>}
               {going && <p className="sm-going"><b>Going:</b> {going}</p>}
               {booking && <p className="sm-mine"><Check size={15} aria-hidden="true" /> You booked this game: {booking.status.label}</p>}

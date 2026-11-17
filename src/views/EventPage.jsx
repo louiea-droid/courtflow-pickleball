@@ -12,7 +12,7 @@ import { feeCsv, feeReport, feeRows, feeTotals, gameSummary } from "../utils/gam
 import { downloadCsv } from "../utils/download";
 
 // One player: the same status pill and Cash / GCash switch as the game's Payment page; refund and remove live behind "⋯".
-function AttendeeRow({ a, request, note, eventId, actions, onRemove, onReceipt }) {
+function AttendeeRow({ a, request, note, eventId, actions, onRemove, onReceipt, customFee }) {
   const paid = a.paid === "paid";
   const refunded = a.paid === "refunded";
   const sub = [note, request?.contact].filter(Boolean).join(" · ");
@@ -23,7 +23,7 @@ function AttendeeRow({ a, request, note, eventId, actions, onRemove, onReceipt }
         {sub && <small>{sub}</small>}
       </div>
       <MethodSwitch name={a.name} method={a.method} onChange={(method) => actions.patch(eventId, a.id, { method })} />
-      <StatusPill name={a.name} status={paid ? "paid" : refunded ? "refunded" : "unpaid"} onClick={() => actions.setPaid(eventId, a.id, paid || refunded ? "unpaid" : "paid")} />
+      <StatusPill name={a.name} status={paid ? "paid" : refunded ? "refunded" : "unpaid"} onClick={() => actions.setPaid(eventId, a.id, paid || refunded ? "unpaid" : "paid", customFee)} />
       <RowMenu
         label={`More for ${a.name}`}
         items={[
@@ -77,6 +77,8 @@ export default function EventPage({
   const owing = gameRows
     ? gameRows.filter((r) => r.attendee && !r.waiting && r.paid !== "paid" && r.paid !== "refunded").map((r) => r.id)
     : owingIds(event);
+  // Custom fees set on the Payment page live on the player docs, so they apply once the game data is read.
+  const customOf = Object.fromEntries((gameRows || []).filter((r) => r.custom != null).map((r) => [r.id, r.custom]));
   const confirmedIds = new Set(confirmed.map((a) => a.id));
   const sums = feeTotals(gameRows || everyone.map((a) => ({ paid: a.paid, amount: a.amount, waiting: !confirmedIds.has(a.id) })), event.fee || 0);
   const countOf = (key) => filterAttendees(everyone, key).length;
@@ -105,6 +107,7 @@ export default function EventPage({
           <p>
             {formatDay(event.date)} · {formatHM(event.startTime)} – {formatHM(endHM(event))}
             {event.level && event.level !== "Any Level" ? ` · ${event.level}` : ""}
+            {event.venue ? ` · ${event.venue}` : ""}
             {event.fee ? ` · ${money(event.fee)} per player` : " · Free"}
           </p>
         </div>
@@ -174,7 +177,7 @@ export default function EventPage({
                   </div>
                 )}
                 {shownConfirmed.map((a) => (
-                  <AttendeeRow key={a.id} a={a} request={requestOf(a)} eventId={event.id} actions={actions} onRemove={setRemoving} onReceipt={showReceipt} />
+                  <AttendeeRow key={a.id} a={a} request={requestOf(a)} eventId={event.id} actions={actions} onRemove={setRemoving} onReceipt={showReceipt} customFee={customOf[a.id]} />
                 ))}
                 {confirmed.length > 0 && !shownConfirmed.length && <div className="event-empty"><span>No players match.</span></div>}
                 {!confirmed.length && (
@@ -189,7 +192,7 @@ export default function EventPage({
                 <div className="booking-block">
                   <h4>Waitlist <span className="count-badge">{waitlist.length}</span></h4>
                   {shownWaitlist.map((a) => (
-                    <AttendeeRow key={a.id} a={a} request={requestOf(a)} note={`#${waitlist.indexOf(a) + 1} in line`} eventId={event.id} actions={actions} onRemove={setRemoving} onReceipt={showReceipt} />
+                    <AttendeeRow key={a.id} a={a} request={requestOf(a)} note={`#${waitlist.indexOf(a) + 1} in line`} eventId={event.id} actions={actions} onRemove={setRemoving} onReceipt={showReceipt} customFee={customOf[a.id]} />
                   ))}
                 </div>
               )}
@@ -261,7 +264,7 @@ export default function EventPage({
           message={`${owing.length} ${owing.length === 1 ? "player" : "players"} owing ${money(owing.length * (event.fee || 0))} will be marked paid. Waitlisted players aren't included.`}
           confirmLabel="Mark all paid" confirmClass="primary"
           onCancel={() => setConfirmAll(false)}
-          onConfirm={() => { setConfirmAll(false); actions.setPaidMany(event.id, owing, "paid"); }}
+          onConfirm={() => { setConfirmAll(false); actions.setPaidMany(event.id, owing, "paid", customOf); }}
         />
       )}
       {confirmDelete && (

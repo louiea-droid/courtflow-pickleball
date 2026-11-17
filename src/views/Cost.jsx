@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, CheckCheck, ChevronDown, Download, MonitorPlay, Save, Trash2 } from "lucide-react";
+import { Check, CheckCheck, ChevronDown, Download, MonitorPlay, Pencil, Save, Trash2 } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
+import Modal from "../components/Modal";
 import { FeeFilters, FeeProgress, MethodSwitch, StatusPill } from "../components/PaymentParts";
 import PanelHead from "../components/PanelHead";
 import PersonBadge from "../components/PersonBadge";
-import { feeCsv, feeReport, feeRows, feeTotals } from "../utils/gameSession";
+import { feeCsv, feeReport, feeRows, feeTotals, rowAmount, rowFee } from "../utils/gameSession";
 import { downloadCsv } from "../utils/download";
 import { formatDate, money, splitCost } from "../utils/format";
 
@@ -75,14 +76,111 @@ const FILTER_TESTS = {
 const RANK = ["unpaid", "paid", "waitlist", "refunded"];
 const rankOf = (r) => RANK.findIndex((key) => FILTER_TESTS[key](r));
 
-function FeeRow({ row, fee, onSetPaid, onSetMethod }) {
+const num = (text) => (String(text).trim() === "" ? NaN : Math.max(0, Math.round(parseFloat(text) * 100) / 100));
+
+// One player's own fee: a discount, or what's left after paying part earlier. Saving the game's fee clears it.
+function FeeEditor({ row, fee, onSave, close }) {
+  const isCustom = row.custom != null;
+  const [amount, setAmount] = useState(String(isCustom ? row.custom : fee));
+  const [reason, setReason] = useState(!isCustom ? "" : row.note === "Discount" ? "discount" : row.note?.startsWith("Paid") ? "earlier" : "");
+  const n = num(amount);
+  const valid = !Number.isNaN(n);
+  const before = valid ? Math.max(0, fee - n) : 0;
+  const diff = valid ? n - fee : 0;
+  const hint = !valid ? "Type an amount, 0 for free."
+    : diff === 0 ? "Same as the game fee."
+    : diff < 0 ? `${money(-diff)} less than the game fee.` : `${money(diff)} more than the game fee.`;
+  const save = (e) => {
+    e.preventDefault();
+    if (!valid) return;
+    const custom = n === fee ? null : n;
+    const note = custom == null ? "" : reason === "discount" ? "Discount" : reason === "earlier" ? `Paid ${money(before)} earlier` : "";
+    onSave(row.id, custom, note);
+    close();
+  };
+  const pick = (value) => setAmount(String(Math.round(value * 100) / 100));
+  return (
+    <Modal label="Payment" title={`Fee for ${row.name}`} close={close} className="fee-editor">
+      <form onSubmit={save}>
+        <div className="fee-editor-amount">
+          <span aria-hidden="true">₱</span>
+          <input
+            type="number" inputMode="decimal" min="0" step="0.01" autoFocus aria-label={`Fee for ${row.name}`}
+            value={amount} onChange={(e) => setAmount(e.target.value)} onFocus={(e) => e.target.select()}
+          />
+        </div>
+        <p className={`fee-editor-hint${diff < 0 ? " less" : ""}`} aria-live="polite">{hint}</p>
+
+        <div className="fee-chips fee-editor-picks" role="group" aria-label="Quick amounts">
+          <button type="button" aria-pressed={valid && n === 0} onClick={() => pick(0)}>Free</button>
+          <button type="button" aria-pressed={valid && n === fee / 2} onClick={() => pick(fee / 2)}>Half · {money(fee / 2)}</button>
+          <button type="button" aria-pressed={valid && n === fee} onClick={() => pick(fee)}>Game fee · {money(fee)}</button>
+        </div>
+
+        <fieldset className="fee-editor-why">
+          <legend>Why <span>optional, shown on the list and in the export</span></legend>
+          <div className="fee-chips" role="group">
+            <button type="button" aria-pressed={reason === "discount"} onClick={() => setReason(reason === "discount" ? "" : "discount")}>Discount</button>
+            <button type="button" aria-pressed={reason === "earlier"} onClick={() => setReason(reason === "earlier" ? "" : "earlier")}>Paid part earlier</button>
+          </div>
+          {reason === "earlier" && (
+            <div className="fee-editor-before">
+              <span>Paid before</span>
+              <div className="fee-editor-small">
+                <span aria-hidden="true">₱</span>
+                <input
+                  type="number" inputMode="decimal" min="0" step="0.01" aria-label="Amount paid before"
+                  value={valid ? before : ""} onChange={(e) => { const b = num(e.target.value); setAmount(Number.isNaN(b) ? "" : String(Math.max(0, fee - b))); }}
+                />
+              </div>
+              <span>so {valid ? money(n) : "the rest"} is left to pay.</span>
+            </div>
+          )}
+        </fieldset>
+
+        <div className="fee-editor-actions">
+          {isCustom && <button type="button" className="text" onClick={() => { onSave(row.id, null, ""); close(); }}>Use game fee</button>}
+          <button type="button" className="outline" onClick={close}>Cancel</button>
+          <button className="primary" disabled={!valid}>Save fee</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// The amount under a name, with the reason when the host changed it. Tap to change it;
+// locked once paid (mark unpaid to change it), so collected money never moves.
+function RowFee({ row, fee, onSave }) {
+  const [editing, setEditing] = useState(false);
+  if (row.waiting) return <small>Waitlist · not yet due</small>;
+  const isCustom = row.custom != null;
+  const owes = rowAmount(row, fee);
+  const text = (
+    <>
+      <span className="fee-owes">{money(owes)}</span>
+      {isCustom && owes !== fee && <s className="fee-was">{money(fee)}</s>}
+      {isCustom && <span className="fee-tag">{row.note || "Custom fee"}</span>}
+    </>
+  );
+  if (row.paid === "paid" || row.paid === "refunded" || !onSave) return <small className="fee-amount">{text}</small>;
+  return (
+    <>
+      <button type="button" className="fee-amount fee-amount-btn" aria-label={`Change ${row.name}'s fee, now ${money(owes)}`} onClick={() => setEditing(true)}>
+        {text}<Pencil size={12} aria-hidden="true" />
+      </button>
+      {editing && <FeeEditor row={row} fee={fee} onSave={onSave} close={() => setEditing(false)} />}
+    </>
+  );
+}
+
+function FeeRow({ row, fee, onSetPaid, onSetMethod, onSetCustomFee }) {
   const paid = row.paid === "paid";
   const refunded = row.paid === "refunded";
   return (
     <div className="fee-row">
       <div className="fee-who">
         <b>{row.name}</b>
-        <small>{row.waiting ? "Waitlist · not yet due" : money(fee)}</small>
+        <RowFee row={row} fee={fee} onSave={onSetCustomFee} />
       </div>
       <MethodSwitch name={row.name} method={row.method} onChange={(m) => onSetMethod(row, m)} />
       <StatusPill name={row.name} status={paid ? "paid" : refunded ? "refunded" : "unpaid"} onClick={() => onSetPaid([row], paid || refunded ? "unpaid" : "paid")} />
@@ -112,7 +210,7 @@ function FeeInput({ fee, onSave }) {
 
 // Rows are the booked attendees still in the game, or who already paid or were refunded (paid lives on
 // the event), plus everyone added in the game who isn't one (paid lives on the player).
-function OpenPlayFees({ event, players, fee, canSetFee, onSetFee, onSetAttendeesPaid, onSetPlayersPaid, onSetAttendeeMethod, onSetPlayerMethod }) {
+function OpenPlayFees({ event, players, fee, canSetFee, onSetFee, onSetAttendeesPaid, onSetPlayersPaid, onSetAttendeeMethod, onSetPlayerMethod, onSetCustomFee }) {
   const rows = feeRows(event, players);
   const { total, collected, remaining, unpaid, paid } = feeTotals(rows, fee);
   const [picked, setPicked] = useState(null);
@@ -129,8 +227,9 @@ function OpenPlayFees({ event, players, fee, canSetFee, onSetFee, onSetAttendees
   const setPaid = (list, value) => {
     const booked = list.filter((r) => r.attendee).map((r) => r.id);
     const walkIns = list.filter((r) => !r.attendee).map((r) => r.id);
-    if (booked.length) onSetAttendeesPaid(booked, value);
-    if (walkIns.length) onSetPlayersPaid(walkIns, value === "paid", fee);
+    const amounts = Object.fromEntries(list.filter((r) => r.custom != null).map((r) => [r.id, r.custom]));
+    if (booked.length) onSetAttendeesPaid(booked, value, amounts);
+    if (walkIns.length) onSetPlayersPaid(walkIns, value === "paid", fee, amounts);
   };
   const setMethod = (row, value) => (row.attendee ? onSetAttendeeMethod(row.id, value) : onSetPlayerMethod(row.id, value));
   const owing = rows.filter(FILTER_TESTS.unpaid);
@@ -168,14 +267,14 @@ function OpenPlayFees({ event, players, fee, canSetFee, onSetFee, onSetAttendees
       )}
 
       <div className="fee-list">
-        {visible.map((r) => <FeeRow key={r.id} row={r} fee={fee} onSetPaid={setPaid} onSetMethod={setMethod} />)}
+        {visible.map((r) => <FeeRow key={r.id} row={r} fee={fee} onSetPaid={setPaid} onSetMethod={setMethod} onSetCustomFee={onSetCustomFee} />)}
         {!visible.length && <div className="empty">{emptyText}</div>}
       </div>
 
       {confirmAll && (
         <ConfirmDialog
           title="Mark everyone as paid?"
-          message={`${owing.length} ${owing.length === 1 ? "player" : "players"} owing ${money(owing.length * fee)} will be marked paid. Waitlisted players aren't included.`}
+          message={`${owing.length} ${owing.length === 1 ? "player" : "players"} owing ${money(owing.reduce((n, r) => n + rowFee(r, fee), 0))} will be marked paid. Waitlisted players aren't included.`}
           confirmLabel="Mark all paid" confirmClass="primary"
           onCancel={() => setConfirmAll(false)}
           onConfirm={() => { setConfirmAll(false); setPaid(owing, "paid"); }}
@@ -192,7 +291,7 @@ function exportFees(event, players, fee) {
 
 export default function Cost({
   players, costs, costDefaults, onAdd, onTogglePaid, onToggleLive, onDelete,
-  isOpenPlay, attendees = [], eventFee = 0, maxPlayers, canSetFee, onSetFee, onSetAttendeesPaid, onSetPlayersPaid, onSetAttendeeMethod, onSetPlayerMethod, eventTitle, eventDate,
+  isOpenPlay, attendees = [], eventFee = 0, maxPlayers, canSetFee, onSetFee, onSetAttendeesPaid, onSetPlayersPaid, onSetAttendeeMethod, onSetPlayerMethod, onSetCustomFee, eventTitle, eventDate,
 }) {
   const defaultRate = costDefaults.rate ? String(costDefaults.rate) : "";
   const [label, setLabel] = useState("");
@@ -309,7 +408,7 @@ export default function Cost({
         <OpenPlayFees
           event={{ attendees, maxPlayers, title: eventTitle, date: eventDate }} players={players} fee={eventFee} canSetFee={canSetFee}
           onSetFee={onSetFee} onSetAttendeesPaid={onSetAttendeesPaid} onSetPlayersPaid={onSetPlayersPaid}
-          onSetAttendeeMethod={onSetAttendeeMethod} onSetPlayerMethod={onSetPlayerMethod}
+          onSetAttendeeMethod={onSetAttendeeMethod} onSetPlayerMethod={onSetPlayerMethod} onSetCustomFee={onSetCustomFee}
         />
       )}
 

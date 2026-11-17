@@ -177,7 +177,8 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
     }).catch(() => notify("Couldn't enable repeat-partner avoidance for this club. Try again in Settings.", 4000));
   }, [ready, canManage, clubId, club?.rules?.avoidRepeatPartners]);
   const openEvent = events.find((e) => e.id === eventId);
-  const latestPayInfo = [...events].filter((e) => !e.walkIn).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]?.payInfo;
+  const latestEvent = [...events].filter((e) => !e.walkIn).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+  const latestPayInfo = latestEvent?.payInfo;
   const todayYmd = new Intl.DateTimeFormat("en-CA", { timeZone: safeZone(display.timeZone) }).format(new Date());
 
   const playNow = async () => {
@@ -348,7 +349,7 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
       </main>
       {eventModal && (
         <BookingModal
-          booking={eventModal === "new" ? null : eventModal} today={todayYmd} lastPayInfo={latestPayInfo}
+          booking={eventModal === "new" ? null : eventModal} today={todayYmd} lastPayInfo={latestPayInfo} lastVenue={latestEvent?.venue ?? club?.location}
           close={() => setEventModal(null)}
           submit={async (data) => {
             const id = await actions.save(eventModal === "new" ? null : eventModal.id, data);

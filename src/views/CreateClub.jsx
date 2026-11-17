@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import PageTitle from "../components/PageTitle";
 import Select from "../components/Select";
+import PlaceInput from "../components/PlaceInput";
 
 const VISIBILITY = [
   { value: "public", label: "Public: anyone can find, book and join" },
@@ -44,7 +45,7 @@ export default function CreateClub({ onCreate, navigate }) {
         </label>
         <label>
           Location <small>(optional)</small>
-          <input value={form.location} maxLength={100} onChange={(e) => set({ location: e.target.value })} placeholder="City or venue" />
+          <PlaceInput value={form.location} onChange={(location) => set({ location })} placeholder="Start typing a city or venue" />
         </label>
         <label>
           Who can see it

@@ -106,6 +106,7 @@ function EventCard({ e, clubId, mine, autoOpen = false, onSent }) {
         <div className="op-card-title">
           <h3>{e.title}<span className="sr-only">, {formatDay(e.date)}</span></h3>
           <p><Clock size={13} /> {formatHM(e.startTime)} – {formatHM(endHM(e))}</p>
+          {e.venue && <p><MapPin size={13} /> {e.venue}</p>}
         </div>
       </div>
 

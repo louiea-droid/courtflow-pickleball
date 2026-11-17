@@ -45,7 +45,7 @@ export default function Game({ clubId, club, event, ready, base, navigate, endGa
       backLabel="Back to event"
       onBack={() => navigate(eventPage)}
       onEndSession={() => endGame(event.id)}
-      onSetAttendeesPaid={(ids, paid) => onSetAttendeesPaid(event.id, ids, paid)}
+      onSetAttendeesPaid={(ids, paid, amounts) => onSetAttendeesPaid(event.id, ids, paid, amounts)}
       onSetAttendeeMethod={(attendeeId, method) => onSetAttendeeMethod(event.id, attendeeId, method)}
       memberChoices={memberChoices}
       clubName={club?.name}

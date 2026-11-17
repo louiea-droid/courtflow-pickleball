@@ -140,32 +140,36 @@ export function feeRows(event, players = []) {
   const attendees = event.attendees || [];
   const confirmed = new Set(splitAttendees({ attendees, maxPlayers: event.maxPlayers }).confirmed.map((a) => a.id));
   const booked = new Set(attendees.map((a) => a.id));
-  const inGame = new Set(players.map((p) => p.id));
+  const byId = new Map(players.map((p) => [p.id, p]));
   // An attendee removed from the game (or never added) owes nothing; one who paid or was refunded stays so the money is accounted for.
-  const counts = (a) => inGame.has(a.id) || a.paid === "paid" || a.paid === "refunded";
+  const counts = (a) => byId.has(a.id) || a.paid === "paid" || a.paid === "refunded";
+  // `custom` = the host's own fee for this player (a discount, part paid earlier...), on the managers-only player doc.
   return [
     ...attendees.filter(counts).map((a) => ({
-      id: a.id, name: a.name, paid: a.paid, method: a.method, amount: a.amount,
-      waiting: !confirmed.has(a.id) && !inGame.has(a.id), attendee: true,
+      id: a.id, name: a.name, paid: a.paid, method: a.method, amount: a.amount, custom: byId.get(a.id)?.feeCustom, note: byId.get(a.id)?.feeNote,
+      waiting: !confirmed.has(a.id) && !byId.has(a.id), attendee: true,
     })),
     ...players.filter((p) => !booked.has(p.id))
       .map((p) => ({
-        id: p.id, name: p.name, paid: p.feePaid ? "paid" : "unpaid", method: p.feeMethod, amount: p.feeAmount,
+        id: p.id, name: p.name, paid: p.feePaid ? "paid" : "unpaid", method: p.feeMethod, amount: p.feeAmount, custom: p.feeCustom, note: p.feeNote,
         waiting: false, attendee: false,
       })),
   ];
 }
 
-// What a row paid, or owes at today's fee (older data saved no amount: the current fee).
-export const rowAmount = (r, fee) => (r.paid === "paid" ? r.amount ?? fee : fee);
+// What a row owes: the host's custom fee, else the game's fee.
+export const rowFee = (r, fee) => r.custom ?? fee;
+// What a row paid, or owes (older data saved no amount: what it owes now).
+export const rowAmount = (r, fee) => (r.paid === "paid" ? r.amount ?? rowFee(r, fee) : rowFee(r, fee));
 
 // What the fees panel adds up: total = everyone who owes (paid + unpaid), waitlist and refunds excluded.
 export function feeTotals(rows, fee) {
   const open = (r) => r.paid !== "paid" && r.paid !== "refunded";
-  const unpaid = rows.filter((r) => !r.waiting && open(r)).length;
+  const owing = rows.filter((r) => !r.waiting && open(r));
   const paidRows = rows.filter((r) => r.paid === "paid");
   const collected = paidRows.reduce((n, r) => n + rowAmount(r, fee), 0);
-  return { total: collected + unpaid * fee, collected, remaining: unpaid * fee, unpaid, paid: paidRows.length };
+  const remaining = owing.reduce((n, r) => n + rowFee(r, fee), 0);
+  return { total: collected + remaining, collected, remaining, unpaid: owing.length, paid: paidRows.length };
 }
 
 // The record saved when a game ends (a managers-only doc under the event's costs, so it never reaches the
@@ -177,7 +181,7 @@ export function feeReport(event, players, now) {
   const status = (r) => (r.paid === "paid" ? "paid" : r.paid === "refunded" ? "refunded" : r.waiting ? "waitlist" : "unpaid");
   const order = { paid: 0, unpaid: 1, waitlist: 2, refunded: 3 };
   const lines = rows
-    .map((r) => ({ name: r.name, method: r.method === "online" ? "online" : "cash", status: status(r), amount: rowAmount(r, fee) }))
+    .map((r) => ({ name: r.name, method: r.method === "online" ? "online" : "cash", status: status(r), amount: rowAmount(r, fee), note: r.custom != null ? r.note || "" : "" }))
     .map((l) => ({ ...l, amount: l.status === "paid" || l.status === "unpaid" ? l.amount : 0 }))
     .sort((a, b) => order[a.status] - order[b.status]);
   const { total, collected, remaining } = feeTotals(rows, fee);
@@ -193,8 +197,8 @@ export function feeCsv(report) {
   const status = (s) => s[0].toUpperCase() + s.slice(1);
   const lines = [
     ["Open play", report.title], ["Date", report.date], ["Fee per player", report.fee], [],
-    ["Player", "Method", "Status", "Amount"],
-    ...report.rows.map((r) => [r.name, method(r.method), status(r.status), r.amount]),
+    ["Player", "Method", "Status", "Amount", "Note"],
+    ...report.rows.map((r) => [r.name, method(r.method), status(r.status), r.amount, r.note || ""]),
     [], ["Total", "", "", report.total], ["Collected", "", "", report.collected], ["Remaining balance", "", "", report.remaining],
   ];
   return `\uFEFF${lines.map((l) => l.map(csvCell).join(",")).join("\r\n")}`;

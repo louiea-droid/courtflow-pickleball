@@ -1,13 +1,14 @@
 import { useState } from "react";
 import Modal from "./Modal";
 import Select from "./Select";
+import PlaceInput from "./PlaceInput";
 import { COURT_LEVEL_OPTIONS } from "../utils/courtLevels";
 
 const DURATIONS = [60, 90, 120, 150, 180, 240].map((m) => ({
   value: m, label: `${m / 60} ${m === 60 ? "hour" : "hours"}`,
 }));
 
-export default function BookingModal({ close, submit, booking, today, lastPayInfo }) {
+export default function BookingModal({ close, submit, booking, today, lastPayInfo, lastVenue }) {
   const isEdit = Boolean(booking);
   const [title, setTitle] = useState(booking?.title || "Open play");
   const [date, setDate] = useState(booking?.date || today);
@@ -17,6 +18,8 @@ export default function BookingModal({ close, submit, booking, today, lastPayInf
   const [fee, setFee] = useState(booking ? String(booking.fee ?? "") : "");
   const [level, setLevel] = useState(booking?.level || "Any Level");
   const [payInfo, setPayInfo] = useState(booking?.payInfo ?? lastPayInfo ?? "");
+  // Where this game is played (a court or venue); new games start from the last game's place, else the club's.
+  const [venue, setVenue] = useState(booking?.venue ?? lastVenue ?? "");
   const [notes, setNotes] = useState(booking?.notes || "");
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,7 +35,7 @@ export default function BookingModal({ close, submit, booking, today, lastPayInf
           setSubmitting(true);
           await submit({
             title: title.trim(), date, startTime, durationMins, maxPlayers: max,
-            fee: Math.max(0, parseFloat(fee) || 0), level, payInfo: payInfo.trim(), notes: notes.trim(),
+            fee: Math.max(0, parseFloat(fee) || 0), level, venue: venue.trim(), payInfo: payInfo.trim(), notes: notes.trim(),
           });
         }}
       >
@@ -60,6 +63,10 @@ export default function BookingModal({ close, submit, booking, today, lastPayInf
             <Select value={level} onChange={setLevel} options={COURT_LEVEL_OPTIONS} />
           </label>
         </div>
+        <label>
+          Location
+          <PlaceInput value={venue} onChange={setVenue} placeholder="Court or venue, e.g. Centro Sports Hub, Court 2" />
+        </label>
         <div className="formgrid">
           <label>
             Player spots

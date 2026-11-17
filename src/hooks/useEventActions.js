@@ -82,7 +82,8 @@ export function useEventActions({ clubId, club, events, hostName, timeZone, noti
     editAttendees(eventId, (e) => (e.attendees || []).map((a) => (a.id === attendeeId ? { ...a, ...change } : a)));
 
   // One write for any number of attendees (many separate writes would each start from the same stale list).
-  const setPaidMany = async (eventId, ids, paid) => {
+  // `amounts` = { [id]: fee } for players with a custom fee (the Payment page's `custom`); others pay the event fee.
+  const setPaidMany = async (eventId, ids, paid, amounts = {}) => {
     if (!ids.length) return;
     const chosen = new Set(ids);
     const bookingRef = doc(db, "clubs", clubId, "events", eventId, "costs", `booking-${eventId}`);
@@ -92,7 +93,7 @@ export function useEventActions({ clubId, club, events, hostName, timeZone, noti
       if (!chosen.has(a.id)) return a;
       const next = { ...a, paid };
       // What they paid is kept (feeTotals reads it), so a later fee change doesn't rewrite money already collected.
-      if (paid === "paid") Object.assign(next, { paidAt: at, amount: e.fee || 0 });
+      if (paid === "paid") Object.assign(next, { paidAt: at, amount: amounts[a.id] ?? (e.fee || 0) });
       else { delete next.paidAt; delete next.amount; }
       return next;
     }), (w) => {
@@ -100,7 +101,8 @@ export function useEventActions({ clubId, club, events, hostName, timeZone, noti
     });
     if (typeof out === "string") notify(out);
   };
-  const setPaid = (eventId, attendeeId, paid) => setPaidMany(eventId, [attendeeId], paid);
+  const setPaid = (eventId, attendeeId, paid, amount) =>
+    setPaidMany(eventId, [attendeeId], paid, amount == null ? {} : { [attendeeId]: amount });
 
   const kick = async (eventId, attendeeId) => {
     // Still in the game: they stay on the Payment page as a game-only player, so their payment moves to the player doc.
