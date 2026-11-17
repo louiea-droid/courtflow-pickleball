@@ -1286,3 +1286,52 @@ a.ov-row:hover{background:var(--hover)}
   [data-acct-side="collapsed"] .acct-side-me .account-menu-trigger{justify-content:center;padding:4px}
   [data-acct-side="collapsed"] .acct-side-me .account-menu-trigger-copy,[data-acct-side="collapsed"] .acct-side-me .account-menu-chevron{display:none}
 }
+
+/* ---------- Inbox (2026-11-17 redesign, owner-approved mockup) ----------
+   Both panels are the height of the window. The list: title + New message, search, All / Clubs / Direct (unread chats
+   counted), rows with the time and the unread dot. No chat open: a deep green panel on the wave. Phone: one pane at a
+   time, edge to edge. */
+.inbox{height:calc(100dvh - 44px);margin:0}
+.inbox-list{padding:0;overflow:hidden}
+.inbox-head{display:grid;gap:10px;padding:16px 14px 10px}
+.inbox-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.inbox-title h2{margin:0;font:italic 700 24px/1.1 "Space Grotesk";letter-spacing:-.02em}
+.inbox-new{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border:0;border-radius:999px;background:var(--lime);color:var(--on-lime);font:800 13px "DM Sans";cursor:pointer;transition:filter .15s ease}
+.inbox-new:hover{filter:brightness(1.06)}
+.inbox-new:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.inbox-head .inbox-search{margin:0}
+.inbox-tabs{display:flex;gap:6px}
+.inbox-tabs button{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;border:1px solid var(--card-line);border-radius:999px;background:transparent;color:var(--ink-2);font:700 12.5px "DM Sans";cursor:pointer}
+.inbox-tabs button:hover{border-color:var(--accent-line)}
+.inbox-tabs button[aria-pressed="true"]{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent-ink)}
+.inbox-tabs em{min-width:18px;padding:0 5px;border-radius:9px;background:var(--lime);color:var(--on-lime);font:800 10.5px/18px "DM Sans";font-style:normal;text-align:center}
+.inbox-rows{flex:1;min-height:0;overflow-y:auto;padding:2px 6px 8px;scrollbar-width:thin}
+.inbox-row{gap:12px;min-height:64px}
+.inbox-row-top{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.inbox-row-top b,.inbox-row-top small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inbox-row.unread small{color:var(--ink)}
+.inbox-pick{position:relative;flex:1;display:grid;place-items:center;overflow:hidden;padding:24px 24px 120px;border:0;border-radius:17px;background:var(--brand-deep);color:#eef5ef;text-align:center}
+.inbox-pick h2{margin:0 0 6px;font:italic 700 28px/1.1 "Space Grotesk";letter-spacing:-.02em;color:#fff}
+.inbox-pick p{margin:0 0 18px;color:#c3d4ca}
+.inbox-pick-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.inbox-pick-actions .inbox-new{min-height:42px;padding:0 18px}
+.inbox-pick-ghost{display:inline-flex;align-items:center;min-height:42px;padding:0 18px;border:1px solid #3a6555;border-radius:999px;color:#fff;font-weight:700;text-decoration:none}
+.inbox-pick-ghost:hover{background:#ffffff12}
+.inbox-pick-wave{position:absolute;left:0;right:0;bottom:0;width:100%;height:110px}
+.chat-head a.chat-hide{display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.newmsg-search{margin:0 0 10px}
+.newmsg-list{list-style:none;margin:0;padding:0;display:grid;gap:2px;max-height:min(420px,60dvh);overflow-y:auto}
+.newmsg-row{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 10px;border:0;border-radius:12px;background:transparent;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.newmsg-row:hover:not(:disabled){background:var(--soft)}
+.newmsg-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.newmsg-text{display:grid;flex:1;min-width:0}
+.newmsg-row b,.newmsg-row small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.newmsg-row small{color:var(--muted);font-size:12.5px}
+.newmsg-busy{flex:none;color:var(--muted);font-size:12px}
+@media (max-width:860px){
+  .inbox{height:calc(100dvh - 64px);min-height:360px;margin:-12px calc(-1 * var(--page-gutter)) 0;gap:0}
+  .inbox-list,.chat-pane{border:0;border-radius:0}
+  .inbox-list{background:var(--bg)}
+  .chat-head .chat-hide span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .chat-head .chat-hide{width:44px;justify-content:center;padding:0}
+}

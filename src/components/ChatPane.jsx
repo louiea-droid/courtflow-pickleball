@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowLeft, EyeOff, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Building2, EyeOff, Send, Trash2 } from "lucide-react";
 import ConfirmDialog from "./ConfirmDialog";
 import { useMessages } from "../hooks/useChats";
 import { MESSAGE_MAX, chatTitle, clubIdOfChat, validateMessage } from "../utils/chat";
@@ -16,7 +16,7 @@ export const whenLabel = (ms) => (sameDay(ms) ? formatTime(ms) : formatDate(ms))
 
 // One conversation: the messages (plain text, never HTML) and the box to write in. `unread` is whether this
 // chat has a line the person hasn't seen; showing it marks it read. `canModerate`: a manager of the club.
-export default function ChatPane({ chat, uid, unread, canModerate, actions, onBack, backLabel = "Back to all chats" }) {
+export default function ChatPane({ chat, uid, unread, canModerate, actions, onBack, navigate, backLabel = "Back to all chats" }) {
   const { messages, ready, hasMore, loadMore } = useMessages(chat.id);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -87,9 +87,14 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
           : <ClubBadge className="inbox-badge" id={clubIdOfChat(chat.id) || ""} name={title} />}
         <div>
           <h2>{title}</h2>
-          <p>{direct ? "Direct message" : "Club chat · only members can read and write"}</p>
+          <p>{direct ? "Direct message" : "Club chat, only members can read and write"}</p>
         </div>
-        {direct && <button className="outline chat-hide" type="button" onClick={() => setHiding(true)}><EyeOff size={15} /> Hide conversation</button>}
+        {direct && <button className="outline chat-hide" type="button" onClick={() => setHiding(true)}><EyeOff size={15} /><span> Hide conversation</span></button>}
+        {!direct && navigate && clubIdOfChat(chat.id) && (
+          <a className="outline chat-hide" href={`/clubs/${encodeURIComponent(clubIdOfChat(chat.id))}`} onClick={(e) => { e.preventDefault(); navigate(`/clubs/${encodeURIComponent(clubIdOfChat(chat.id))}`); }}>
+            <Building2 size={15} /><span> Club page</span>
+          </a>
+        )}
       </header>
 
       <div className="chat-list" ref={listRef} onScroll={onScroll} role="log" aria-live="polite" aria-label="Messages">
@@ -132,7 +137,7 @@ export default function ChatPane({ chat, uid, unread, canModerate, actions, onBa
         <div className="chat-composer-row">
           <textarea
             value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKeyDown} rows={2}
-            placeholder="Write a message" aria-label="Message" enterKeyHint="send"
+            placeholder={`Message ${title}`} aria-label="Message" enterKeyHint="send"
           />
           <button className="chat-send" type="button" onClick={send} disabled={busy || !text.trim()} aria-label="Send"><Send size={17} /></button>
         </div>

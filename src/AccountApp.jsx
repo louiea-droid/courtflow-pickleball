@@ -137,7 +137,7 @@ export default function AccountApp() {
         ) : route === "friends" ? (
           <Friends uid={uid} name={name} friendCode={acct.account?.friendCode} friendships={friendships} ready={friendsReady} notify={notify} navigate={navigate} />
         ) : route === "inbox" ? (
-          <Inbox uid={uid} name={name} clubs={clubs} clubsReady={clubsReady} inbox={inbox} chatId={chatId} navigate={navigate} />
+          <Inbox uid={uid} name={name} clubs={clubs} clubsReady={clubsReady} inbox={inbox} chatId={chatId} friendships={friendships} navigate={navigate} />
         ) : route === "help" ? (
           <Help navigate={navigate} />
         ) : route === "sessions" ? (
