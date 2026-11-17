@@ -1243,3 +1243,46 @@ a.ov-row:hover{background:var(--hover)}
 
 /* Help panes keep their scrollbar space, so a search that shortens the list never shifts them (2026-11-13). */
 .help-toc,.help-body{scrollbar-gutter:stable}
+
+/* ---------- No top bar on a wide screen (2026-11-17, owner's pick from a mockup) ----------
+   The game card leads the sidebar, the account menu and theme switch sit at its foot, and only the bell is left up
+   top, floating in the right corner. A phone keeps its dark bar (the drawer hides both sidebar pieces). */
+.acct-side-game{position:relative;z-index:1;display:flex;align-items:flex-start;gap:10px;margin:2px 0 6px;padding:10px 12px;border-radius:14px;background:var(--lime);color:var(--on-lime);text-decoration:none;transition:filter .15s ease}
+.acct-side-game:hover{filter:brightness(1.06)}
+.acct-side-game:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.acct-side-game-dot{flex-shrink:0;width:8px;height:8px;margin-top:5px;border-radius:50%;background:var(--brand-green);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand-green) 30%,transparent)}
+.acct-side-game-text{display:grid;gap:1px;min-width:0}
+.acct-side-game-text small{font-size:11.5px;font-weight:700;opacity:.72}
+.acct-side-game-text b,.acct-side-game-text span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-side-game-text b{font:700 14px/1.25 "Space Grotesk"}
+.acct-side-game-text span{font-size:12px;opacity:.72}
+.acct-side-me{display:flex;align-items:center;gap:2px;margin:6px 0 2px;padding-top:6px;border-top:1px solid var(--side-line)}
+.acct-side-me .account-menu{flex:1;min-width:0}
+.acct-side-me .account-menu-trigger{width:100%;min-height:44px;padding:4px 8px 4px 4px;border:0;border-radius:12px;background:transparent;color:#fff}
+.acct-side-me .account-menu-trigger:hover{background:#ffffff0d}
+.acct-side-me .account-menu-trigger:focus-visible{outline:2px solid var(--accent-bright);outline-offset:-2px}
+.acct-side-me .account-menu-trigger-copy{flex:1}
+.acct-side-me .account-menu-trigger-copy b{max-width:none;font-size:13.5px}
+.acct-side-me .account-menu-trigger-copy small{display:none}
+.acct-side-me .account-menu-chevron{color:var(--side-muted);transform:rotate(-90deg)}
+.acct-side-me .account-menu-trigger[aria-expanded="true"] .account-menu-chevron{transform:rotate(90deg)}
+/* The sidebar clips (it holds the wave), so the menu opens beside it, from the bottom. */
+.acct-side-me .account-menu-panel{color:var(--ink);position:fixed;top:auto;right:auto;bottom:14px;left:calc(var(--side-w) + 10px)}
+.acct-side-me .acct-theme-btn{flex-shrink:0;width:40px;height:40px;border:0;border-radius:10px;background:transparent;color:var(--side-muted)}
+.acct-side-me .acct-theme-btn:hover{background:#ffffff0d;color:#fff}
+@media (max-width:860px){.acct-side-game{display:none}}
+@media (min-width:861px){
+  .acct-shell{--header-h:0px}
+  /* the bell floats in the right gutter, so the page keeps at least 72px clear there */
+  .acct-main{padding-right:max(72px,calc((100vw - var(--side-w) - var(--page-max)) / 2))}
+  .acct-topbar{top:14px;left:auto;right:18px;height:auto;padding:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
+  .acct-topbar .acct-header-game,.acct-topbar .acct-theme-btn,.acct-topbar .account-menu{display:none}
+  .acct-topbar .acct-bell-btn{border:1px solid var(--card-line);background:var(--panel);box-shadow:0 6px 18px light-dark(#0f2a221a,#0007)}
+  .acct-topbar .acct-bell-btn:hover{background:var(--soft)}
+  [data-acct-side="collapsed"] .acct-side-game{justify-content:center;align-items:center;width:44px;height:44px;margin:2px auto 6px;padding:0}
+  [data-acct-side="collapsed"] .acct-side-game-dot{margin:0}
+  [data-acct-side="collapsed"] .acct-side-game-text{display:none}
+  [data-acct-side="collapsed"] .acct-side-me{flex-direction:column;gap:4px}
+  [data-acct-side="collapsed"] .acct-side-me .account-menu-trigger{justify-content:center;padding:4px}
+  [data-acct-side="collapsed"] .acct-side-me .account-menu-trigger-copy,[data-acct-side="collapsed"] .acct-side-me .account-menu-chevron{display:none}
+}

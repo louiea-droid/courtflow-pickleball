@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { LogOut, Play } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAccount } from "./hooks/useAccount";
 import { useRoute } from "./hooks/useRoute";
 import { nextOf } from "./utils/route";
@@ -61,18 +61,7 @@ export default function AccountApp() {
     () => filterMuted(buildNotifications({ uid, friendships, chats: inbox.chats, reads: inbox.reads, joinRequests: managerRequests, activeGames, bookings }), acct.account?.notify),
     [uid, friendships, inbox.chats, inbox.reads, managerRequests, activeGames, bookings, acct.account?.notify],
   );
-  const gameShortcut = activeGame ? (
-    <a
-      className="acct-header-game"
-      href={activeGame.gamePath}
-      aria-label="Back to game"
-      title="Back to game"
-      onClick={(e) => { e.preventDefault(); navigate(activeGame.gamePath); }}
-    >
-      <Play size={15} fill="currentColor" aria-hidden="true" />
-      <span>Back to game</span>
-    </a>
-  ) : null;
+  const game = activeGame ? { path: activeGame.gamePath, title: activeGame.event?.title || "Open play", club: activeGame.club?.clubName } : null;
 
   // Success signs the user out (deleteUser). This shell stays mounted behind the
   // sign-in screen, so close the dialog or the next sign-in opens on it.
@@ -138,7 +127,7 @@ export default function AccountApp() {
         active={{ "clubs-find": "find", clubs: "find", friends: "friends", inbox: "inbox", sessions: "sessions", help: "help", hub: "hub" }[route] || null}
         name={name} email={acct.user?.email} onSignOut={acct.signOutUser} navigate={navigate} clubs={clubs}
         friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
-        headerAction={gameShortcut} notifications={notifications} acct={acct}
+        game={game} notifications={notifications} acct={acct}
       />
       <main className="acct-main">
         {route === "settings" ? (

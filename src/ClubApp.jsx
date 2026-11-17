@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { ArrowLeft, CalendarDays, LayoutDashboard, Newspaper, Play, Settings as SettingsIcon, Users } from "lucide-react";
+import { ArrowLeft, CalendarDays, LayoutDashboard, Newspaper, Settings as SettingsIcon, Users } from "lucide-react";
 import { useClubDoc } from "./hooks/useClubDoc";
 import { useClubActions } from "./hooks/useClubActions";
 import { useEvents, useEventRequests } from "./hooks/useEvents";
@@ -213,12 +213,12 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
 
   // The same bar stays on screen while the club loads or when it can't be opened, so going from the hub
   // into a club never blanks the page.
-  const sidebar = (sideClub, headerAction = null) => (
+  const sidebar = (sideClub, game = null) => (
     <AccountSidebar
       active={null} name={acct.account?.name || acct.account?.clubName} email={acct.user?.email}
       onSignOut={acct.signOutUser} navigate={navigate} clubs={myClubs} club={sideClub}
       friendRequests={friendBuckets(friendships, uid).received.length} inboxUnread={inbox.unread}
-      headerAction={headerAction} notifications={notifications} acct={acct}
+      game={game} notifications={notifications} acct={acct}
     />
   );
   const inShell = (content) => <div className="acct-shell">{sidebar(null)}<main className="acct-main">{content}</main></div>;
@@ -333,22 +333,11 @@ export default function ClubApp({ acct, clubId, route, eventId, navigate, inbox,
   const gamePath = activeGame?.gamePath || (route === "club-event" && openEvent?.status === "live"
     ? `${base}/event/${eventId}/game`
     : null);
-  const gameShortcut = gamePath ? (
-    <a
-      className="acct-header-game"
-      href={gamePath}
-      aria-label="Back to game"
-      title="Back to game"
-      onClick={(e) => { e.preventDefault(); navigate(gamePath); }}
-    >
-      <Play size={15} fill="currentColor" aria-hidden="true" />
-      <span>Back to game</span>
-    </a>
-  ) : null;
+  const game = gamePath ? { path: gamePath, title: activeGame?.event?.title || openEvent?.title || "Open play", club: activeGame?.club?.clubName || club.name } : null;
 
   return (
     <div className="acct-shell">
-      {sidebar(sideClub, gameShortcut)}
+      {sidebar(sideClub, game)}
       <main className="acct-main">
         <ClubHeader
           clubId={clubId} club={club} role={role} isMember={isMember} canManage={canManage} isOwner={isOwner} route={route}

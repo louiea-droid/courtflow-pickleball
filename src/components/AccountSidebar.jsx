@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Building2, CalendarSearch, CircleHelp, House, Menu, MessageSquare, Moon, PanelLeft, Sun, UserPlus, X } from "lucide-react";
+import { Building2, CalendarSearch, CircleHelp, House, Menu, MessageSquare, Moon, PanelLeft, Play, Sun, UserPlus, X } from "lucide-react";
 import { isDarkTheme, setGlobalTheme } from "../utils/theme";
 import AccountMenu from "./AccountMenu";
 import NotificationBell from "./NotificationBell";
@@ -8,10 +8,12 @@ import { clubPath } from "../utils/clubs";
 import ClubBadge from "./ClubBadge";
 
 // The one sidebar for every signed-in screen in the hub and club area (a drawer behind a menu button on
-// phones). Home, Play (find a club, friends with a count of requests waiting, the inbox with a count of unread chats), My clubs (a link to the page of all your clubs, with the clubs listed under it; the open club links to its overview: `club` = { id, name, current }). The account menu lives in the sticky header across the top (with the button that collapses the
-// sidebar to an icon rail on a wide screen; the choice is remembered). Creating a club and the quick session live on
-// Home. `active` highlights a place: "hub" | "sessions" | "find" | "friends" | "inbox" | "clubs" | "help".
-export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null, friendRequests = 0, inboxUnread = 0, headerAction = null, notifications = null, acct = null }) {
+// phones). Home, Play (find a club, friends with a count of requests waiting, the inbox with a count of unread chats), My clubs (a link to the page of all your clubs, with the clubs listed under it; the open club links to its overview: `club` = { id, name, current }).
+// Wide screen (2026-11-17, owner's pick): no top bar; the game you're in is a lime card at the top of the sidebar, the
+// account menu and theme switch sit at its foot, and only the bell floats in the top right corner. A phone keeps its
+// dark top bar (menu button, game, theme, bell, account). The sidebar can collapse to an icon rail; the choice is remembered.
+// `game` = { path, title, club } of a live game. `active` highlights a place: "hub" | "sessions" | "find" | "friends" | "inbox" | "clubs" | "help".
+export default function AccountSidebar({ active, name, email, onSignOut, navigate, clubs = [], club = null, friendRequests = 0, inboxUnread = 0, game = null, notifications = null, acct = null }) {
   const [open, setOpen] = useState(false);
   // Wide screens: the sidebar is a fixed rail that can collapse to icons. A data attribute on <html> carries the state to the CSS.
   const [collapsed, setCollapsed] = useState(() => {
@@ -47,10 +49,14 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
           <Menu size={20} />
         </button>
         <a className="acct-brand" href="/" onClick={go("/")}><img src="/images/courtwave-light.png" alt="" /><b>CourtWave</b></a>
-        {headerAction}
+        {game && (
+          <a className="acct-header-game" href={game.path} aria-label="Back to game" title="Back to game" onClick={go(game.path)}>
+            <Play size={15} fill="currentColor" aria-hidden="true" /><span>Back to game</span>
+          </a>
+        )}
         {acct?.account && <ThemeToggle acct={acct} />}
         {notifications && <NotificationBell items={notifications} navigate={navigate} />}
-        <AccountMenu name={name} email={email} uid={acct?.user?.uid} onSignOut={onSignOut} navigate={navigate} />
+        <AccountMenu name={name} email={email} uid={acct?.user?.uid} acct={acct} onSignOut={onSignOut} navigate={navigate} />
       </header>
       <div className={`overlay${open ? " show" : ""}`} onClick={() => setOpen(false)} />
       <aside className={`acct-side${open ? " open" : ""}`} id="acct-side">
@@ -59,6 +65,16 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
           <button className="acct-brand" type="button" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((c) => !c)}><img src="/images/courtwave-light.png" alt="" /><b>CourtWave</b></button>
           <button className="acct-menu-btn acct-side-close" type="button" aria-label="Close menu" onClick={() => setOpen(false)}><X size={18} /></button>
         </div>
+        {game && (
+          <a className="acct-side-game" href={game.path} title={`Back to game: ${game.title}`} onClick={go(game.path)}>
+            <span className="acct-side-game-dot" aria-hidden="true" />
+            <span className="acct-side-game-text">
+              <small>Game in progress</small>
+              <b>{game.title}</b>
+              {game.club && <span>{game.club}</span>}
+            </span>
+          </a>
+        )}
         <div className="acct-side-scroll">
           <nav className="acct-side-group" aria-label="Main">
               {link("/", "Home", House, active === "hub")}
@@ -90,6 +106,10 @@ export default function AccountSidebar({ active, name, email, onSignOut, navigat
         </svg>
         <div className="acct-side-foot">
           {link("/help", "Help", CircleHelp, active === "help")}
+          <div className="acct-side-me">
+            <AccountMenu name={name} email={email} uid={acct?.user?.uid} acct={acct} onSignOut={onSignOut} navigate={navigate} />
+            {acct?.account && <ThemeToggle acct={acct} />}
+          </div>
           <button className="acct-collapse" type="button" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} aria-pressed={collapsed} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((c) => !c)}>
             <PanelLeft size={17} /><span>{collapsed ? "Expand" : "Collapse"}</span>
           </button>
